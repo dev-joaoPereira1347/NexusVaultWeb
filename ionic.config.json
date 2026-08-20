@@ -1,0 +1,7 @@
+{
+  "name": "NexusVault",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
