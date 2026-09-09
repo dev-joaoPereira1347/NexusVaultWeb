@@ -1,56 +1,75 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-title>Blank</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <ion-content class="page-container">
+      <Header />
 
-    <ion-content :fullscreen="true">
-      <ion-header collapse="condense">
-        <ion-toolbar>
-          <ion-title size="large">Blank</ion-title>
-        </ion-toolbar>
-      </ion-header>
+      <HeroSection
+        badge="MUSEU DIGITAL ABERTO"
+        title="Preserve, organize e<br />compartilhe<br />conhecimento."
+        description="Explore milhares de documentos, contribua com novas coleções e ajude a preservar conhecimento de forma aberta e acessível para todos."
+        primary-label="EXPLORAR ACERVO"
+        secondary-label="CONTRIBUIR"
+        image-src="@/assets/images/library.webp"
+        image-alt="Estante de madeira com luminárias"
+      />
 
-      <div id="container">
-        <strong>Ready to create an app?</strong>
-        <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-      </div>
+      <section class="stats-section">
+        <ion-grid>
+          <ion-row>
+            <ion-col size="12" size-md="4">
+              <StatCard
+                :icon="documentTextOutline"
+                value="2.000+"
+                label="Documentos"
+              />
+            </ion-col>
+
+            <ion-col size="12" size-md="4">
+              <StatCard
+                :icon="peopleOutline"
+                value="50"
+                label="Colaboradores"
+              />
+            </ion-col>
+
+            <ion-col size="12" size-md="4">
+              <StatCard
+                :icon="lockOpenOutline"
+                value="Acesso Livre"
+                label="Para todos"
+              />
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </section>
+
+      <Footer />
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/vue';
+import { IonPage, IonContent, IonGrid, IonRow, IonCol } from '@ionic/vue';
+import Header from '../components/Header.vue';
+import Footer from '../components/Footer.vue';
+import HeroSection from '../components/HeroSection.vue';
+import StatCard from '../components/StatCard.vue';
+
+import {
+  documentTextOutline,
+  peopleOutline,
+  lockOpenOutline
+} from 'ionicons/icons';
 </script>
 
 <style scoped>
-#container {
-  text-align: center;
-  
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+.page-container {
+  --background: var(--color-page-background);
 }
 
-#container strong {
-  font-size: 20px;
-  line-height: 26px;
-}
-
-#container p {
-  font-size: 16px;
-  line-height: 22px;
-  
-  color: #8c8c8c;
-  
-  margin: 0;
-}
-
-#container a {
-  text-decoration: none;
+.stats-section {
+  max-width: 1200px;
+  margin: 20px auto 40px auto;
+  padding: 0 16px;
 }
 </style>

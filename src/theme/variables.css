@@ -1,2 +1,46 @@
-/* For information on how to create your own theme, please refer to:
-http://ionicframework.com/docs/theming/ */
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: url('../assets/fonts/PlusJakartaSans-VariableFont_wght.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    --font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+
+    --color-background: #F7F0E9;
+    --color-page-background: #F3ECE6;
+    --color-surface: #FBF8F5;
+    --color-surface-alt: #EEE5DE;
+    --color-text-primary: #22223B;
+    --color-text-secondary: #4A4E69;
+    --color-text-muted: #6E6C7C;
+    --color-border: #9A8C98;
+    --color-border-soft: #E2DAD3;
+    --color-neutral: #C9ADA7;
+    --color-accent: #DDA15E;
+    --color-primary-dark: #2D2D2D;
+    --color-brand-primary: #3B52F6;
+    --color-white: #FFFFFF;
+
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+    --space-3xl: 64px;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+
+    --shadow-soft: 0 4px 12px rgba(34, 34, 59, 0.08);
+    --shadow-medium: 0 8px 24px rgba(34, 34, 59, 0.12);
+    --shadow-hero: 0 10px 30px rgba(0, 0, 0, 0.08);
+
+    --container-width: 1440px;
+    --content-width: 1200px;
+}
