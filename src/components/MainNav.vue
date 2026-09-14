@@ -18,7 +18,7 @@
 .desktop-nav {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: clamp(18px, 2.2vw, 28px);
   margin-left: auto;
 }
 
@@ -43,7 +43,7 @@
   }
 }
 
-@media (max-width: 850px) {
+@media (max-width: 900px) {
   .desktop-nav {
     display: none;
   }

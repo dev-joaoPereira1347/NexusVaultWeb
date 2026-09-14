@@ -35,6 +35,10 @@ import '@ionic/vue/css/palettes/dark.system.css';
 import './theme/variables.css';
 import './theme/core.css';
 
+import { defineCustomElements } from '@ionic/pwa-elements/loader';
+
+defineCustomElements(window);
+
 const app = createApp(App)
   .use(IonicVue)
   .use(router);

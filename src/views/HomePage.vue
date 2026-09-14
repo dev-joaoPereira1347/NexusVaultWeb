@@ -1,43 +1,26 @@
 <template>
   <ion-page>
-    <ion-content class="page-container">
+    <ion-content class="page-container" :scroll-y="true">
       <Header />
 
-      <HeroSection
-        badge="MUSEU DIGITAL ABERTO"
-        title="Preserve, organize e<br />compartilhe<br />conhecimento."
+      <HeroSection badge="MUSEU DIGITAL ABERTO" title="Preserve, organize e compartilhe<br />conhecimento."
         description="Explore milhares de documentos, contribua com novas coleções e ajude a preservar conhecimento de forma aberta e acessível para todos."
-        primary-label="EXPLORAR ACERVO"
-        secondary-label="CONTRIBUIR"
-        image-src="@/assets/images/library.webp"
-        image-alt="Estante de madeira com luminárias"
-      />
+        primary-label="EXPLORAR ACERVO" secondary-label="CONTRIBUIR" image-src="./src/assets/images/library.webp"
+        image-alt="Estante de madeira com luminárias" />
 
       <section class="stats-section">
         <ion-grid>
           <ion-row>
             <ion-col size="12" size-md="4">
-              <StatCard
-                :icon="documentTextOutline"
-                value="2.000+"
-                label="Documentos"
-              />
+              <StatCard :icon="documentTextOutline" value="2.000+" label="Documentos" />
             </ion-col>
 
             <ion-col size="12" size-md="4">
-              <StatCard
-                :icon="peopleOutline"
-                value="50"
-                label="Colaboradores"
-              />
+              <StatCard :icon="peopleOutline" value="50" label="Colaboradores" />
             </ion-col>
 
             <ion-col size="12" size-md="4">
-              <StatCard
-                :icon="lockOpenOutline"
-                value="Acesso Livre"
-                label="Para todos"
-              />
+              <StatCard :icon="lockOpenOutline" value="Acesso Livre" label="Para todos" />
             </ion-col>
           </ion-row>
         </ion-grid>

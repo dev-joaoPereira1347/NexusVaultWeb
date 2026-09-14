@@ -15,8 +15,7 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: 100vh;
-    overflow: visible;
+    min-height: 100vh;
 }
 
 .page-area {
@@ -24,6 +23,7 @@
     width: 100%;
     flex: 1 1 0;
     min-height: 0;
+    overflow: hidden;
 }
 
 .page-area :deep(ion-router-outlet) {

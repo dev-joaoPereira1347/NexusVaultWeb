@@ -3,7 +3,7 @@
     <h3>{{ title }}</h3>
 
     <div class="social-icons">
-      <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="social-circle" aria-label="Acesse nosso GitHub">
+      <a href="https://github.com/dev-joaoPereira1347/Projeto-NexusVault" target="_blank" rel="noopener noreferrer" class="social-circle" aria-label="Acesse nosso GitHub">
         <ion-icon :icon="logoGithub" aria-hidden="true" />
       </a>
 

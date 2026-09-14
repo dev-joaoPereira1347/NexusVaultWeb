@@ -15,6 +15,7 @@
 <style scoped>
 .search-box {
   width: 260px;
+  max-width: 100%;
   height: 46px;
   display: flex;
   align-items: center;
@@ -67,13 +68,7 @@
 
 @media (max-width: 1050px) {
   .search-box {
-    width: 220px;
-  }
-}
-
-@media (max-width: 850px) {
-  .search-box {
-    width: 220px;
+    width: clamp(180px, 21vw, 220px);
   }
 }
 

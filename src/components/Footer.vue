@@ -42,7 +42,7 @@ import SiteLogo from './SiteLogo.vue';
 
 const usefulLinks = [
     { label: 'Gêneros', to: '/genres' },
-    { label: 'Diretrizes', to: '/guidelines' },
+    { label: 'Diretrizes', to: '/community-guidelines' },
     { label: 'Central de Ajuda', to: '/help' },
     { label: 'Contato', to: '/contact' },
     { label: 'Sobre Nós', to: '/about-us' }
@@ -53,7 +53,8 @@ const usefulLinks = [
 .footer {
     width: 100%;
     flex: 0 0 auto;
-    position: static;
+    min-width: 0;
+    overflow: visible;
     background-color: var(--color-background);
     border-top: 1px solid rgba(154, 140, 152, 0.25);
     padding-block: var(--space-3xl) var(--space-xl);
@@ -72,6 +73,7 @@ const usefulLinks = [
 .footer-container {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     gap: var(--space-2xl);
     flex-wrap: wrap;
 }
@@ -79,6 +81,7 @@ const usefulLinks = [
 .footer-brand {
     flex: 1 1 360px;
     max-width: 420px;
+    min-width: 0;
 }
 
 .subtitle {
@@ -133,5 +136,39 @@ const usefulLinks = [
 
 .footer-legal span {
     color: rgba(154, 140, 152, 0.5);
+}
+
+@media (max-width: 700px) {
+    .footer {
+        padding-block: var(--space-2xl) var(--space-lg);
+    }
+
+    .footer .container {
+        width: min(100% - 32px, 1200px);
+    }
+
+    .footer-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-xl);
+    }
+
+    .footer-brand,
+    .footer-links,
+    .footer-social {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+    }
+
+    .footer-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+
+    .footer-legal {
+        gap: var(--space-sm);
+    }
 }
 </style>
