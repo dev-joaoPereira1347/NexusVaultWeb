@@ -67,23 +67,46 @@ export const useAuth = () => {
         avatarPreviewUrl.value = profileForm.value.avatarUrl;
     };
 
+    const getErrorMessage = (error: unknown): string => {
+        if (error instanceof Error) return error.message;
+        if (typeof error === 'object' && error !== null && 'message' in error) {
+            const message = (error as { message?: unknown }).message;
+            if (typeof message === 'string') return message;
+        }
+        return '';
+    };
+
+    const translateAuthError = (rawMessage: string, fallback: string): string => {
+        const normalizedMessage = rawMessage.toLowerCase();
+
+        if (normalizedMessage.includes('invalid login credentials')) return 'E-mail ou senha inválidos.';
+        if (normalizedMessage.includes('email not confirmed')) return 'Confirme seu e-mail antes de entrar.';
+        if (normalizedMessage.includes('email rate limit exceeded')) {
+            return 'Limite de envio de e-mails atingido. Aguarde alguns minutos antes de tentar novamente.';
+        }
+        if (normalizedMessage.includes('redirect_to') || normalizedMessage.includes('redirect url')) {
+            return 'A URL de recuperação não está autorizada no Supabase.';
+        }
+        if (normalizedMessage.includes('profiles_username_key') || normalizedMessage.includes('duplicate key value violates unique constraint')) {
+            return 'Este nome de usuário já está em uso. Escolha outro.';
+        }
+        if (normalizedMessage.includes('database error saving new user')) {
+            return 'Não foi possível salvar o cadastro. Verifique se o nome de usuário já existe ou tente outro e-mail.';
+        }
+        if (normalizedMessage.includes('permission denied for table profiles')) {
+            return 'Permissões da tabela profiles não configuradas no Supabase. Execute supabase/profiles-policies.sql no SQL Editor.';
+        }
+
+        return rawMessage || fallback;
+    };
+
     const run = async (action: () => Promise<void>, fallback: string) => {
         loading.value = true;
         try {
             await action();
         } catch (error) {
-            const rawMessage = error instanceof Error ? error.message : '';
-            const normalizedMessage = rawMessage.toLowerCase();
-            const message = normalizedMessage.includes('invalid login credentials')
-                ? 'E-mail ou senha inválidos.'
-                : normalizedMessage.includes('email not confirmed')
-                    ? 'Confirme seu e-mail antes de entrar.'
-                    : normalizedMessage.includes('email rate limit exceeded')
-                        ? 'Limite de envio de e-mails atingido. Aguarde alguns minutos antes de tentar novamente.'
-                    : normalizedMessage.includes('redirect_to') || normalizedMessage.includes('redirect url')
-                        ? 'A URL de recuperação não está autorizada no Supabase.'
-                    : rawMessage || fallback;
-            await showToast(message || fallback, 'danger');
+            const rawMessage = getErrorMessage(error);
+            await showToast(translateAuthError(rawMessage, fallback), 'danger');
         } finally {
             loading.value = false;
         }
