@@ -13,18 +13,10 @@
                     </header>
 
                     <div class="card-grid">
-                        <UploadDropzone
-                            :file="selectedFile"
-                            @select="processFile"
-                            @clear="clearSelectedFile"
-                        />
+                        <UploadDropzone :file="selectedFile" @select="processFile" @clear="clearSelectedFile" />
 
-                        <UploadMetadataForm
-                            v-model="form"
-                            :is-valid="isFormValid"
-                            :is-uploading="isUploading"
-                            @submit="submitForm"
-                        />
+                        <UploadMetadataForm v-model="form" :is-valid="isFormValid" :is-uploading="isUploading"
+                            @submit="submitForm" />
                     </div>
                 </section>
             </main>
@@ -57,7 +49,8 @@ const form = reactive<UploadForm>({
     type: '',
     genre: '',
     language: '',
-    description: ''
+    description: '',
+    cover: null
 });
 
 const processFile = (file: File) => {
@@ -111,6 +104,7 @@ const resetForm = () => {
     form.genre = '';
     form.language = '';
     form.description = '';
+    form.cover = null;
 };
 
 const submitForm = async () => {

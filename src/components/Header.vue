@@ -6,17 +6,36 @@
             <MainNav />
 
             <div class="header-actions">
-                <router-link to="/auth" class="register-button">
+                <router-link v-if="!currentUser" to="/auth" class="register-button">
                     REGISTRAR
                 </router-link>
+
+                <div v-else class="user-menu">
+                    <button
+                        type="button"
+                        class="user-menu-button"
+                        :aria-expanded="isUserMenuOpen"
+                        aria-label="Abrir menu do usuário"
+                        @click="toggleUserMenu"
+                    >
+                        <img v-if="avatarUrl" :src="avatarUrl" alt="Avatar do usuário" class="user-avatar" />
+                        <ion-icon v-else :icon="personOutline" class="user-avatar-icon" aria-hidden="true" />
+                        <ion-icon :icon="chevronDownOutline" class="user-menu-chevron" aria-hidden="true" />
+                    </button>
+
+                    <div v-if="isUserMenuOpen" class="user-dropdown">
+                        <span class="user-name">{{ username || 'Minha conta' }}</span>
+                        <router-link to="/profile" @click="closeUserMenu">Página do usuário</router-link>
+                        <button type="button" @click="handleSignOut">Sair</button>
+                        <button type="button" class="delete-account-button" @click="handleDeleteAccount">Excluir conta</button>
+                    </div>
+                </div>
 
                 <SearchBar />
 
                 <button class="mobile-menu-button" type="button" :aria-expanded="isMobileMenuOpen"
                     :aria-label="isMobileMenuOpen ? 'Fechar menu' : 'Abrir menu'" @click="toggleMobileMenu">
-                    <span class="material-symbols-rounded">
-                        {{ isMobileMenuOpen ? 'close' : 'menu' }}
-                    </span>
+                    <ion-icon :icon="isMobileMenuOpen ? closeOutline : menuOutline" aria-hidden="true" class="mobile-menu-icon" />
                 </button>
             </div>
 
@@ -32,12 +51,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
+import { alertController, IonIcon, toastController } from '@ionic/vue';
+import { chevronDownOutline, closeOutline, menuOutline, personOutline } from 'ionicons/icons';
 import MainNav from './MainNav.vue';
 import SearchBar from './SearchBar.vue';
 import SiteLogo from './SiteLogo.vue';
+import { deleteAccount, getCurrentSession, getProfile, signOut } from '@/services/authService';
+import { supabase } from '@/services/supabase';
 
 const isMobileMenuOpen = ref(false);
+const isUserMenuOpen = ref(false);
+const currentUser = ref(false);
+const avatarUrl = ref('');
+const username = ref('');
+let removeAuthListener: (() => void) | undefined;
 
 const toggleMobileMenu = () => {
     isMobileMenuOpen.value = !isMobileMenuOpen.value;
@@ -46,6 +74,109 @@ const toggleMobileMenu = () => {
 const closeMobileMenu = () => {
     isMobileMenuOpen.value = false;
 };
+
+const toggleUserMenu = () => {
+    isUserMenuOpen.value = !isUserMenuOpen.value;
+};
+
+const closeUserMenu = () => {
+    isUserMenuOpen.value = false;
+};
+
+const showToast = async (message: string) => {
+    const toast = await toastController.create({
+        message,
+        duration: 3000,
+        color: 'danger',
+        position: 'bottom'
+    });
+
+    await toast.present();
+};
+
+const confirmDeleteAccount = async () => {
+    const alert = await alertController.create({
+        header: 'Excluir conta',
+        message: 'Esta ação não pode ser desfeita.',
+        buttons: [
+            {
+                text: 'Cancelar',
+                role: 'cancel'
+            },
+            {
+                text: 'Excluir',
+                role: 'destructive'
+            }
+        ]
+    });
+
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    return result.role === 'destructive';
+};
+
+const updateUserMenu = async (userId?: string) => {
+    const activeUserId = userId ?? (await getCurrentSession()).data.session?.user?.id;
+
+    if (!activeUserId) {
+        currentUser.value = false;
+        avatarUrl.value = '';
+        username.value = '';
+        closeUserMenu();
+        return;
+    }
+
+    try {
+        currentUser.value = true;
+        const profile = await getProfile(activeUserId);
+        avatarUrl.value = profile?.avatar_url || '';
+        username.value = profile?.username || '';
+    } catch {
+        currentUser.value = false;
+        avatarUrl.value = '';
+        username.value = '';
+        closeUserMenu();
+    }
+};
+
+const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+        await showToast('Não foi possível sair da conta. Tente novamente.');
+        return;
+    }
+
+    currentUser.value = false;
+    avatarUrl.value = '';
+    username.value = '';
+    closeUserMenu();
+};
+
+const handleDeleteAccount = async () => {
+    const confirmed = await confirmDeleteAccount();
+    if (!confirmed) return;
+
+    try {
+        await deleteAccount();
+        await updateUserMenu();
+    } catch (error) {
+        await showToast('Não foi possível excluir sua conta. Tente novamente.');
+    }
+};
+
+onMounted(async () => {
+    const { data: { session } } = await getCurrentSession();
+    await updateUserMenu(session?.user.id);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        void updateUserMenu(session?.user.id);
+    });
+    removeAuthListener = () => subscription.unsubscribe();
+});
+
+onUnmounted(() => {
+    removeAuthListener?.();
+});
 </script>
 
 <style scoped>
@@ -111,6 +242,103 @@ const closeMobileMenu = () => {
 .register-button:hover {
     background: var(--color-text-primary);
     transform: translateY(-1px);
+}
+
+.user-menu {
+    position: relative;
+}
+
+.user-menu-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 42px;
+    padding: 3px 7px 3px 3px;
+    border: 1px solid var(--color-border);
+    border-radius: 24px;
+    background: var(--color-white);
+    color: var(--color-text-primary);
+    cursor: pointer;
+}
+
+.user-avatar,
+.user-avatar-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+}
+
+.user-avatar-icon,
+.user-menu-chevron,
+.mobile-menu-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+.user-avatar {
+
+    object-fit: cover;
+}
+
+.user-avatar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface-alt);
+    font-size: 22px;
+}
+
+.user-menu-chevron {
+    font-size: 18px;
+}
+
+.user-dropdown {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 10px);
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 170px;
+    padding: 8px;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-md);
+    background: var(--color-white);
+    box-shadow: var(--shadow-medium);
+}
+
+.user-name,
+.user-dropdown a,
+.user-dropdown button {
+    padding: 10px 12px;
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: 14px;
+    text-align: left;
+    text-decoration: none;
+}
+
+.user-name {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.user-dropdown a:hover,
+.user-dropdown button:hover {
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+}
+
+.user-dropdown button {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.user-dropdown .delete-account-button {
+    color: #b42318;
 }
 
 /* =========================

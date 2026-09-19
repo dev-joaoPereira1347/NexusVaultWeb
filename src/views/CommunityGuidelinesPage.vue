@@ -67,15 +67,9 @@ import Footer from '@/components/Footer.vue';
 import { ref } from 'vue';
 import {
     IonPage,
-    IonHeader,
-    IonToolbar,
-    IonButtons,
-    IonBackButton,
     IonButton,
     IonContent,
-    IonIcon,
-    onIonViewDidEnter,
-    onIonViewWillLeave
+    IonIcon
 } from '@ionic/vue';
 import {
     shieldCheckmarkOutline,
@@ -86,9 +80,6 @@ import {
     helpCircleOutline
 } from 'ionicons/icons';
 
-import { H } from 'vue-router/dist/index-BN0B0y8a';
-
-// Interface das Diretrizes
 interface GuidelineItem {
     id: number;
     title: string;
@@ -96,180 +87,128 @@ interface GuidelineItem {
     icon: string;
 }
 
-// Lista reativa alinhada aos requisitos funcionais (RF02, RF03, RF04, RF08)
 const guidelines = ref<GuidelineItem[]>([
     {
         id: 1,
-        title: 'Autenticidade e Domínio Público',
-        description: 'Todo documento enviado deve ser de domínio público ou possuir autorização expressa de licenciamento livre. Não são permitidos materiais protegidos por direitos autorais estritos sem a devida concessão legal.',
+        title: 'Autenticidade e domínio público',
+        description: 'Todo documento enviado deve ser de domínio público ou possuir autorização expressa de licenciamento livre. Não são permitidos materiais protegidos por direitos autorais sem a devida concessão legal.',
         icon: shieldCheckmarkOutline
     },
     {
         id: 2,
-        title: 'Conteúdo Adequado e Respeito',
-        description: 'É estritamente proibido o upload de arquivos que promovam discurso de ódio, violência, discriminação de qualquer natureza ou assédio. Mantemos um ambiente acadêmico, histórico e seguro.',
+        title: 'Conteúdo adequado e respeito',
+        description: 'É proibido o upload de arquivos que promovam discurso de ódio, violência, discriminação, assédio ou qualquer forma de conteúdo prejudicial ao ambiente acadêmico e seguro do projeto.',
         icon: documentTextOutline
     },
     {
         id: 3,
-        title: 'Integridade de Arquivos e Segurança',
-        description: 'Garantimos a segurança digital da biblioteca. Documentos contendo scripts maliciosos, vírus, links suspeitos ou metadados corrompidos intencionalmente serão descartados e a conta suspensa após varredura automatizada.',
+        title: 'Integridade de arquivos e segurança',
+        description: 'Garanta que os materiais carregados não contenham scripts maliciosos, vírus, links suspeitos ou metadados corrompidos. Arquivos inseguros serão descartados e a conta pode ser suspensa.',
         icon: sparklesOutline
     },
     {
         id: 4,
-        title: 'Precisão de Metadados',
-        description: 'Ao catalogar um documento, forneça informações precisas como título, autoria e ano de publicação original. Metadados precisos ajudam pesquisadores e preservam a história do acervo.',
+        title: 'Precisão de metadados',
+        description: 'Ao catalogar um documento, informe dados precisos como título, autoria, ano de publicação e contexto histórico. Metadados bem estruturados ajudam pesquisadores e preservam o acervo.',
         icon: ribbonOutline
     },
     {
         id: 5,
-        title: 'Moderação e Aplicação',
-        description: 'Nossa equipe revisará as denúncias enviadas pela comunidade através do painel de moderação. O NexusVault reserva-se o direito de remover registros fora das conformidades sem aviso prévio.',
+        title: 'Moderação e aplicação',
+        description: 'Nossa equipe revisará denúncias e manterá a comunidade alinhada aos padrões de convivência. O NexusVault reserva-se o direito de remover conteúdos fora das diretrizes sem aviso prévio.',
         icon: lockClosedOutline
     }
 ]);
-
-// Ganchos de Ciclo de Vida Móvel do Ionic (Evita falhas de estado ao navegar entre views)
-onIonViewDidEnter(() => {
-    // Lógica de Analytics ou log de navegação se necessário
-});
-
-onIonViewWillLeave(() => {
-    // Limpeza de subscrições ou estados locais se aplicável
-});
 </script>
 
 <style scoped>
-/* ==========================================================
-NAVBAR CUSTOMIZADA
-========================================================== */
-.custom-toolbar {
-    --background: var(--color-background);
-    --padding-start: var(--space-md);
-    --padding-end: var(--space-md);
-}
-
-.brand-container {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-}
-
-.brand-logo {
-    height: 32px;
-    width: auto;
-}
-
-.brand-name {
-    font-weight: 800;
-    font-size: 1.1rem;
-    color: var(--color-text-primary);
-    letter-spacing: 0.5px;
-}
-
-.btn-register {
-    --background: var(--color-primary-dark);
-    --color: var(--color-white);
-    --border-radius: var(--radius-sm);
-    font-weight: 700;
-    font-size: 0.85rem;
-}
-
-/* ==========================================================
-HERO SECTION
-========================================================== */
 .guidelines-content {
     --background: var(--color-page-background);
 }
 
 .hero-section {
-    background-color: var(--color-background);
-    padding-block: var(--space-3xl);
     width: 100%;
+    background: linear-gradient(180deg, var(--color-background) 0%, rgba(247, 240, 233, 0.96) 100%);
+    padding: clamp(32px, 5vw, 80px) 0 0;
 }
 
 .hero-container {
-    max-width: var(--content-width);
+    width: min(100% - 32px, var(--content-width));
     margin: 0 auto;
-    padding-inline: var(--space-lg);
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: var(--space-2xl);
+    justify-content: space-between;
+    gap: clamp(24px, 5vw, 72px);
 }
 
 .hero-text {
     flex: 1;
-    max-width: 560px;
+    max-width: 580px;
 }
 
 .category-chip {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: var(--radius-xl);
-    margin-bottom: var(--space-md);
-    background-color: var(--color-white);
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(154, 140, 152, 0.28);
     color: var(--color-text-secondary);
-    border: 1px solid var(--color-border-soft);
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 0.12em;
+    margin-bottom: 18px;
 }
 
 .hero-title {
-    font-size: 2.75rem;
-    font-weight: 800;
-    line-height: 1.15;
+    margin: 0 0 16px;
+    font-size: clamp(2.2rem, 4vw, 3.4rem);
+    line-height: 1.1;
+    letter-spacing: -0.04em;
     color: var(--color-text-primary);
-    margin-bottom: var(--space-md);
 }
 
 .hero-subtitle {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    color: var(--color-text-secondary);
     margin: 0;
+    max-width: 540px;
+    font-size: 1.06rem;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
 }
 
 .hero-visual {
     flex: 1;
     display: flex;
     justify-content: flex-end;
-    align-items: center;
 }
 
 .hero-svg {
-    width: 100%;
-    max-width: 440px;
+    display: block;
+    width: min(100%, 440px);
     height: auto;
-    object-fit: contain;
+    filter: drop-shadow(0 18px 30px rgba(34, 34, 59, 0.08));
 }
 
-/* ==========================================================
-GUIDELINES LIST
-========================================================== */
 .guidelines-section {
-    padding-block: var(--space-3xl);
+    padding: clamp(40px, 5vw, 80px) 0;
 }
 
 .guidelines-container {
+    width: min(100% - 32px, 900px);
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
-    max-width: 800px;
-    margin: 0 auto;
-    padding-inline: var(--space-md);
+    gap: 20px;
 }
 
 .guideline-card {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-lg);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-soft);
+    gap: 20px;
+    padding: 24px;
     border-radius: var(--radius-lg);
-    padding: var(--space-xl);
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid var(--color-border-soft);
     box-shadow: var(--shadow-soft);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -283,116 +222,120 @@ GUIDELINES LIST
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    background-color: rgba(221, 161, 94, 0.15);
-    /* Accent translúcido */
+    width: 52px;
+    height: 52px;
+    background: rgba(221, 161, 94, 0.14);
     color: var(--color-accent);
-    border-radius: var(--radius-md);
+    border-radius: 14px;
     flex-shrink: 0;
 }
 
 .icon-wrapper ion-icon {
-    font-size: 24px;
+    font-size: 1.6rem;
+}
+
+.guideline-text {
+    min-width: 0;
 }
 
 .guideline-text h3 {
-    font-size: 1.25rem;
-    font-weight: 700;
+    margin: 0 0 8px;
     color: var(--color-text-primary);
-    margin-bottom: var(--space-xs);
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.35;
 }
 
 .guideline-text p {
-    font-size: 0.98rem;
-    line-height: 1.55;
-    color: var(--color-text-secondary);
     margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.98rem;
+    line-height: 1.7;
 }
 
-/* ==========================================================
-FAQ SECTION
-========================================================== */
 .faq-section {
-    padding-bottom: var(--space-3xl);
+    padding: 0 0 56px;
 }
 
 .faq-container {
-    max-width: 800px;
+    width: min(100% - 32px, 900px);
     margin: 0 auto;
-    padding-inline: var(--space-md);
 }
 
 .faq-box {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: var(--space-xl);
-    background: var(--color-white);
-    border: 1px solid var(--color-border-soft);
+    justify-content: space-between;
+    gap: 24px;
+    padding: 24px 28px;
     border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
     box-shadow: var(--shadow-soft);
-    padding: var(--space-xl);
 }
 
 .faq-left {
     display: flex;
     align-items: center;
-    gap: var(--space-lg);
+    gap: 18px;
+    min-width: 0;
 }
 
-.faq-left .icon-circle {
+.icon-circle {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
     background: var(--color-text-primary);
     color: var(--color-white);
-    border-radius: var(--radius-xl);
     flex-shrink: 0;
 }
 
 .faq-left ion-icon {
-    font-size: 24px;
+    font-size: 1.6rem;
+}
+
+.faq-text {
+    min-width: 0;
 }
 
 .faq-text h4 {
-    font-size: 1.1rem;
-    font-weight: 700;
+    margin: 0 0 6px;
     color: var(--color-text-primary);
-    margin-bottom: var(--space-xs);
+    font-size: 1.05rem;
+    font-weight: 700;
 }
 
 .faq-text p {
-    font-size: 0.9rem;
-    color: var(--color-text-secondary);
     margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.6;
 }
 
 .faq-btn {
-    --color: var(--color-white);
     --background: var(--color-accent);
+    --color: var(--color-white);
     --border-radius: var(--radius-sm);
-    --padding-start: var(--space-lg);
-    --padding-end: var(--space-lg);
-    font-weight: 600;
-    height: 44px;
-    margin: 0;
+    --padding-start: 22px;
+    --padding-end: 22px;
+    --box-shadow: none;
+    min-height: 46px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
     flex-shrink: 0;
 }
 
-/* ==========================================================
-RESPONSIVIDADE (MEDIA QUERIES)
-========================================================== */
 @media (max-width: 992px) {
     .hero-container {
         flex-direction: column-reverse;
         text-align: center;
-        gap: var(--space-xl);
     }
 
-    .hero-text {
+    .hero-text,
+    .hero-subtitle {
         max-width: 100%;
     }
 
@@ -402,32 +345,35 @@ RESPONSIVIDADE (MEDIA QUERIES)
     }
 
     .hero-svg {
-        max-width: 300px;
+        max-width: 320px;
     }
 }
 
 @media (max-width: 768px) {
-    .hero-title {
-        font-size: 2.1rem;
+    .hero-section {
+        padding-top: 28px;
+    }
+
+    .guideline-card {
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px 18px;
     }
 
     .faq-box {
         flex-direction: column;
         align-items: stretch;
         text-align: center;
+        padding: 20px 18px;
     }
 
     .faq-left {
         flex-direction: column;
+        justify-content: center;
     }
 
     .faq-btn {
         width: 100%;
-    }
-
-    .guideline-card {
-        flex-direction: column;
-        gap: var(--space-md);
     }
 }
 </style>

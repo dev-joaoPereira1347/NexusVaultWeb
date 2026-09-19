@@ -25,15 +25,15 @@
                 </div>
 
                 <h2 id="file-upload-title" class="dropzone-title">
-                    Arraste seu arquivo aqui
+                    {{ isTouchscreen ? 'Adicionar arquivo' : 'Selecione seu arquivo' }}
                 </h2>
 
                 <p class="dropzone-text">
-                    ou procure um arquivo no seu computador
+                    {{ isTouchscreen ? 'Escolha um arquivo do seu celular' : 'ou procure um arquivo no seu computador' }}
                 </p>
 
                 <button type="button" class="btn-select-file" @click.stop="openFilePicker">
-                    SELECIONAR ARQUIVO
+                    {{ isTouchscreen ? 'SELECIONAR ARQUIVO' : 'SELECIONAR ARQUIVO' }}
                 </button>
 
                 <span class="supported-formats">
@@ -42,7 +42,7 @@
             </template>
 
             <template v-else>
-                <ion-icon :icon="documentTextOutline" class="file-loaded-icon" aria-hidden="true" />
+                <ion-icon :icon="getFileIcon(file.name)" class="file-loaded-icon" aria-hidden="true" />
 
                 <p class="file-loaded-name">{{ file.name }}</p>
                 <span class="file-loaded-size">{{ formatFileSize(file.size) }}</span>
@@ -57,13 +57,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { IonIcon } from '@ionic/vue';
-import { cloudUploadOutline, documentTextOutline } from 'ionicons/icons';
+import {
+    bookOutline,
+    cloudUploadOutline,
+    documentOutline,
+    documentTextOutline,
+    readerOutline
+} from 'ionicons/icons';
 
 defineProps<{
     file: File | null;
 }>();
+
+const isTouchscreen = ref(false);
+
+onMounted(() => {
+    const pointerMediaQuery = window.matchMedia('(pointer: coarse)');
+    const updatePointerMode = () => {
+        isTouchscreen.value = pointerMediaQuery.matches;
+    };
+
+    updatePointerMode();
+    pointerMediaQuery.addEventListener('change', updatePointerMode);
+});
 
 const emit = defineEmits<{
     (event: 'select', file: File): void;
@@ -96,6 +114,23 @@ const clearFile = () => {
 
 const getFileExtension = (fileName: string): string => {
     return fileName.split('.').pop()?.toUpperCase() ?? '';
+};
+
+const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+
+    switch (extension) {
+        case 'pdf':
+            return documentTextOutline;
+        case 'epub':
+            return bookOutline;
+        case 'md':
+            return readerOutline;
+        case 'txt':
+            return documentOutline;
+        default:
+            return documentOutline;
+    }
 };
 
 const formatFileSize = (bytes: number): string => {

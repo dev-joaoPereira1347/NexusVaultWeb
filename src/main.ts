@@ -44,5 +44,6 @@ const app = createApp(App)
   .use(router);
 
 router.isReady().then(() => {
+  console.log('[router]', router.currentRoute.value.fullPath, router.getRoutes().map(route => route.path));
   app.mount('#app');
 });

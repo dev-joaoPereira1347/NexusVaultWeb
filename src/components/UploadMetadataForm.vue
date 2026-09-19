@@ -93,6 +93,42 @@
             </div>
 
             <div class="form-group">
+                <label for="cover">Capa <span>(opcional)</span></label>
+
+                <div class="cover-upload">
+                    <input
+                        id="cover"
+                        ref="coverInput"
+                        type="file"
+                        accept=".webp,image/webp"
+                        class="hidden-cover-input"
+                        @change="handleCoverChange"
+                    />
+
+                    <div class="cover-actions">
+                        <button type="button" class="btn-cover-select" @click="openCoverPicker">
+                            {{ form.cover ? 'Trocar capa' : 'Selecionar capa' }}
+                        </button>
+
+                        <button
+                            v-if="form.cover"
+                            type="button"
+                            class="btn-remove-cover"
+                            @click="removeCover"
+                        >
+                            Remover
+                        </button>
+                    </div>
+
+                    <div v-if="coverPreview" class="cover-preview">
+                        <img :src="coverPreview" :alt="`Capa selecionada: ${form.cover?.name ?? 'imagem'}`" />
+                    </div>
+
+                    <span v-if="form.cover" class="cover-name">{{ form.cover.name }}</span>
+                </div>
+            </div>
+
+            <div class="form-group">
                 <label for="description">Descrição <span>(opcional)</span></label>
                 <textarea
                     id="description"
@@ -111,6 +147,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import type { UploadForm } from '../types/upload';
 
 defineProps<{
@@ -119,6 +156,47 @@ defineProps<{
 }>();
 
 const form = defineModel<UploadForm>({ required: true });
+const coverInput = ref<HTMLInputElement | null>(null);
+
+const coverPreview = computed(() => {
+    if (!form.value?.cover) return '';
+    return URL.createObjectURL(form.value.cover);
+});
+
+const openCoverPicker = () => {
+    coverInput.value?.click();
+};
+
+const handleCoverChange = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const selectedFile = input.files?.[0] ?? null;
+
+    if (selectedFile && selectedFile.type !== 'image/webp') {
+        form.value = {
+            ...form.value,
+            cover: null
+        };
+        input.value = '';
+        window.alert('A capa deve estar no formato WebP.');
+        return;
+    }
+
+    form.value = {
+        ...form.value,
+        cover: selectedFile
+    };
+};
+
+const removeCover = () => {
+    form.value = {
+        ...form.value,
+        cover: null
+    };
+
+    if (coverInput.value) {
+        coverInput.value.value = '';
+    }
+};
 
 defineEmits<{
     (event: 'submit'): void;
@@ -170,6 +248,64 @@ const currentYear = new Date().getFullYear();
     background: var(--color-white);
     color: var(--color-text-primary);
     outline: none;
+}
+
+.hidden-cover-input {
+    display: none;
+}
+
+.cover-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cover-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-cover-select,
+.btn-remove-cover {
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    font-weight: 700;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-cover-select {
+    padding: 9px 14px;
+}
+
+.btn-remove-cover {
+    padding: 9px 12px;
+    border-color: var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.cover-preview {
+    width: 120px;
+    height: 150px;
+    overflow: hidden;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+}
+
+.cover-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cover-name {
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
 }
 
 .custom-input,

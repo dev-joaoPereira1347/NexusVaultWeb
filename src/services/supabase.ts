@@ -27,6 +27,6 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
         storage: capacitorStorageAdapter,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false // Desativado para controle manual em apps nativos
+        detectSessionInUrl: true
     }
 });

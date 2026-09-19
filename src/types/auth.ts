@@ -1,11 +1,13 @@
-export type AuthMode = 'login' | 'register' | 'forgot-password' | 'update-profile';
+export type AuthMode = 'login' | 'register' | 'forgot-password' | 'reset-password' | 'update-profile';
 
 export interface LoginForm {
     email: string;
     password: string;
 }
 
-export interface RegisterForm extends LoginForm {
+export interface RegisterForm {
+    email: string;
+    password?: string;
     fullName: string;
     username: string;
 }
@@ -14,6 +16,10 @@ export interface ProfileForm {
     fullName: string;
     username: string;
     avatarUrl: string;
+}
+
+export interface ResetPasswordForm {
+    password: string;
 }
 
 export interface ProfileData {

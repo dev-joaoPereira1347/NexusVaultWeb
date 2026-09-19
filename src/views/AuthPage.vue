@@ -40,6 +40,10 @@
                             <span v-if="!loading">Entrar</span>
                             <ion-spinner v-else name="crescent" />
                         </ion-button>
+                        <ion-button type="button" expand="block" fill="clear" class="secondary-button" :disabled="loading" @click="handleMagicLinkLogin">
+                            <span v-if="!loading">Entrar com Magic Link</span>
+                            <ion-spinner v-else name="crescent" />
+                        </ion-button>
                         <div class="switch-mode-text">
                             Não possui uma conta?
                             <a class="text-link font-bold" @click.prevent="setMode('register')">Cadastre-se</a>
@@ -62,12 +66,14 @@
                         </div>
                         <div class="form-group">
                             <label for="register-password">Senha</label>
-                            <ion-input id="register-password" v-model="registerForm.password" type="password" placeholder="Crie uma senha forte" class="custom-input" required />
+                            <ion-input id="register-password" v-model="registerForm.password" type="password" placeholder="Crie sua senha" class="custom-input" required />
                         </div>
+
                         <ion-button type="submit" expand="block" class="primary-button" :disabled="loading">
-                            <span v-if="!loading">Criar Conta &rarr;</span>
+                            <span v-if="!loading">Criar conta</span>
                             <ion-spinner v-else name="crescent" />
                         </ion-button>
+
                         <div class="switch-mode-text">
                             Já possui uma conta?
                             <a class="text-link font-bold" @click.prevent="setMode('login')">Faça login</a>
@@ -89,7 +95,18 @@
                         </div>
                     </form>
 
-                    <form v-else class="auth-form" @submit.prevent="handleUpdateProfile">
+                                    <form v-else-if="mode === 'reset-password'" class="auth-form" @submit.prevent="handleResetPassword">
+                                        <div class="form-group">
+                                            <label for="reset-password">Nova senha</label>
+                                            <ion-input id="reset-password" v-model="resetPasswordForm.password" type="password" placeholder="Digite sua nova senha" class="custom-input" required :minlength="6" />
+                                        </div>
+                                        <ion-button type="submit" expand="block" class="primary-button" :disabled="loading">
+                                            <span v-if="!loading">Alterar Senha</span>
+                                            <ion-spinner v-else name="crescent" />
+                                        </ion-button>
+                                    </form>
+
+                                    <form v-else class="auth-form" @submit.prevent="handleUpdateProfile">
                         <AuthAvatarPicker :preview-url="avatarPreviewUrl" hint="Alterar foto de perfil" @selected="setAvatar" />
                         <div class="form-group">
                             <label for="profile-name">Nome Completo</label>
@@ -118,9 +135,9 @@ import AuthAvatarPicker from '@/components/AuthAvatarPicker.vue';
 import { useAuth } from '@/composables/useAuth';
 
 const {
-    mode, loading, loginForm, registerForm, forgotEmail, profileForm,
+    mode, loading, loginForm, registerForm, forgotEmail, resetPasswordForm, profileForm,
     avatarPreviewUrl, setMode, setAvatar,
-    handleLogin, handleRegister, handleForgotPassword, handleUpdateProfile, handleSignOut
+    handleLogin, handleRegister, handleMagicLinkLogin, handleForgotPassword, handleResetPassword, handleUpdateProfile, handleSignOut
 } = useAuth();
 </script>
 
@@ -155,7 +172,17 @@ const {
 .text-link:hover { text-decoration: underline; }
 .switch-mode-text { text-align: center; color: var(--color-text-secondary, #4A4E69); font-size: 12px; line-height: 1.6; margin-top: 7px; }
 .font-bold { font-weight: 700; }
+.button-link {
+    display: inline-block;
+    margin: 0 auto;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+}
 .primary-button { --background: var(--color-primary-dark, #2D2D2D); --background-hover: #111827; --color: #FFFFFF; --border-radius: 10px; font-weight: 700; height: 48px; margin-top: 7px; text-transform: none; }
+.secondary-button { --background: transparent; --background-hover: rgba(59, 82, 246, 0.06); --color: var(--color-brand-primary, #3B52F6); --border-radius: 10px; font-weight: 700; height: 48px; margin-top: -4px; text-transform: none; }
 
 @media (max-width: 780px) {
     .auth-wrapper { padding: 20px 14px; }

@@ -7,7 +7,7 @@
                 <ion-icon :icon="cameraOutline" />
             </span>
         </button>
-        <input ref="fileInput" type="file" accept="image/*" class="hidden-file-input" @change="handleFileSelected" />
+        <input ref="fileInput" type="file" accept="image/webp" class="hidden-file-input" @change="handleFileSelected" />
         <span class="avatar-hint">{{ hint }}</span>
     </div>
 </template>

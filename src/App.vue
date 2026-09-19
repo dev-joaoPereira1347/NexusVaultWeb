@@ -1,17 +1,12 @@
-<!-- App.vue atualizado -->
 <template>
-
   <ion-app>
     <BaseLayout>
-
-
-      <ion-router-outlet />
-
+      <router-view />
     </BaseLayout>
   </ion-app>
-
 </template>
+
 <script setup lang="ts">
-import { IonApp, IonRouterOutlet } from '@ionic/vue'
-import BaseLayout from './components/BaseLayout.vue'
+import { IonApp } from '@ionic/vue';
+import BaseLayout from './components/BaseLayout.vue';
 </script>

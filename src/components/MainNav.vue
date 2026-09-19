@@ -8,7 +8,7 @@
       Contribuir
     </router-link>
 
-    <router-link to="/sobre">
+    <router-link to="/about-us">
       Sobre Nós
     </router-link>
   </nav>

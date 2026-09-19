@@ -7,4 +7,5 @@ export interface UploadForm {
     genre: string;
     language: string;
     description: string;
+    cover: File | null;
 }

@@ -1,16 +1,21 @@
 <template>
   <div class="search-box">
     <button class="search-menu" type="button" aria-label="Abrir opções de pesquisa">
-      <span class="material-symbols-rounded">menu</span>
+      <ion-icon :icon="menuOutline" aria-hidden="true" />
     </button>
 
     <input type="search" placeholder="Pesquisar" aria-label="Pesquisar documentos" />
 
     <button class="search-button" type="button" aria-label="Pesquisar">
-      <span class="material-symbols-rounded">search</span>
+      <ion-icon :icon="searchOutline" aria-hidden="true" />
     </button>
   </div>
 </template>
+
+<script setup lang="ts">
+import { IonIcon } from '@ionic/vue';
+import { menuOutline, searchOutline } from 'ionicons/icons';
+</script>
 
 <style scoped>
 .search-box {
@@ -56,8 +61,10 @@
   cursor: pointer;
 }
 
-.search-menu span,
-.search-button span {
+.search-menu ion-icon,
+.search-button ion-icon {
+  width: 21px;
+  height: 21px;
   font-size: 21px;
 }
 

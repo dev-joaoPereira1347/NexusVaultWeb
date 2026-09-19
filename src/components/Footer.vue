@@ -32,10 +32,31 @@
             </div>
         </div>
     </footer>
+
+    <nav class="bottom-nav" aria-label="Navegação inferior">
+        <RouterLink
+            v-for="item in navItems"
+            :key="item.label"
+            :to="item.to"
+            custom
+            v-slot="{ navigate, href, isActive }"
+        >
+            <a :href="href" class="nav-item" :class="{ active: isActive }" @click="navigate">
+                <ion-icon :icon="item.icon" aria-hidden="true" />
+                <span>{{ item.label }}</span>
+            </a>
+        </RouterLink>
+    </nav>
 </template>
 
 <script setup lang="ts">
-import { IonNote } from '@ionic/vue';
+import { IonIcon, IonNote } from '@ionic/vue';
+import {
+    homeOutline,
+    searchOutline,
+    libraryOutline,
+    personOutline
+} from 'ionicons/icons';
 import FooterLinkList from './FooterLinkList.vue';
 import SocialLinks from './SocialLinks.vue';
 import SiteLogo from './SiteLogo.vue';
@@ -46,6 +67,13 @@ const usefulLinks = [
     { label: 'Central de Ajuda', to: '/help' },
     { label: 'Contato', to: '/contact' },
     { label: 'Sobre Nós', to: '/about-us' }
+];
+
+const navItems = [
+    { label: 'Início', to: '/home', icon: homeOutline },
+    { label: 'Descobrir', to: '/community-guidelines', icon: searchOutline },
+    { label: 'Meu Acervo', to: '/upload', icon: libraryOutline },
+    { label: 'Conta', to: '/profile', icon: personOutline }
 ];
 </script>
 
@@ -138,37 +166,55 @@ const usefulLinks = [
     color: rgba(154, 140, 152, 0.5);
 }
 
+.bottom-nav {
+    display: none;
+}
+
 @media (max-width: 700px) {
     .footer {
-        padding-block: var(--space-2xl) var(--space-lg);
+        display: none;
     }
 
-    .footer .container {
-        width: min(100% - 32px, 1200px);
+    .bottom-nav {
+        position: fixed;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 30;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-around;
+        gap: 0.25rem;
+        padding: 0.625rem 0.75rem calc(0.625rem + env(safe-area-inset-bottom));
+        background: rgba(250, 249, 247, 0.96);
+        border-top: 1px solid rgba(154, 140, 152, 0.22);
+        box-shadow: 0 -6px 18px rgba(27, 28, 32, 0.08);
+        backdrop-filter: blur(10px);
     }
 
-    .footer-container {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: var(--space-xl);
-    }
-
-    .footer-brand,
-    .footer-links,
-    .footer-social {
-        width: 100%;
-        max-width: none;
-        min-width: 0;
-    }
-
-    .footer-bottom {
-        align-items: flex-start;
+    .nav-item {
+        display: flex;
+        flex: 1;
         flex-direction: column;
-        gap: var(--space-sm);
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        padding: 0.15rem 0;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        font-family: var(--font-family);
+        font-size: 0.7rem;
+        font-weight: 500;
+        line-height: 1.1;
+        transition: color 0.2s ease;
     }
 
-    .footer-legal {
-        gap: var(--space-sm);
+    .nav-item ion-icon {
+        font-size: 2rem;
+        --ionicon-stroke-width: 42;
+    }
+
+    .nav-item.active {
+        color: var(--color-primary, #2e7af7);
     }
 }
 </style>
