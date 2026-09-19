@@ -13,6 +13,10 @@ Thumbs.db
 UserInterfaceState.xcuserstate
 $RECYCLE.BIN/
 
+.env.local
+
+profiles-policies.sql
+
 *.log
 log.txt
 npm-debug.log*
@@ -30,3 +34,4 @@ npm-debug.log*
 /platforms
 /plugins
 /www
+/context files
