@@ -1,4 +1,4 @@
-export type AuthMode = 'login' | 'register' | 'forgot-password' | 'reset-password' | 'update-profile';
+export type AuthMode = 'login' | 'register' | 'forgot-password' | 'reset-password';
 
 export interface LoginForm {
     email: string;

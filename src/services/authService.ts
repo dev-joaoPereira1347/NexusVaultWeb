@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase';
 import type { ProfileData, ProfileForm, RegisterForm } from '@/types/auth';
+import { convertImageToWebp } from '@/utils/convertImageToWebp';
 
 const AVATAR_BUCKET = 'avatars';
 
@@ -77,13 +78,13 @@ export const getProfile = async (userId: string): Promise<ProfileData | null> =>
 };
 
 export const uploadAvatar = async (userId: string, file: File): Promise<string> => {
-    if (file.type !== 'image/webp') {
-        throw new Error('O avatar deve estar no formato WebP.');
-    }
+    const webpFile = await convertImageToWebp(file);
 
-    const extension = 'webp';
-    const filePath = `${userId}/${crypto.randomUUID()}.${extension}`;
-    const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(filePath, file, { upsert: true });
+    const filePath = `${userId}/${crypto.randomUUID()}.webp`;
+    const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(filePath, webpFile, {
+        upsert: true,
+        contentType: 'image/webp'
+    });
 
     if (error) throw error;
 
@@ -133,6 +134,8 @@ export const requestPasswordReset = (email: string) =>
     });
 
 export const updatePassword = (password: string) => supabase.auth.updateUser({ password });
+
+export const updateEmail = (email: string) => supabase.auth.updateUser({ email });
 
 export const deleteAccount = async () => {
     const { error } = await supabase.functions.invoke('delete-account');

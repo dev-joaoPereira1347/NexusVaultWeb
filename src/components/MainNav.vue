@@ -4,7 +4,7 @@
       Gêneros
     </router-link>
 
-    <router-link to="/contribuir">
+    <router-link to="/upload">
       Contribuir
     </router-link>
 

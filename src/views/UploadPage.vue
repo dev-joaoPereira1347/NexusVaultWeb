@@ -34,6 +34,7 @@ import Footer from '../components/Footer.vue';
 import UploadDropzone from '../components/UploadDropzone.vue';
 import UploadMetadataForm from '../components/UploadMetadataForm.vue';
 import type { UploadForm } from '../types/upload';
+import { uploadLibraryItem } from '@/services/uploadService';
 
 const selectedFile = ref<File | null>(null);
 const isUploading = ref(false);

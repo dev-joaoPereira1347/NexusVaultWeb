@@ -43,15 +43,17 @@
 
         <nav v-if="isMobileMenuOpen" class="mobile-nav" aria-label="Navegação móvel">
             <router-link to="/generos" @click="closeMobileMenu">Gêneros</router-link>
-            <router-link to="/contribuir" @click="closeMobileMenu">Contribuir</router-link>
-            <router-link to="/sobre" @click="closeMobileMenu">Sobre Nós</router-link>
-            <router-link to="/auth" @click="closeMobileMenu">Registrar</router-link>
+            <router-link to="/upload" @click="closeMobileMenu">Contribuir</router-link>
+            <router-link to="/about-us" @click="closeMobileMenu">Sobre Nós</router-link>
+            <router-link v-if="currentUser" to="/profile" @click="closeMobileMenu">Área do usuário</router-link>
+            <router-link v-else to="/auth" @click="closeMobileMenu">Registrar</router-link>
         </nav>
     </header>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { alertController, IonIcon, toastController } from '@ionic/vue';
 import { chevronDownOutline, closeOutline, menuOutline, personOutline } from 'ionicons/icons';
 import MainNav from './MainNav.vue';
@@ -60,6 +62,7 @@ import SiteLogo from './SiteLogo.vue';
 import { deleteAccount, getCurrentSession, getProfile, signOut } from '@/services/authService';
 import { supabase } from '@/services/supabase';
 
+const router = useRouter();
 const isMobileMenuOpen = ref(false);
 const isUserMenuOpen = ref(false);
 const currentUser = ref(false);
@@ -150,6 +153,7 @@ const handleSignOut = async () => {
     avatarUrl.value = '';
     username.value = '';
     closeUserMenu();
+    await router.replace('/auth');
 };
 
 const handleDeleteAccount = async () => {
@@ -159,6 +163,7 @@ const handleDeleteAccount = async () => {
     try {
         await deleteAccount();
         await updateUserMenu();
+        await router.replace('/auth');
     } catch (error) {
         await showToast('Não foi possível excluir sua conta. Tente novamente.');
     }

@@ -51,7 +51,7 @@
                     </form>
 
                     <form v-else-if="mode === 'register'" class="auth-form" @submit.prevent="handleRegister">
-                        <AuthAvatarPicker :preview-url="avatarPreviewUrl" hint="Toque para selecionar seu avatar" @selected="setAvatar" />
+                        <AuthAvatarPicker :preview-url="avatarPreviewUrl" hint="JPEG, PNG ou WebP — convertida automaticamente" @selected="setAvatar" />
                         <div class="form-group">
                             <label for="register-name">Nome Completo</label>
                             <ion-input id="register-name" v-model="registerForm.fullName" type="text" placeholder="Seu nome completo" class="custom-input" required />
@@ -95,32 +95,15 @@
                         </div>
                     </form>
 
-                                    <form v-else-if="mode === 'reset-password'" class="auth-form" @submit.prevent="handleResetPassword">
-                                        <div class="form-group">
-                                            <label for="reset-password">Nova senha</label>
-                                            <ion-input id="reset-password" v-model="resetPasswordForm.password" type="password" placeholder="Digite sua nova senha" class="custom-input" required :minlength="6" />
-                                        </div>
-                                        <ion-button type="submit" expand="block" class="primary-button" :disabled="loading">
-                                            <span v-if="!loading">Alterar Senha</span>
-                                            <ion-spinner v-else name="crescent" />
-                                        </ion-button>
-                                    </form>
-
-                                    <form v-else class="auth-form" @submit.prevent="handleUpdateProfile">
-                        <AuthAvatarPicker :preview-url="avatarPreviewUrl" hint="Alterar foto de perfil" @selected="setAvatar" />
+                                    <form v-else class="auth-form" @submit.prevent="handleResetPassword">
                         <div class="form-group">
-                            <label for="profile-name">Nome Completo</label>
-                            <ion-input id="profile-name" v-model="profileForm.fullName" type="text" placeholder="Seu nome completo" class="custom-input" required />
-                        </div>
-                        <div class="form-group">
-                            <label for="profile-username">Nome de usuário</label>
-                            <ion-input id="profile-username" v-model="profileForm.username" type="text" placeholder="@seu.usuario" class="custom-input" required />
+                            <label for="reset-password">Nova senha</label>
+                            <ion-input id="reset-password" v-model="resetPasswordForm.password" type="password" placeholder="Digite sua nova senha" class="custom-input" required :minlength="6" />
                         </div>
                         <ion-button type="submit" expand="block" class="primary-button" :disabled="loading">
-                            <span v-if="!loading">Salvar Alterações</span>
+                            <span v-if="!loading">Alterar Senha</span>
                             <ion-spinner v-else name="crescent" />
                         </ion-button>
-                        <ion-button fill="clear" expand="block" color="medium" class="ion-margin-top" @click="handleSignOut">Sair da Conta</ion-button>
                     </form>
                     </section>
                 </div>
@@ -135,9 +118,9 @@ import AuthAvatarPicker from '@/components/AuthAvatarPicker.vue';
 import { useAuth } from '@/composables/useAuth';
 
 const {
-    mode, loading, loginForm, registerForm, forgotEmail, resetPasswordForm, profileForm,
+    mode, loading, loginForm, registerForm, forgotEmail, resetPasswordForm,
     avatarPreviewUrl, setMode, setAvatar,
-    handleLogin, handleRegister, handleMagicLinkLogin, handleForgotPassword, handleResetPassword, handleUpdateProfile, handleSignOut
+    handleLogin, handleRegister, handleMagicLinkLogin, handleForgotPassword, handleResetPassword
 } = useAuth();
 </script>
 

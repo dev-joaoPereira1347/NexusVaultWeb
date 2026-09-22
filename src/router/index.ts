@@ -5,6 +5,8 @@ import UploadPage from '@/views/UploadPage.vue'
 import CommunityGuidelines from '@/views/CommunityGuidelinesPage.vue'
 import AuthPage from '@/views/AuthPage.vue';
 import AboutUsPage from '@/views/AboutUs.vue';
+import UserAreaPage from '@/views/UserAreaPage.vue';
+import { supabase } from '@/services/supabase';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -19,17 +21,13 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/upload',
     name: 'Upload',
-    component: UploadPage
+    component: UploadPage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/generos',
     name: 'Generos',
     component: HomePage
-  },
-  {
-    path: '/contribuir',
-    name: 'Contribuir',
-    component: CommunityGuidelines
   },
   {
     path: '/genres',
@@ -74,7 +72,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/profile",
     name: "Profile",
-    component: AuthPage
+    component: UserAreaPage,
+    meta: { requiresAuth: true }
   },
   {
     path: "/reset-password",
@@ -91,5 +90,17 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAuth) return true;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) return true;
+
+  return {
+    name: 'Auth',
+    query: { redirect: to.fullPath }
+  };
+});
 
 export default router
