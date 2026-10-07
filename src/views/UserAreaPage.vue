@@ -3,7 +3,7 @@
         <ion-content :fullscreen="true" :scroll-y="true" class="user-area-content">
             <SiteHeader />
 
-            <main class="user-area">
+            <main class="user-area nv-page-shell">
                 <!-- Hero / SiteHeader da Área do Usuário -->
                 <section class="identity-card">
                     <div class="identity-info">
@@ -438,16 +438,14 @@ const {
 
 <style scoped>
 .user-area-content {
-    --background: var(--color-page-background, #F3ECE6);
+    --background: var(--color-page-background);
 }
 
 .user-area {
-    width: min(100% - 32px, var(--content-width, 1200px));
-    margin: 0 auto;
-    padding: var(--space-2xl, 48px) 0 var(--space-3xl, 64px);
+    --content-width: 1200px;
     display: flex;
     flex-direction: column;
-    gap: var(--space-xl, 32px);
+    gap: var(--section-gap);
 }
 
 /* Base Cards & Panels */
@@ -464,8 +462,7 @@ const {
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    background: var(--color-surface, #FBF8F5);
-    padding: clamp(24px, 3vw, 36px);
+    padding: var(--surface-padding);
 }
 
 .identity-info {
@@ -480,25 +477,39 @@ const {
     align-items: center;
     align-self: flex-start;
     padding: 4px 12px;
+    border: 1px solid var(--color-border-soft);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid var(--color-border-soft, #E2DAD3);
-    color: var(--color-text-secondary, #4A4E69);
-    font-size: 0.72rem;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-eyebrow);
     font-weight: 700;
     letter-spacing: 0.12em;
 }
 
-.identity-info h1,
-.panel h2 {
+.identity-info h1 {
     margin: 0;
-    color: var(--color-text-primary, #22223B);
+    color: var(--color-text-primary);
     font-size: clamp(1.4rem, 2.1vw, 2.2rem);
     font-weight: 800;
     line-height: 1.2;
 }
 
-.identity-info p,
+.identity-info p {
+    max-width: 65ch;
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+    font-size: 0.95rem;
+}
+
+.panel h2 {
+    margin: 0;
+    color: var(--color-text-primary, #22223B);
+    font-size: clamp(1.2rem, 2vw, 1.75rem);
+    font-weight: 800;
+    line-height: 1.2;
+}
+
 .panel-subtitle {
     margin: 0;
     color: var(--color-text-secondary, #4A4E69);
@@ -514,7 +525,7 @@ const {
     width: 100%;
     padding: 4px;
     background: rgba(226, 218, 211, 0.4);
-    border-radius: var(--radius-md, 12px);
+    border-radius: var(--radius-lg);
 }
 
 .tab-button {
@@ -526,7 +537,7 @@ const {
     min-height: 48px;
     padding: 8px 12px;
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     background: transparent;
     color: var(--color-text-secondary, #4A4E69);
     cursor: pointer;
@@ -573,7 +584,7 @@ const {
 }
 
 .panel {
-    padding: clamp(22px, 2.8vw, 32px);
+    padding: var(--surface-padding);
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -639,12 +650,12 @@ const {
     --padding-start: 14px;
     --padding-end: 14px;
     --color: var(--color-text-primary, #22223B);
-    min-height: 46px;
+    min-height: var(--control-height);
     font-size: 0.95rem;
 }
 
 .native-select {
-    height: 46px;
+    height: var(--control-height);
     border: 1px solid var(--color-border-soft, #E2DAD3);
     border-radius: var(--radius-md, 12px);
     background: var(--color-white, #FFFFFF);
@@ -657,8 +668,8 @@ const {
 
 .native-select:focus,
 .field:focus-within {
-    border-color: var(--color-brand-primary, #3B52F6);
-    box-shadow: 0 0 0 3px rgba(59, 82, 246, 0.1);
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 3px rgba(83, 83, 143, 0.12);
 }
 
 .native-select.compact,
@@ -898,8 +909,7 @@ const {
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .user-area {
-        width: min(100% - 24px, 100%);
-        padding-top: 20px;
+        --page-gutter: 16px;
     }
 
     .cards-grid {

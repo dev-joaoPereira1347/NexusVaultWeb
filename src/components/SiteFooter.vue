@@ -224,7 +224,7 @@ onUnmounted(() => {
 
     .bottom-nav {
         position: fixed;
-        inset-inline: 0;
+        inset-inline: 0.5rem;
         bottom: 0;
         z-index: 30;
         display: flex;
@@ -232,6 +232,7 @@ onUnmounted(() => {
         justify-content: space-around;
         gap: 0.25rem;
         padding: 0.625rem 0.75rem calc(0.625rem + env(safe-area-inset-bottom));
+        border-radius: 14px;
         background: rgba(250, 249, 247, 0.96);
         border-top: 1px solid rgba(154, 140, 152, 0.22);
         box-shadow: 0 -6px 18px rgba(27, 28, 32, 0.08);

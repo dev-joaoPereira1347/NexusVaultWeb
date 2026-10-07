@@ -12,11 +12,11 @@
         <ion-grid>
           <ion-row>
             <ion-col size="12" size-md="4">
-              <StatCard :icon="documentTextOutline" value="2.000+" label="Documentos" />
+              <StatCard :icon="documentTextOutline" :value="documentCount" label="Documentos" />
             </ion-col>
 
             <ion-col size="12" size-md="4">
-              <StatCard :icon="peopleOutline" value="50" label="Colaboradores" />
+              <StatCard :icon="peopleOutline" :value="contributorCount" label="Colaboradores" />
             </ion-col>
 
             <ion-col size="12" size-md="4">
@@ -24,6 +24,7 @@
             </ion-col>
           </ion-row>
         </ion-grid>
+        <p v-if="statisticsError" class="statistics-error" role="alert">{{ statisticsError }}</p>
       </section>
 
       <SiteFooter />
@@ -32,17 +33,41 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue';
 import { IonPage, IonContent, IonGrid, IonRow, IonCol } from '@ionic/vue';
 import SiteHeader from '../components/SiteHeader.vue';
 import SiteFooter from '../components/SiteFooter.vue';
 import HeroSection from '../components/HeroSection.vue';
 import StatCard from '../components/StatCard.vue';
+import { getPublicLibraryStatistics } from '../services/statisticsService';
 
 import {
   documentTextOutline,
   peopleOutline,
   lockOpenOutline
 } from 'ionicons/icons';
+
+const documentCount = ref('—');
+const contributorCount = ref('—');
+const statisticsError = ref('');
+
+onMounted(async () => {
+  try {
+    const statistics = await getPublicLibraryStatistics();
+    documentCount.value = statistics.documentCount.toLocaleString('pt-BR');
+    contributorCount.value = statistics.contributorCount.toLocaleString('pt-BR');
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error !== null && 'message' in error
+        && typeof error.message === 'string'
+        ? error.message
+        : '';
+    statisticsError.value = message
+      ? `Não foi possível carregar as estatísticas: ${message}`
+      : 'Não foi possível carregar as estatísticas.';
+  }
+});
 </script>
 
 <style scoped>
@@ -51,8 +76,13 @@ import {
 }
 
 .stats-section {
-  max-width: 1200px;
-  margin: 20px auto 40px auto;
-  padding: 0 16px;
+  width: min(calc(100% - var(--page-gutter) - var(--page-gutter)), var(--content-width));
+  margin: 0 auto var(--section-gap);
+}
+
+.statistics-error {
+  margin: 8px 0 0;
+  color: var(--color-danger, #b42318);
+  text-align: center;
 }
 </style>

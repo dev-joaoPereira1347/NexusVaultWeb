@@ -1,7 +1,15 @@
 <template>
   <nav class="desktop-nav" aria-label="Navegação principal">
+    <router-link to="/home">
+      Início
+    </router-link>
+
     <router-link to="/generos">
-      Gêneros
+      Acervo
+    </router-link>
+
+    <router-link to="/community-guidelines">
+      Diretrizes
     </router-link>
 
     <router-link to="/upload">

@@ -1,0 +1,172 @@
+.nv-page-shell {
+    width: min(calc(100% - var(--page-gutter) - var(--page-gutter)), var(--content-width));
+    margin-inline: auto;
+    padding-block: var(--page-space);
+}
+
+.nv-page-heading {
+    margin: 0 0 var(--space-lg);
+}
+
+.nv-page-title {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.04em;
+}
+
+.nv-page-description {
+    max-width: 65ch;
+    margin: var(--space-sm) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-body);
+    line-height: 1.6;
+}
+
+.nv-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 0 var(--space-sm);
+    padding: 6px 12px;
+    border: 1px solid var(--color-border-soft);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-eyebrow);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.nv-surface {
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.nv-section {
+    margin-block: 0 var(--section-gap);
+}
+
+.nv-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+    align-items: center;
+    gap: clamp(24px, 5vw, 64px);
+    width: min(calc(100% - var(--page-gutter) - var(--page-gutter)), var(--content-width));
+    max-width: var(--container-width);
+    min-height: 360px;
+    margin: clamp(20px, 4vw, 40px) auto var(--section-gap);
+    padding: clamp(24px, 5vw, 56px);
+    overflow: hidden;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-xl);
+    background: linear-gradient(135deg, var(--color-background), var(--color-surface));
+}
+
+.nv-hero__content {
+    min-width: 0;
+    max-width: 600px;
+}
+
+.nv-hero__badge {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 0 var(--space-md);
+    padding: 7px 14px;
+    border: 1px solid var(--color-border-soft);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-eyebrow);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.nv-hero__title {
+    margin: 0 0 var(--space-md);
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: clamp(2.25rem, 4.5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.045em;
+}
+
+.nv-hero__description {
+    max-width: 58ch;
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 1.05rem;
+    line-height: 1.65;
+}
+
+.nv-hero__visual {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 280px;
+    padding: var(--space-md);
+    border: 1px solid rgba(154, 140, 152, 0.16);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.nv-hero__image {
+    display: block;
+    width: min(100%, 480px);
+    max-height: 320px;
+    object-fit: contain;
+}
+
+.nv-hero__image--cover {
+    width: 100%;
+    height: 320px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    box-shadow: var(--shadow-soft);
+}
+
+.nv-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+}
+
+@media (max-width: 700px) {
+    .nv-page-shell {
+        padding-block: var(--space-lg);
+    }
+
+    .nv-hero {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-lg);
+        min-height: 0;
+        margin-block: var(--space-md) var(--space-lg);
+        padding: var(--space-lg);
+    }
+
+    .nv-hero__title {
+        font-size: clamp(2rem, 8vw, 2.75rem);
+    }
+
+    .nv-hero__description {
+        font-size: 1rem;
+    }
+
+    .nv-hero__visual {
+        min-height: 180px;
+        padding: var(--space-sm);
+    }
+
+    .nv-hero__image {
+        max-height: 190px;
+    }
+
+    .nv-hero__image--cover {
+        height: 190px;
+    }
+}

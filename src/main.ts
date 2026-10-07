@@ -32,6 +32,7 @@ import '@ionic/vue/css/palettes/dark.system.css';
 
 /* Theme variables and shared global styles */
 import './theme/variables.css';
+import './theme/design-system.css';
 import './theme/core.css';
 
 import { defineCustomElements } from '@ionic/pwa-elements/loader';

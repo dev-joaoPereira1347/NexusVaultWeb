@@ -4,10 +4,10 @@
             <SiteHeader />
 
             <main class="shelf-background">
-                <section class="upload-card" aria-labelledby="page-title">
-                    <header class="card-header">
-                        <h1 id="page-title" class="card-title">Adicionar conteúdo</h1>
-                        <p class="card-subtitle">
+                <section class="upload-card nv-surface" aria-labelledby="page-title">
+                    <header class="card-header nv-page-heading">
+                        <h1 id="page-title" class="card-title nv-page-title">Adicionar conteúdo</h1>
+                        <p class="card-subtitle nv-page-description">
                             Envie um arquivo para adicionar à biblioteca do NexusVault.
                         </p>
                     </header>
@@ -207,24 +207,17 @@ const submitForm = async () => {
 }
 
 .shelf-background {
-    min-height: 680px;
+    min-height: 60vh;
     display: flex;
     justify-content: center;
-    padding: var(--space-2xl) 20px;
-    background-image:
-        linear-gradient(rgba(34, 34, 59, 0.48), rgba(34, 34, 59, 0.48)),
-        url('../assets/images/library.webp');
-    background-position: center;
-    background-size: cover;
+    padding: var(--page-space) var(--page-gutter);
+    background: var(--color-page-background);
 }
 
 .upload-card {
-    width: min(100%, 1120px);
+    width: min(100%, var(--content-width));
     height: fit-content;
-    padding: clamp(24px, 4vw, 44px);
-    border-radius: var(--radius-lg);
-    background: var(--color-surface);
-    box-shadow: var(--shadow-medium);
+    padding: var(--surface-padding);
 }
 
 .card-header {
@@ -234,7 +227,6 @@ const submitForm = async () => {
 .card-title {
     margin: 0 0 8px;
     color: var(--color-text-primary);
-    font-size: clamp(1.5rem, 3vw, 2rem);
 }
 
 .card-subtitle {
@@ -262,7 +254,7 @@ const submitForm = async () => {
 @media (max-width: 820px) {
     .shelf-background {
         min-height: 0;
-        padding: var(--space-xl) 16px;
+        padding: var(--space-lg) var(--page-gutter);
     }
 
     .card-grid {

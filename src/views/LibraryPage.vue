@@ -3,11 +3,11 @@
         <ion-content :fullscreen="true" class="library-content">
             <SiteHeader />
 
-            <main class="library-page">
-                <header class="page-header">
-                    <p class="eyebrow">ACERVO DIGITAL</p>
-                    <h1>Explore o acervo</h1>
-                    <p>Encontre documentos e obras compartilhados pela comunidade.</p>
+            <main class="library-page nv-page-shell">
+                <header class="page-header nv-page-heading">
+                    <p class="nv-eyebrow">ACERVO DIGITAL</p>
+                    <h1 class="nv-page-title">Explore o acervo</h1>
+                    <p class="nv-page-description">Encontre documentos e obras compartilhados pela comunidade.</p>
                 </header>
 
                 <label class="search-field">
@@ -26,13 +26,17 @@
                 </p>
 
                 <section v-else class="item-grid" aria-label="Documentos do acervo">
-                    <article v-for="item in filteredItems" :key="item.id" class="library-card">
+                    <article v-for="item in filteredItems" :key="item.id" class="library-card nv-surface">
                         <div class="cover">
                             <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`" />
                             <ion-icon v-else :icon="documentTextOutline" aria-hidden="true" />
                         </div>
                         <div class="item-details">
-                            <h2>{{ item.title }}</h2>
+                            <h2>
+                                <router-link :to="{ name: 'DocumentDetails', params: { id: item.id } }">
+                                    {{ item.title }}
+                                </router-link>
+                            </h2>
                             <p class="author">{{ item.author }}</p>
                             <p v-if="item.description" class="description">{{ item.description }}</p>
                             <p class="metadata">
@@ -42,6 +46,9 @@
                                 <ion-icon slot="start" :icon="downloadOutline" />
                                 Abrir documento
                             </ion-button>
+                            <router-link class="details-link" :to="{ name: 'DocumentDetails', params: { id: item.id } }">
+                                Ver detalhes
+                            </router-link>
                         </div>
                     </article>
                 </section>
@@ -95,33 +102,8 @@ onMounted(async () => {
 }
 
 .library-page {
-    width: min(100% - 32px, 1120px);
+    --content-width: 1120px;
     min-height: 60vh;
-    margin: 0 auto;
-    padding: 48px 0 64px;
-}
-
-.page-header {
-    margin-bottom: 28px;
-}
-
-.eyebrow {
-    margin: 0 0 8px;
-    color: var(--color-text-secondary);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-}
-
-.page-header h1 {
-    margin: 0 0 8px;
-    color: var(--color-text-primary);
-    font-size: clamp(1.8rem, 4vw, 2.5rem);
-}
-
-.page-header > p:last-child {
-    margin: 0;
-    color: var(--color-text-secondary);
 }
 
 .search-field {
@@ -129,11 +111,11 @@ onMounted(async () => {
     align-items: center;
     gap: 10px;
     width: min(100%, 520px);
-    min-height: 46px;
+    min-height: var(--control-height);
     margin-bottom: 24px;
     padding: 0 14px;
     border: 1px solid var(--color-border-soft);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-control, var(--radius-sm));
     background: var(--color-surface);
     color: var(--color-text-secondary);
 }
@@ -166,22 +148,22 @@ onMounted(async () => {
 }
 
 .error-message {
-    color: var(--color-danger, #b42318);
+    color: var(--color-danger);
 }
 
 .item-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
-    gap: 16px;
+    gap: var(--space-md);
 }
 
 .library-card {
     display: flex;
     gap: 16px;
     min-width: 0;
-    padding: 16px;
+    padding: var(--space-md);
     border: 1px solid var(--color-border-soft);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     background: var(--color-surface);
 }
 
@@ -216,6 +198,24 @@ onMounted(async () => {
     margin: 0;
     color: var(--color-text-primary);
     font-size: 1.05rem;
+}
+
+.item-details h2 a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.item-details h2 a:hover,
+.details-link:hover {
+    text-decoration: underline;
+}
+
+.details-link {
+    margin-top: 8px;
+    color: var(--color-brand-primary);
+    font-size: var(--font-size-caption);
+    font-weight: 700;
+    text-decoration: none;
 }
 
 .author,

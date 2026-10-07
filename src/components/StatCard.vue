@@ -23,9 +23,9 @@ defineProps<{
 .stat-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border-soft);
-  border-radius: 16px;
-  box-shadow: none;
-  padding: 20px 24px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-md) var(--surface-padding);
   margin: 0;
   display: flex;
   align-items: center;

@@ -7,6 +7,7 @@ import CommunityGuidelines from '@/views/CommunityGuidelinesPage.vue'
 import AuthPage from '@/views/AuthPage.vue';
 import AboutUsPage from '@/views/AboutUs.vue';
 import UserAreaPage from '@/views/UserAreaPage.vue';
+import DocumentDetailsPage from '@/views/DocumentDetailsPage.vue';
 import { supabase } from '@/services/supabase';
 
 const routes: Array<RouteRecordRaw> = [
@@ -29,6 +30,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/generos',
     name: 'Generos',
     component: LibraryPage
+  },
+  {
+    path: '/documentos/:id',
+    name: 'DocumentDetails',
+    component: DocumentDetailsPage
   },
   {
     path: '/genres',

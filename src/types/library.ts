@@ -46,3 +46,11 @@ export interface PublicLibraryItem {
     cover_url: string;
     download_url: string;
 }
+
+export interface PublicLibraryItemDetails extends PublicLibraryItem {
+    genre: string | null;
+    language: string | null;
+    file_name: string;
+    file_size: number;
+    created_at: string;
+}

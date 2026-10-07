@@ -7,15 +7,15 @@
                 description="A NexusVault nasce para guardar, organizar e compartilhar documentos, obras e saberes em domínio público com uma experiência acessível, segura e inspirada por uma comunidade de colaboração constante."
                 image-src="/src/assets/images/Logo Umbrella Code.svg" image-alt="Logo da Umbrella Code" />
 
-            <main class="about-main">
-                <section class="section-block">
+            <main class="about-main nv-page-shell">
+                <section class="section-block nv-section">
                     <div class="section-header">
-                        <span class="eyebrow">NOSSA MISSÃO</span>
-                        <h2>O que movemos</h2>
+                        <span class="nv-eyebrow">NOSSA MISSÃO</span>
+                        <h2 class="nv-page-title">O que movemos</h2>
                     </div>
 
                     <div class="cards-grid">
-                        <article class="pillar-card">
+                        <article class="pillar-card nv-surface">
                             <div class="icon-wrapper primary">
                                 <ion-icon :icon="libraryOutline" aria-hidden="true" />
                             </div>
@@ -26,7 +26,7 @@
                             </p>
                         </article>
 
-                        <article class="pillar-card">
+                        <article class="pillar-card nv-surface">
                             <div class="icon-wrapper accent">
                                 <ion-icon :icon="lockClosedOutline" aria-hidden="true" />
                             </div>
@@ -37,7 +37,7 @@
                             </p>
                         </article>
 
-                        <article class="pillar-card">
+                        <article class="pillar-card nv-surface">
                             <div class="icon-wrapper dark">
                                 <ion-icon :icon="peopleOutline" aria-hidden="true" />
                             </div>
@@ -50,8 +50,8 @@
                     </div>
                 </section>
 
-                <section class="section-block developer-block">
-                    <div class="developer-card">
+                <section class="section-block developer-block nv-section">
+                    <div class="developer-card nv-surface">
                         <div class="developer-brand">
                             <img src="@/assets/images/Logo Umbrella Code.svg" alt="Logo da Umbrella Code"
                                 class="developer-logo" />
@@ -69,14 +69,14 @@
                     </div>
                 </section>
 
-                <section class="section-block team-section">
+                <section class="section-block team-section nv-section">
                     <div class="section-header team-header">
-                        <span class="eyebrow">EQUIPE</span>
-                        <h2>Quem constrói a experiência</h2>
+                        <span class="nv-eyebrow">EQUIPE</span>
+                        <h2 class="nv-page-title">Quem constrói a experiência</h2>
                     </div>
 
                     <div class="team-grid">
-                        <article v-for="member in teamMembers" :key="member.name" class="team-card">
+                        <article v-for="member in teamMembers" :key="member.name" class="team-card nv-surface">
                             <div class="team-avatar-wrap">
                                 <div class="team-avatar">
                                     <ion-icon :icon="member.icon" aria-hidden="true" />
@@ -178,39 +178,19 @@ const teamMembers: TeamMember[] = [
 }
 
 .about-main {
-    width: min(100% - 32px, 1100px);
-    margin: 0 auto;
-    padding: clamp(24px, 5vw, 72px) 0 clamp(36px, 6vw, 80px);
+    --content-width: 1200px;
 }
 
 .section-block {
-    margin-bottom: clamp(24px, 4vw, 48px);
+    margin-bottom: 0;
 }
 
 .section-header {
     margin-bottom: 20px;
 }
 
-.eyebrow {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 16px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(154, 140, 152, 0.28);
-    color: var(--color-text-secondary, #4A4E69);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    margin-bottom: 14px;
-}
-
 .section-header h2 {
     margin: 0;
-    color: var(--color-text-primary);
-    font-size: clamp(1.8rem, 3vw, 2.5rem);
-    line-height: 1.2;
-    letter-spacing: -0.04em;
 }
 
 .cards-grid {
@@ -220,10 +200,10 @@ const teamMembers: TeamMember[] = [
 }
 
 .pillar-card {
-    background: rgba(255, 255, 255, 0.4);
+    background: var(--color-surface);
     border: 1px solid var(--color-border-soft);
     border-radius: var(--radius-lg);
-    padding: 24px;
+    padding: var(--surface-padding);
     box-shadow: var(--shadow-soft);
 }
 
@@ -239,12 +219,12 @@ const teamMembers: TeamMember[] = [
 }
 
 .icon-wrapper.primary {
-    background: rgba(59, 82, 246, 0.1);
+    background: rgba(83, 83, 143, 0.1);
     color: var(--color-brand-primary);
 }
 
 .icon-wrapper.accent {
-    background: rgba(221, 161, 94, 0.15);
+    background: var(--color-surface-alt);
     color: var(--color-accent);
 }
 
@@ -271,11 +251,7 @@ const teamMembers: TeamMember[] = [
     display: flex;
     align-items: center;
     gap: 28px;
-    padding: 28px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(238, 229, 222, 0.8));
-    border: 1px solid var(--color-border-soft);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
+    padding: var(--surface-padding);
 }
 
 .developer-brand {
@@ -335,12 +311,12 @@ const teamMembers: TeamMember[] = [
     display: flex;
     flex-direction: column;
     min-height: 100%;
-    background: linear-gradient(180deg, rgba(45, 57, 83, 0.98), rgba(35, 42, 63, 0.98));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 30px;
-    padding: 22px 18px 20px;
-    box-shadow: 0 18px 40px rgba(17, 20, 32, 0.18);
-    color: var(--color-white);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-lg);
+    padding: var(--surface-padding);
+    box-shadow: var(--shadow-soft);
+    color: var(--color-text-primary);
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     overflow: hidden;
 }
@@ -349,13 +325,13 @@ const teamMembers: TeamMember[] = [
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 45%, transparent 100%);
+    background: linear-gradient(135deg, rgba(83, 83, 143, 0.04), transparent 45%, transparent 100%);
     pointer-events: none;
 }
 
 .team-card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 24px 46px rgba(17, 20, 32, 0.22);
+    box-shadow: var(--shadow-medium);
     border-color: rgba(255, 255, 255, 0.26);
 }
 
@@ -372,31 +348,30 @@ const teamMembers: TeamMember[] = [
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 24px rgba(0, 0, 0, 0.12);
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border-soft);
+    box-shadow: var(--shadow-soft);
     animation: floatGlow 4s ease-in-out infinite;
 }
 
 .team-avatar ion-icon {
     font-size: 2.5rem;
-    color: var(--color-white);
+    color: var(--color-brand-primary);
 }
 
 .team-card h3 {
     margin: 0;
-    color: var(--color-white);
-    font-size: clamp(1.7rem, 1.45vw, 2.3rem);
-    line-height: 1.08;
-    letter-spacing: -0.05em;
+    color: var(--color-text-primary);
+    font-size: clamp(1.25rem, 1.45vw, 1.5rem);
+    line-height: 1.2;
     text-align: left;
     font-weight: 700;
 }
 
 .team-role {
     margin: 18px 0 14px;
-    color: rgba(255, 255, 255, 0.96);
-    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-eyebrow);
     line-height: 1.3;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -405,8 +380,8 @@ const teamMembers: TeamMember[] = [
 
 .team-bio {
     margin: 0;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.96rem;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-caption);
     line-height: 1.7;
 }
 
@@ -460,12 +435,5 @@ const teamMembers: TeamMember[] = [
         grid-template-columns: 1fr;
     }
 
-    .team-card {
-        padding: 20px 16px 18px;
-    }
-
-    .team-card h3 {
-        font-size: 1.9rem;
-    }
 }
 </style>

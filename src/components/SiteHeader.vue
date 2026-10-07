@@ -42,7 +42,9 @@
         </div>
 
         <nav v-if="isMobileMenuOpen" class="mobile-nav" aria-label="Navegação móvel">
-            <router-link to="/generos" @click="closeMobileMenu">Gêneros</router-link>
+            <router-link to="/home" @click="closeMobileMenu">Início</router-link>
+            <router-link to="/generos" @click="closeMobileMenu">Acervo</router-link>
+            <router-link to="/community-guidelines" @click="closeMobileMenu">Diretrizes</router-link>
             <router-link to="/upload" @click="closeMobileMenu">Contribuir</router-link>
             <router-link to="/about-us" @click="closeMobileMenu">Sobre Nós</router-link>
 

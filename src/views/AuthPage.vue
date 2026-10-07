@@ -139,7 +139,7 @@ const {
 
 <style scoped>
 .auth-content {
-    --background: var(--color-page-background, #F3ECE6);
+    --background: var(--color-page-background);
 }
 
 .auth-wrapper {
@@ -147,7 +147,7 @@ const {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px 24px;
+    padding: var(--page-space) var(--page-gutter);
 }
 
 .auth-shell {
@@ -156,10 +156,10 @@ const {
     width: min(1060px, 100%);
     min-height: 650px;
     overflow: hidden;
-    border: 1px solid rgba(34, 34, 59, 0.08);
-    border-radius: var(--radius-xl, 24px);
-    background: var(--color-white, #FFFFFF);
-    box-shadow: 0 22px 60px rgba(34, 34, 59, 0.14);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-medium);
 }
 
 .auth-visual {
@@ -300,9 +300,9 @@ const {
 }
 
 .custom-input {
-    --background: #FBF8F5;
-    --border-color: var(--color-border-soft, #E2DAD3);
-    --border-radius: 10px;
+    --background: var(--color-surface);
+    --border-color: var(--color-border-soft);
+    --border-radius: var(--radius-control, var(--radius-sm));
     --border-style: solid;
     --border-width: 1px;
     --padding-start: 14px;
@@ -310,7 +310,7 @@ const {
     --color: var(--color-text-primary, #22223B);
     --placeholder-color: var(--color-text-muted, #6E6C7C);
     font-size: 13px;
-    min-height: 46px;
+    min-height: var(--control-height);
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
@@ -361,7 +361,7 @@ const {
     --background: var(--color-primary-dark, #2D2D2D);
     --background-hover: #111827;
     --color: #FFFFFF;
-    --border-radius: 10px;
+    --border-radius: var(--radius-control, var(--radius-sm));
     font-weight: 700;
     height: 48px;
     margin-top: 7px;
@@ -372,7 +372,7 @@ const {
     --background: transparent;
     --background-hover: rgba(59, 82, 246, 0.06);
     --color: var(--color-brand-primary, #3B52F6);
-    --border-radius: 10px;
+    --border-radius: var(--radius-control, var(--radius-sm));
     font-weight: 700;
     height: 48px;
     margin-top: -4px;

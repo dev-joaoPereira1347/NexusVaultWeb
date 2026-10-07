@@ -23,6 +23,7 @@
     --color-primary-dark: #2D2D2D;
     --color-brand-primary: #53538F;
     --color-white: #FFFFFF;
+    --color-danger: #B42318;
 
     --space-xs: 4px;
     --space-sm: 8px;
@@ -36,6 +37,7 @@
     --radius-md: 12px;
     --radius-lg: 16px;
     --radius-xl: 24px;
+    --radius-control: var(--radius-sm);
 
     --shadow-soft: 0 4px 12px rgba(34, 34, 59, 0.08);
     --shadow-medium: 0 8px 24px rgba(34, 34, 59, 0.12);
@@ -43,4 +45,12 @@
 
     --container-width: 1440px;
     --content-width: 1200px;
+    --page-gutter: clamp(16px, 4vw, 32px);
+    --page-space: clamp(32px, 5vw, 64px);
+    --section-gap: clamp(32px, 4vw, 48px);
+    --surface-padding: clamp(20px, 3vw, 32px);
+    --control-height: 46px;
+    --font-size-body: 1rem;
+    --font-size-caption: 0.875rem;
+    --font-size-eyebrow: 0.75rem;
 }

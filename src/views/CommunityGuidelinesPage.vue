@@ -3,36 +3,34 @@
         <ion-content :fullscreen="true" :scroll-y="true" class="guidelines-content">
             <SiteHeader />
             <!-- HERO SECTION -->
-            <section class="hero-section">
-                <div class="hero-container">
-                    <div class="hero-text">
-                        <span class="category-chip">SEGURANÇA E CONVÍVIO</span>
-                        <h1 class="hero-title">Diretrizes da Comunidade</h1>
-                        <p class="hero-subtitle">
-                            Bem-vindo ao NexusVault. Para garantir a preservação do conhecimento em um ambiente seguro,
-                            confiável e colaborativo, estabelecemos regras essenciais que todos os membros devem seguir.
-                        </p>
-                    </div>
+            <section class="nv-hero">
+                <div class="nv-hero__content">
+                    <span class="nv-hero__badge">SEGURANÇA E CONVÍVIO</span>
+                    <h1 class="nv-hero__title">Diretrizes da Comunidade</h1>
+                    <p class="nv-hero__description">
+                        Bem-vindo ao NexusVault. Para garantir a preservação do conhecimento em um ambiente seguro,
+                        confiável e colaborativo, estabelecemos regras essenciais que todos os membros devem seguir.
+                    </p>
+                </div>
 
-                    <div class="hero-visual">
-                        <img src="@/assets/illustrations/undraw_legal-counsel.svg"
-                            alt="Ilustração de Diretrizes Legais NexusVault" class="hero-svg" />
-                    </div>
+                <div class="nv-hero__visual">
+                    <img src="@/assets/illustrations/undraw_legal-counsel.svg"
+                        alt="Ilustração de Diretrizes Legais NexusVault" class="nv-hero__image" />
                 </div>
             </section>
 
             <!-- CORPO DAS DIRETRIZES E PRINCÍPIOS -->
             <div class="guidelines-page-body">
-                <div class="guidelines-main-container">
+                <div class="guidelines-main-container nv-page-shell">
                     <!-- SEÇÃO: PRINCÍPIOS -->
                     <section class="principles-section">
                         <div class="section-heading">
-                            <h2 class="section-title">Princípios</h2>
-                            <p class="section-subtitle">Acreditamos que o acesso ao conhecimento deve ser:</p>
+                            <h2 class="section-title nv-page-title">Princípios</h2>
+                            <p class="section-subtitle nv-page-description">Acreditamos que o acesso ao conhecimento deve ser:</p>
                         </div>
 
                         <div class="principles-grid">
-                            <div v-for="principle in principles" :key="principle.title" class="principle-card">
+                            <div v-for="principle in principles" :key="principle.title" class="principle-card nv-surface">
                                 <div class="principle-icon-circle">
                                     <ion-icon :icon="principle.icon" aria-hidden="true" />
                                 </div>
@@ -44,10 +42,10 @@
 
                     <!-- SEÇÃO: NOSSAS DIRETRIZES -->
                     <section class="rules-section">
-                        <h2 class="section-title">Nossas Diretrizes</h2>
+                        <h2 class="section-title nv-page-title">Nossas Diretrizes</h2>
 
                         <div class="rules-list">
-                            <div v-for="item in guidelines" :key="item.id" class="rule-card">
+                            <div v-for="item in guidelines" :key="item.id" class="rule-card nv-surface">
                                 <div class="rule-icon-circle">
                                     <ion-icon :icon="item.icon" aria-hidden="true" />
                                 </div>
@@ -61,7 +59,7 @@
 
                     <!-- SEÇÃO: DÚVIDAS / AJUDA -->
                     <section class="help-section">
-                        <div class="help-card">
+                        <div class="help-card nv-surface">
                             <div class="help-left">
                                 <div class="help-icon-circle">
                                     <ion-icon :icon="chatbubbleEllipsesOutline" aria-hidden="true" />
@@ -180,83 +178,17 @@ const guidelines = ref<GuidelineItem[]>([
 
 <style scoped>
 .guidelines-content {
-    --background: var(--color-white, #FFFFFF);
-}
-
-/* HERO SECTION (ORIGINAL COM SVG) */
-.hero-section {
-    width: 100%;
-    background: linear-gradient(180deg, var(--color-background, #F7F0E9) 0%, rgba(247, 240, 233, 0.96) 100%);
-    padding: clamp(32px, 5vw, 72px) 0 24px;
-}
-
-.hero-container {
-    width: min(100% - 32px, var(--content-width, 1200px));
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: clamp(24px, 5vw, 72px);
-}
-
-.hero-text {
-    flex: 1;
-    max-width: 580px;
-}
-
-.category-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(154, 140, 152, 0.28);
-    color: var(--color-text-secondary, #4A4E69);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    margin-bottom: 18px;
-}
-
-.hero-title {
-    margin: 0 0 16px;
-    font-size: clamp(2.2rem, 4vw, 3.4rem);
-    line-height: 1.1;
-    letter-spacing: -0.04em;
-    color: var(--color-text-primary, #22223B);
-}
-
-.hero-subtitle {
-    margin: 0;
-    max-width: 540px;
-    font-size: 1.05rem;
-    line-height: 1.7;
-    color: var(--color-text-secondary, #4A4E69);
-}
-
-.hero-visual {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-}
-
-.hero-svg {
-    display: block;
-    width: min(100%, 420px);
-    height: auto;
-    filter: drop-shadow(0 18px 30px rgba(34, 34, 59, 0.08));
+    --background: var(--color-page-background);
 }
 
 /* CORPO DAS DIRETRIZES E PRINCÍPIOS */
 .guidelines-page-body {
     width: 100%;
-    background-color: var(--color-white, #FFFFFF);
-    padding: clamp(40px, 6vw, 68px) 0 clamp(48px, 6vw, 80px);
+    background-color: var(--color-page-background);
 }
 
 .guidelines-main-container {
-    width: min(100% - 32px, 760px);
-    margin: 0 auto;
+    --content-width: 960px;
 }
 
 /* TIPOGRAFIA DAS SEÇÕES */
@@ -266,23 +198,19 @@ const guidelines = ref<GuidelineItem[]>([
 
 .section-title {
     margin: 0;
-    font-size: clamp(1.8rem, 3.5vw, 2.3rem);
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: -0.03em;
-    color: #111118;
 }
 
 .section-subtitle {
     margin: 8px 0 0;
-    font-size: 1.02rem;
     line-height: 1.5;
-    color: #555566;
 }
 
 /* SEÇÃO PRINCÍPIOS (GRID 2x2) */
 .principles-section {
-    margin-bottom: 52px;
+    margin-bottom: var(--section-gap);
 }
 
 .principles-grid {
@@ -293,9 +221,10 @@ const guidelines = ref<GuidelineItem[]>([
 }
 
 .principle-card {
-    background-color: var(--color-background, #F7F0E9);
-    border-radius: 18px;
-    padding: 26px 22px;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-lg);
+    padding: var(--surface-padding);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -326,22 +255,22 @@ const guidelines = ref<GuidelineItem[]>([
 
 .principle-title {
     margin: 0 0 10px;
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 700;
     line-height: 1.3;
-    color: #1f1f2e;
+    color: var(--color-text-primary);
 }
 
 .principle-description {
     margin: 0;
     font-size: 0.92rem;
     line-height: 1.55;
-    color: #5a5a6e;
+    color: var(--color-text-secondary);
 }
 
 /* SEÇÃO NOSSAS DIRETRIZES (LISTA VERTICAL) */
 .rules-section {
-    margin-bottom: 20px;
+    margin-bottom: var(--section-gap);
 }
 
 .rules-section .section-title {
@@ -355,9 +284,10 @@ const guidelines = ref<GuidelineItem[]>([
 }
 
 .rule-card {
-    background-color: var(--color-background, #F7F0E9);
-    border-radius: 16px;
-    padding: 18px 24px;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md) var(--surface-padding);
     display: flex;
     align-items: center;
     gap: 20px;
@@ -395,25 +325,26 @@ const guidelines = ref<GuidelineItem[]>([
     font-size: 1.02rem;
     font-weight: 700;
     line-height: 1.35;
-    color: #1f1f2e;
+    color: var(--color-text-primary);
 }
 
 .rule-description {
     margin: 0;
     font-size: 0.88rem;
     line-height: 1.5;
-    color: #5a5a6e;
+    color: var(--color-text-secondary);
 }
 
 /* SEÇÃO AJUDA / DÚVIDAS */
 .help-section {
-    margin-top: 16px;
+    margin-top: var(--section-gap);
 }
 
 .help-card {
-    background-color: var(--color-background, #F7F0E9);
-    border-radius: 16px;
-    padding: 18px 24px;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md) var(--surface-padding);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -457,21 +388,21 @@ const guidelines = ref<GuidelineItem[]>([
     font-size: 1.02rem;
     font-weight: 700;
     line-height: 1.35;
-    color: #1f1f2e;
+    color: var(--color-text-primary);
 }
 
 .help-description {
     margin: 0;
     font-size: 0.88rem;
     line-height: 1.5;
-    color: #5a5a6e;
+    color: var(--color-text-secondary);
 }
 
 .help-button {
-    background-color: var(--color-brand-primary, #53538F);
+    background-color: var(--color-brand-primary);
     color: #FFFFFF;
     padding: 12px 20px;
-    border-radius: 10px;
+    border-radius: var(--radius-control);
     font-size: 0.88rem;
     font-weight: 600;
     text-decoration: none;
@@ -484,38 +415,13 @@ const guidelines = ref<GuidelineItem[]>([
 }
 
 .help-button:hover {
-    background-color: #424275;
+    background-color: var(--color-accent);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(83, 83, 143, 0.25);
 }
 
 /* RESPONSIVIDADE */
-@media (max-width: 992px) {
-    .hero-container {
-        flex-direction: column-reverse;
-        text-align: center;
-    }
-
-    .hero-text,
-    .hero-subtitle {
-        max-width: 100%;
-    }
-
-    .hero-visual {
-        justify-content: center;
-        width: 100%;
-    }
-
-    .hero-svg {
-        max-width: 320px;
-    }
-}
-
 @media (max-width: 680px) {
-    .hero-section {
-        padding-top: 24px;
-    }
-
     .principles-grid {
         grid-template-columns: 1fr;
         gap: 14px;
