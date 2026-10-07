@@ -7,7 +7,8 @@
                 <ion-icon :icon="cameraOutline" />
             </span>
         </button>
-        <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden-file-input" @change="handleFileSelected" />
+        <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden-file-input"
+            @change="handleFileSelected" />
         <span class="avatar-hint">{{ hint }}</span>
     </div>
 </template>
@@ -30,12 +31,64 @@ const handleFileSelected = (event: Event) => {
 </script>
 
 <style scoped>
-.avatar-upload-section { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 8px; }
-.avatar-preview { position: relative; width: 90px; height: 90px; padding: 0; border: 2px dashed var(--color-border, #9A8C98); border-radius: 50%; background: var(--color-surface-alt, #EEE5DE); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
-.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
-.avatar-placeholder-icon { font-size: 40px; color: var(--color-text-muted, #6E6C7C); }
-.avatar-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; color: #FFFFFF; font-size: 22px; }
-.avatar-preview:hover .avatar-overlay, .avatar-preview:focus-visible .avatar-overlay { opacity: 1; }
-.hidden-file-input { display: none; }
-.avatar-hint { font-size: 12px; color: var(--color-text-muted, #6E6C7C); }
+.avatar-upload-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.avatar-preview {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    padding: 0;
+    border: 2px dashed var(--color-border, #9A8C98);
+    border-radius: 50%;
+    background: var(--color-surface-alt, #EEE5DE);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder-icon {
+    font-size: 40px;
+    color: var(--color-text-muted, #6E6C7C);
+}
+
+.avatar-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: #FFFFFF;
+    font-size: 22px;
+}
+
+.avatar-preview:hover .avatar-overlay,
+.avatar-preview:focus-visible .avatar-overlay {
+    opacity: 1;
+}
+
+.hidden-file-input {
+    display: none;
+}
+
+.avatar-hint {
+    font-size: 12px;
+    color: var(--color-text-muted, #6E6C7C);
+}
 </style>

@@ -50,16 +50,17 @@ defineProps<{
 }
 
 .tagline-badge {
-  display: inline-block;
-  border: 1px solid var(--color-border);
-  border-radius: 50px;
-  padding: 6px 16px;
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(154, 140, 152, 0.28);
+  color: var(--color-text-secondary, #4A4E69);
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.8px;
-  color: var(--color-text-secondary);
+  letter-spacing: 0.12em;
   margin-bottom: 24px;
-  background: rgba(255, 255, 255, 0.5);
 }
 
 .hero-title {

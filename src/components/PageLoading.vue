@@ -246,6 +246,6 @@
                     </svg>
                 </li>
             </ul>
-        </div><span>Loading</span>
+        </div><span>PageLoading</span>
     </div>
 </template>

@@ -81,9 +81,10 @@ import { menuOutline, searchOutline } from 'ionicons/icons';
 
 @media (max-width: 600px) {
   .search-box {
-    flex: 1;
+    flex: 1 1 auto;
     width: auto;
-    max-width: 220px;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .search-menu {

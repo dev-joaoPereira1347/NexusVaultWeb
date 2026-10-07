@@ -34,3 +34,15 @@ export interface LibraryItemInsert {
     file_size: number;
     cover_path: string | null;
 }
+
+export interface PublicLibraryItem {
+    id: string;
+    title: string;
+    author: string;
+    category: string;
+    content_type: string;
+    year: number | null;
+    description: string | null;
+    cover_url: string;
+    download_url: string;
+}

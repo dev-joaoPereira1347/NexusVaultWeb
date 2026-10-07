@@ -1,61 +1,94 @@
 <template>
     <ion-page>
         <ion-content :fullscreen="true" :scroll-y="true" class="user-area-content">
-            <Header />
+            <SiteHeader />
 
             <main class="user-area">
-                <!-- Hero Section / Identity Card -->
+                <!-- Hero / SiteHeader da Área do Usuário -->
                 <section class="identity-card">
                     <div class="identity-info">
                         <span class="eyebrow">ÁREA DO USUÁRIO</span>
                         <h1>{{ profileForm.fullName || profileForm.username || 'Minha Conta' }}</h1>
-                        <p>Gerencie o seu perfil, acompanhe o seu progresso de leitura, avaliações e contribuições para
-                            o acervo.</p>
+                        <p>Gerencie seu perfil, acompanhe o progresso de leitura, suas avaliações e contribuições para o
+                            acervo.</p>
                     </div>
                     <div class="identity-actions">
                         <ion-button fill="outline" class="ghost-button" :disabled="pageLoading" @click="handleSignOut">
+                            <ion-icon slot="start" :icon="logOutOutline" />
                             Sair
                         </ion-button>
                     </div>
                 </section>
 
-                <!-- Loading State -->
+                <!-- PageLoading State -->
                 <div v-if="pageLoading" class="loading-state">
                     <ion-spinner name="crescent" color="primary" />
                     <span>Carregando as suas informações...</span>
                 </div>
 
                 <template v-else>
-                    <!-- Grid Principal: Perfil e Segurança -->
-                    <div class="cards-grid">
+                    <div class="tab-navigation" role="tablist" aria-label="Seções da área do usuário">
+                        <button id="profile-tab" type="button" role="tab" class="tab-button"
+                            :class="{ 'is-active': selectedTab === 'profile' }"
+                            :aria-selected="selectedTab === 'profile'" aria-controls="profile-panel"
+                            @click="selectedTab = 'profile'">
+                            <ion-icon :icon="personOutline" />
+                            <span>Perfil &amp; Segurança</span>
+                        </button>
+                        <button id="uploads-tab" type="button" role="tab" class="tab-button"
+                            :class="{ 'is-active': selectedTab === 'uploads' }"
+                            :aria-selected="selectedTab === 'uploads'" aria-controls="uploads-panel"
+                            @click="selectedTab = 'uploads'">
+                            <ion-icon :icon="documentTextOutline" />
+                            <span>Meus Envios ({{ contributions.length }})</span>
+                        </button>
+                        <button id="progress-tab" type="button" role="tab" class="tab-button"
+                            :class="{ 'is-active': selectedTab === 'progress' }"
+                            :aria-selected="selectedTab === 'progress'" aria-controls="progress-panel"
+                            @click="selectedTab = 'progress'">
+                            <ion-icon :icon="bookOutline" />
+                            <span>Progresso</span>
+                        </button>
+                        <button id="reviews-tab" type="button" role="tab" class="tab-button"
+                            :class="{ 'is-active': selectedTab === 'reviews' }"
+                            :aria-selected="selectedTab === 'reviews'" aria-controls="reviews-panel"
+                            @click="selectedTab = 'reviews'">
+                            <ion-icon :icon="starOutline" />
+                            <span>Avaliações</span>
+                        </button>
+                    </div>
+
+                    <!-- Aba 1: Perfil e Segurança -->
+                    <div v-if="selectedTab === 'profile'" id="profile-panel" role="tabpanel"
+                        aria-labelledby="profile-tab" class="tab-content cards-grid">
                         <!-- Painel de Perfil -->
                         <section class="panel" aria-labelledby="profile-title">
                             <div class="panel-header-simple">
                                 <h2 id="profile-title">Perfil</h2>
-                                <p class="panel-subtitle">Atualize o seu nome, e-mail e foto. As imagens são convertidas
-                                    para WebP automaticamente.</p>
+                                <p class="panel-subtitle">Atualize seu nome, e-mail e foto. Imagens são convertidas
+                                    automaticamente para WebP.</p>
                             </div>
 
                             <form class="stack-form" @submit.prevent="handleSaveProfile">
                                 <AuthAvatarPicker :preview-url="avatarPreviewUrl"
-                                    hint="Formats suportados: JPEG, PNG ou WebP" @selected="setAvatar" />
+                                    hint="Formatos suportados: JPEG, PNG ou WebP" @selected="setAvatar" />
 
                                 <div class="form-group">
                                     <label for="fullName">Nome completo</label>
                                     <ion-input id="fullName" v-model="profileForm.fullName" class="field"
-                                        placeholder="Seu nome completo" required />
+                                        placeholder="Seu nome completo" required enterkeyhint="next" />
                                 </div>
 
                                 <div class="form-group">
                                     <label for="username">Nome de usuário</label>
                                     <ion-input id="username" v-model="profileForm.username" class="field"
-                                        placeholder="@usuario" required />
+                                        placeholder="@usuario" required enterkeyhint="next" />
                                 </div>
 
                                 <div class="form-group">
                                     <label for="email">E-mail</label>
-                                    <ion-input id="email" v-model="profileForm.email" type="email" class="field"
-                                        placeholder="seuemail@dominio.com" required />
+                                    <ion-input id="email" v-model="profileForm.email" type="email" inputmode="email"
+                                        class="field" placeholder="seuemail@dominio.com" required enterkeyhint="done" />
                                 </div>
 
                                 <ion-button type="submit" class="primary-button" :disabled="savingProfile">
@@ -65,268 +98,314 @@
                             </form>
                         </section>
 
-                        <!-- Painel de Segurança -->
-                        <section class="panel" aria-labelledby="password-title">
-                            <div class="panel-header-simple">
-                                <h2 id="password-title">Segurança</h2>
-                                <p class="panel-subtitle">Mantenha a sua conta segura definindo uma senha forte de pelo
-                                    menos 6 caracteres.</p>
-                            </div>
-
-                            <form class="stack-form" @submit.prevent="handleChangePassword">
-                                <div class="form-group">
-                                    <label for="newPassword">Nova senha</label>
-                                    <ion-input id="newPassword" v-model="newPassword" type="password" class="field"
-                                        placeholder="••••••••" required :minlength="6" />
+                        <!-- Painel de Segurança e Exclusão -->
+                        <div class="stack-vertical">
+                            <section class="panel" aria-labelledby="password-title">
+                                <div class="panel-header-simple">
+                                    <h2 id="password-title">Segurança</h2>
+                                    <p class="panel-subtitle">Mantenha sua conta segura definindo uma senha de no mínimo
+                                        6 caracteres.</p>
                                 </div>
 
-                                <ion-button type="submit" class="primary-button" :disabled="savingPassword">
-                                    <span v-if="!savingPassword">Atualizar senha</span>
-                                    <ion-spinner v-else name="crescent" />
-                                </ion-button>
-                            </form>
+                                <form class="stack-form" @submit.prevent="handleChangePassword">
+                                    <div class="form-group">
+                                        <label for="newPassword">Nova senha</label>
+                                        <ion-input id="newPassword" v-model="newPassword" type="password" class="field"
+                                            placeholder="••••••••" required :minlength="6" />
+                                    </div>
+
+                                    <ion-button type="submit" class="primary-button" :disabled="savingPassword">
+                                        <span v-if="!savingPassword">Atualizar senha</span>
+                                        <ion-spinner v-else name="crescent" />
+                                    </ion-button>
+                                </form>
+                            </section>
+
+                            <!-- Zona de Perigo -->
+                            <section class="panel danger-panel" aria-labelledby="danger-title">
+                                <div class="panel-header-simple">
+                                    <h2 id="danger-title">Excluir conta</h2>
+                                    <p class="panel-subtitle">A exclusão da sua conta encerrará o acesso à plataforma de
+                                        forma irreversível.</p>
+                                </div>
+                                <div class="danger-action">
+                                    <ion-button color="danger" fill="solid" class="danger-button"
+                                        :disabled="pageLoading" @click="handleDeleteAccount">
+                                        <ion-icon slot="start" :icon="trashOutline" />
+                                        Excluir permanentemente
+                                    </ion-button>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <!-- Aba 2: Meus Envios -->
+                    <div v-else-if="selectedTab === 'uploads'" id="uploads-panel" role="tabpanel"
+                        aria-labelledby="uploads-tab" class="tab-content">
+                        <section class="panel" aria-labelledby="uploads-title">
+                            <div class="panel-header">
+                                <div>
+                                    <h2 id="uploads-title">Meus envios</h2>
+                                    <p class="panel-subtitle">Documentos e obras que você disponibilizou para
+                                        preservação no acervo público.</p>
+                                </div>
+                                <router-link to="/upload" class="action-link-btn">
+                                    <ion-icon :icon="addOutline" />
+                                    Enviar novo documento
+                                </router-link>
+                            </div>
+
+                            <div v-if="contributions.length === 0" class="empty-state">
+                                <ion-icon :icon="documentTextOutline" class="empty-icon" />
+                                <p>Você ainda não contribuiu com documentos para o acervo.</p>
+                            </div>
+
+                            <div v-else class="list-container">
+                                <article v-for="item in contributions" :key="item.id" class="media-card">
+                                    <div class="cover-wrapper">
+                                        <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`"
+                                            class="cover-img" />
+                                        <div v-else class="cover-fallback">
+                                            <ion-icon :icon="documentOutline" />
+                                        </div>
+                                    </div>
+                                    <div class="media-info">
+                                        <h3>{{ item.title }}</h3>
+                                        <p class="meta">{{ item.author }}</p>
+                                        <div class="badge-group">
+                                            <span class="badge">{{ item.category }}</span>
+                                            <span class="badge badge-alt">{{ item.content_type }}</span>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
                         </section>
                     </div>
 
-                    <!-- Meus Envios / Contribuições -->
-                    <section class="panel" aria-labelledby="uploads-title">
-                        <div class="panel-header">
-                            <div>
-                                <h2 id="uploads-title">Meus envios</h2>
-                                <p class="panel-subtitle">Documentos e obras que você disponibilizou para a preservação
-                                    no acervo público.</p>
-                            </div>
-                            <router-link to="/upload" class="action-link">Enviar novo documento</router-link>
-                        </div>
-
-                        <p v-if="contributions.length === 0" class="empty-copy">Você ainda não contribuiu com documentos
-                            para o acervo.</p>
-
-                        <div v-else class="list-container">
-                            <article v-for="item in contributions" :key="item.id" class="media-card">
-                                <div class="cover-wrapper">
-                                    <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`"
-                                        class="cover-img" />
-                                    <div v-else class="cover-fallback">
-                                        <span>PDF</span>
-                                    </div>
-                                </div>
-                                <div class="media-info">
-                                    <h3>{{ item.title }}</h3>
-                                    <p class="meta">{{ item.author }} • <span class="badge">{{ item.category }}</span> •
-                                        {{ item.content_type }}</p>
-                                </div>
-                            </article>
-                        </div>
-                    </section>
-
-                    <!-- Progresso de Leitura -->
-                    <section class="panel" aria-labelledby="progress-title">
-                        <div class="panel-header-simple">
-                            <h2 id="progress-title">Progresso de leitura</h2>
-                            <p class="panel-subtitle">Acompanhe a sua evolução, registre a página atual e o status de
-                                leitura de cada obra.</p>
-                        </div>
-
-                        <form class="grid-form" @submit.prevent="handleCreateProgress">
-                            <div class="form-group span-2">
-                                <label>Documento / Obra</label>
-                                <select v-model="progressDraft.documentId" class="native-select" required>
-                                    <option value="" disabled selected>Selecione um documento do acervo...</option>
-                                    <option v-for="item in catalog" :key="item.id" :value="item.id">
-                                        {{ item.title }} — {{ item.author }}
-                                    </option>
-                                </select>
+                    <!-- Aba 3: Progresso de Leitura -->
+                    <div v-else-if="selectedTab === 'progress'" id="progress-panel" role="tabpanel"
+                        aria-labelledby="progress-tab" class="tab-content">
+                        <section class="panel" aria-labelledby="progress-title">
+                            <div class="panel-header-simple">
+                                <h2 id="progress-title">Progresso de leitura</h2>
+                                <p class="panel-subtitle">Acompanhe a sua evolução e atualize a página atual de cada
+                                    obra.</p>
                             </div>
 
-                            <div class="form-group">
-                                <label>Página atual</label>
-                                <ion-input v-model.number="progressDraft.page" type="number" min="0" class="field"
-                                    placeholder="0" required />
-                            </div>
-
-                            <div class="form-group">
-                                <label>Percentual (%)</label>
-                                <ion-input v-model.number="progressDraft.percent" type="number" min="0" max="100"
-                                    class="field" placeholder="0" required />
-                            </div>
-
-                            <div class="form-group">
-                                <label>Status</label>
-                                <select v-model="progressDraft.status" class="native-select">
-                                    <option value="lendo">Lendo</option>
-                                    <option value="lido">Lido</option>
-                                    <option value="pausado">Pausado</option>
-                                </select>
-                            </div>
-
-                            <ion-button type="submit" class="primary-button btn-align-end"
-                                :disabled="savingProgress || catalog.length === 0">
-                                Adicionar
-                            </ion-button>
-                        </form>
-
-                        <p v-if="catalog.length === 0" class="empty-copy">Não há documentos disponíveis no acervo para
-                            registrar progresso.</p>
-                        <p v-else-if="progressList.length === 0" class="empty-copy">Nenhum progresso de leitura
-                            registrado até o momento.</p>
-
-                        <div v-else class="interactive-list">
-                            <article v-for="item in progressList" :key="item.id" class="list-item-card">
-                                <div class="item-title-block">
-                                    <strong>{{ item.title }}</strong>
-                                    <span>{{ item.author }}</span>
+                            <form class="grid-form" @submit.prevent="handleCreateProgress">
+                                <div class="form-group span-2">
+                                    <label>Documento / Obra</label>
+                                    <select v-model="progressDraft.documentId" class="native-select" required>
+                                        <option value="" disabled selected>Selecione um documento do acervo...</option>
+                                        <option v-for="item in catalog" :key="item.id" :value="item.id">
+                                            {{ item.title }} — {{ item.author }}
+                                        </option>
+                                    </select>
                                 </div>
 
-                                <div class="item-controls">
-                                    <div class="input-inline">
-                                        <label>Pág.</label>
-                                        <ion-input v-model.number="item.page" type="number" min="0"
-                                            class="field compact" aria-label="Página atual" />
-                                    </div>
-
-                                    <div class="input-inline">
-                                        <label>%</label>
-                                        <ion-input v-model.number="item.percent" type="number" min="0" max="100"
-                                            class="field compact" aria-label="Percentual concluído" />
-                                    </div>
-
-                                    <div class="input-inline">
-                                        <select v-model="item.status" class="native-select compact"
-                                            aria-label="Status de leitura">
-                                            <option value="lendo">Lendo</option>
-                                            <option value="lido">Lido</option>
-                                            <option value="pausado">Pausado</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="button-group">
-                                        <ion-button size="small" class="primary-button" :disabled="savingProgress"
-                                            @click="handleUpdateProgress(item)">
-                                            Salvar
-                                        </ion-button>
-                                        <ion-button size="small" fill="clear" color="danger" :disabled="savingProgress"
-                                            @click="handleDeleteProgress(item.id)">
-                                            Excluir
-                                        </ion-button>
-                                    </div>
-                                </div>
-                            </article>
-                        </div>
-                    </section>
-
-                    <!-- Minhas Avaliações -->
-                    <section class="panel" aria-labelledby="reviews-title">
-                        <div class="panel-header-simple">
-                            <h2 id="reviews-title">Minhas avaliações</h2>
-                            <p class="panel-subtitle">Classifique de 1 a 5 estrelas e adicione observações ou análises
-                                sobre o acervo público.</p>
-                        </div>
-
-                        <form class="grid-form" @submit.prevent="handleCreateReview">
-                            <div class="form-group span-2">
-                                <label>Documento</label>
-                                <select v-model="reviewDraft.documentId" class="native-select" required>
-                                    <option value="" disabled selected>Selecione um documento...</option>
-                                    <option v-for="item in catalog" :key="`review-${item.id}`" :value="item.id">
-                                        {{ item.title }} — {{ item.author }}
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Classificação</label>
-                                <select v-model.number="reviewDraft.rating" class="native-select">
-                                    <option :value="1">★☆☆☆☆ (1/5)</option>
-                                    <option :value="2">★★☆☆☆ (2/5)</option>
-                                    <option :value="3">★★★☆☆ (3/5)</option>
-                                    <option :value="4">★★★★☆ (4/5)</option>
-                                    <option :value="5">★★★★★ (5/5)</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group span-2">
-                                <label>Comentário / Crítica</label>
-                                <ion-input v-model="reviewDraft.comment" class="field"
-                                    placeholder="Escreva a sua avaliação (opcional)" />
-                            </div>
-
-                            <ion-button type="submit" class="primary-button btn-align-end"
-                                :disabled="savingReview || catalog.length === 0">
-                                Publicar
-                            </ion-button>
-                        </form>
-
-                        <p v-if="reviews.length === 0" class="empty-copy">Você ainda não submeteu avaliações para obras
-                            do acervo.</p>
-
-                        <div v-else class="interactive-list">
-                            <article v-for="item in reviews" :key="item.id" class="list-item-card flex-column">
-                                <div class="item-title-block">
-                                    <strong>{{ item.title }}</strong>
-                                    <span>{{ item.author }}</span>
+                                <div class="form-group">
+                                    <label>Página atual</label>
+                                    <ion-input v-model.number="progressDraft.page" type="number" inputmode="numeric"
+                                        min="0" class="field" placeholder="0" required />
                                 </div>
 
-                                <div class="item-controls width-full">
-                                    <div class="input-inline">
-                                        <select v-model.number="item.rating" class="native-select compact"
-                                            aria-label="Nota do documento">
-                                            <option :value="1">★☆☆☆☆ (1)</option>
-                                            <option :value="2">★★☆☆☆ (2)</option>
-                                            <option :value="3">★★★☆☆ (3)</option>
-                                            <option :value="4">★★★★☆ (4)</option>
-                                            <option :value="5">★★★★★ (5)</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="input-inline flex-grow">
-                                        <ion-input v-model="item.comment" class="field compact"
-                                            placeholder="Comentário..." aria-label="Editar comentário" />
-                                    </div>
-
-                                    <div class="button-group">
-                                        <ion-button size="small" class="primary-button" :disabled="savingReview"
-                                            @click="handleUpdateReview(item)">
-                                            Salvar
-                                        </ion-button>
-                                        <ion-button size="small" fill="clear" color="danger" :disabled="savingReview"
-                                            @click="handleDeleteReview(item.id)">
-                                            Excluir
-                                        </ion-button>
-                                    </div>
+                                <div class="form-group">
+                                    <label>Percentual (%)</label>
+                                    <ion-input v-model.number="progressDraft.percent" type="number" inputmode="numeric"
+                                        min="0" max="100" class="field" placeholder="0" required />
                                 </div>
-                            </article>
-                        </div>
-                    </section>
 
-                    <!-- Zona de Perigo -->
-                    <section class="panel danger-panel" aria-labelledby="danger-title">
-                        <div class="panel-header-simple">
-                            <h2 id="danger-title">Excluir conta</h2>
-                            <p class="panel-subtitle">A exclusão da sua conta encerrará o acesso à plataforma. Esta ação
-                                é irreversível.</p>
-                        </div>
-                        <div class="danger-action">
-                            <ion-button color="danger" fill="solid" class="danger-button" :disabled="pageLoading"
-                                @click="handleDeleteAccount">
-                                Excluir permanentemente a minha conta
-                            </ion-button>
-                        </div>
-                    </section>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select v-model="progressDraft.status" class="native-select">
+                                        <option value="lendo">Lendo</option>
+                                        <option value="lido">Lido</option>
+                                        <option value="pausado">Pausado</option>
+                                    </select>
+                                </div>
+
+                                <ion-button type="submit" class="primary-button btn-align-end"
+                                    :disabled="savingProgress || catalog.length === 0">
+                                    <ion-icon slot="start" :icon="addOutline" />
+                                    Adicionar
+                                </ion-button>
+                            </form>
+
+                            <div v-if="catalog.length === 0" class="empty-state">
+                                <p>Não há documentos disponíveis no acervo para registrar progresso.</p>
+                            </div>
+                            <div v-else-if="progressList.length === 0" class="empty-state">
+                                <p>Nenhum progresso de leitura registrado até o momento.</p>
+                            </div>
+
+                            <div v-else class="interactive-list">
+                                <article v-for="item in progressList" :key="item.id" class="list-item-card">
+                                    <div class="item-title-block">
+                                        <strong>{{ item.title }}</strong>
+                                        <span>{{ item.author }}</span>
+                                    </div>
+
+                                    <div class="item-controls">
+                                        <div class="input-inline">
+                                            <label>Pág.</label>
+                                            <ion-input v-model.number="item.page" type="number" inputmode="numeric"
+                                                min="0" class="field compact" aria-label="Página atual" />
+                                        </div>
+
+                                        <div class="input-inline">
+                                            <label>%</label>
+                                            <ion-input v-model.number="item.percent" type="number" inputmode="numeric"
+                                                min="0" max="100" class="field compact"
+                                                aria-label="Percentual concluído" />
+                                        </div>
+
+                                        <div class="input-inline">
+                                            <select v-model="item.status" class="native-select compact"
+                                                aria-label="Status de leitura">
+                                                <option value="lendo">Lendo</option>
+                                                <option value="lido">Lido</option>
+                                                <option value="pausado">Pausado</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="button-group">
+                                            <ion-button size="small" class="primary-button compact-btn"
+                                                :disabled="savingProgress" @click="handleUpdateProgress(item)">
+                                                Salvar
+                                            </ion-button>
+                                            <ion-button size="small" fill="clear" color="danger"
+                                                :disabled="savingProgress" @click="handleDeleteProgress(item.id)">
+                                                <ion-icon :icon="trashOutline" slot="icon-only" />
+                                            </ion-button>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Aba 4: Minhas Avaliações -->
+                    <div v-else-if="selectedTab === 'reviews'" id="reviews-panel" role="tabpanel"
+                        aria-labelledby="reviews-tab" class="tab-content">
+                        <section class="panel" aria-labelledby="reviews-title">
+                            <div class="panel-header-simple">
+                                <h2 id="reviews-title">Minhas avaliações</h2>
+                                <p class="panel-subtitle">Classifique obras e compartilhe suas análises com a
+                                    comunidade.</p>
+                            </div>
+
+                            <form class="grid-form" @submit.prevent="handleCreateReview">
+                                <div class="form-group span-2">
+                                    <label>Documento</label>
+                                    <select v-model="reviewDraft.documentId" class="native-select" required>
+                                        <option value="" disabled selected>Selecione um documento...</option>
+                                        <option v-for="item in catalog" :key="`review-${item.id}`" :value="item.id">
+                                            {{ item.title }} — {{ item.author }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Classificação</label>
+                                    <select v-model.number="reviewDraft.rating" class="native-select">
+                                        <option :value="5">★★★★★ (5/5)</option>
+                                        <option :value="4">★★★★☆ (4/5)</option>
+                                        <option :value="3">★★★☆☆ (3/5)</option>
+                                        <option :value="2">★★☆☆☆ (2/5)</option>
+                                        <option :value="1">★☆☆☆☆ (1/5)</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group span-2">
+                                    <label>Comentário / Crítica</label>
+                                    <ion-input v-model="reviewDraft.comment" class="field"
+                                        placeholder="Escreva a sua avaliação (opcional)" />
+                                </div>
+
+                                <ion-button type="submit" class="primary-button btn-align-end"
+                                    :disabled="savingReview || catalog.length === 0">
+                                    Publicar
+                                </ion-button>
+                            </form>
+
+                            <div v-if="reviews.length === 0" class="empty-state">
+                                <ion-icon :icon="starOutline" class="empty-icon" />
+                                <p>Você ainda não submeteu avaliações para obras do acervo.</p>
+                            </div>
+
+                            <div v-else class="interactive-list">
+                                <article v-for="item in reviews" :key="item.id" class="list-item-card flex-column">
+                                    <div class="item-title-block">
+                                        <strong>{{ item.title }}</strong>
+                                        <span>{{ item.author }}</span>
+                                    </div>
+
+                                    <div class="item-controls width-full">
+                                        <div class="input-inline">
+                                            <select v-model.number="item.rating" class="native-select compact"
+                                                aria-label="Nota do documento">
+                                                <option :value="5">★★★★★ (5)</option>
+                                                <option :value="4">★★★★☆ (4)</option>
+                                                <option :value="3">★★★☆☆ (3)</option>
+                                                <option :value="2">★★☆☆☆ (2)</option>
+                                                <option :value="1">★☆☆☆☆ (1)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="input-inline flex-grow">
+                                            <ion-input v-model="item.comment" class="field compact"
+                                                placeholder="Comentário..." aria-label="Editar comentário" />
+                                        </div>
+
+                                        <div class="button-group">
+                                            <ion-button size="small" class="primary-button compact-btn"
+                                                :disabled="savingReview" @click="handleUpdateReview(item)">
+                                                Salvar
+                                            </ion-button>
+                                            <ion-button size="small" fill="clear" color="danger"
+                                                :disabled="savingReview" @click="handleDeleteReview(item.id)">
+                                                <ion-icon :icon="trashOutline" slot="icon-only" />
+                                            </ion-button>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
+                    </div>
                 </template>
             </main>
 
-            <Footer />
+            <SiteFooter />
         </ion-content>
     </ion-page>
 </template>
 
 <script setup lang="ts">
-import { IonButton, IonContent, IonInput, IonPage, IonSpinner } from '@ionic/vue';
-import Header from '@/components/Header.vue';
-import Footer from '@/components/Footer.vue';
+import { ref } from 'vue';
+import {
+    IonButton,
+    IonContent,
+    IonIcon,
+    IonInput,
+    IonPage,
+    IonSpinner
+} from '@ionic/vue';
+import {
+    addOutline,
+    bookOutline,
+    documentOutline,
+    documentTextOutline,
+    logOutOutline,
+    personOutline,
+    starOutline,
+    trashOutline
+} from 'ionicons/icons';
+import SiteHeader from '@/components/SiteHeader.vue';
+import SiteFooter from '@/components/SiteFooter.vue';
 import AuthAvatarPicker from '@/components/AuthAvatarPicker.vue';
 import { useUserArea } from '@/composables/useUserArea';
+
+const selectedTab = ref('profile');
 
 const {
     pageLoading,
@@ -358,96 +437,161 @@ const {
 </script>
 
 <style scoped>
-/* Variáveis da página */
 .user-area-content {
     --background: var(--color-page-background, #F3ECE6);
 }
 
 .user-area {
-    width: min(100% - 32px, 1120px);
+    width: min(100% - 32px, var(--content-width, 1200px));
     margin: 0 auto;
-    padding: var(--space-2xl, 32px) 0 var(--space-3xl, 48px);
+    padding: var(--space-2xl, 48px) 0 var(--space-3xl, 64px);
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg, 24px);
+    gap: var(--space-xl, 32px);
 }
 
-/* Cartões e Painéis */
+/* Base Cards & Panels */
 .identity-card,
 .panel {
-    padding: clamp(20px, 3vw, 32px);
     border: 1px solid var(--color-border-soft, #E2DAD3);
     border-radius: var(--radius-lg, 16px);
-    background: var(--color-white, #FFFFFF);
-    box-shadow: var(--shadow-soft, 0 4px 12px rgba(34, 34, 59, 0.05));
-    transition: box-shadow 0.2s ease-in-out;
+    background: var(--color-surface, #FBF8F5);
+    box-shadow: var(--shadow-soft, 0 4px 12px rgba(34, 34, 59, 0.08));
 }
 
 .identity-card {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    gap: var(--space-lg, 24px);
-    background: linear-gradient(135deg, var(--color-white, #FFFFFF) 0%, var(--color-surface, #FBF8F5) 100%);
+    align-items: center;
+    gap: 20px;
+    background: var(--color-surface, #FBF8F5);
+    padding: clamp(24px, 3vw, 36px);
+}
+
+.identity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
 }
 
 .eyebrow {
-    color: var(--color-brand-primary, #3B52F6);
-    font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    display: block;
-    margin-bottom: 4px;
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-border-soft, #E2DAD3);
+    color: var(--color-text-secondary, #4A4E69);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
 }
 
 .identity-info h1,
 .panel h2 {
-    margin: 0 0 8px 0;
+    margin: 0;
     color: var(--color-text-primary, #22223B);
-    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+    font-size: clamp(1.4rem, 2.1vw, 2.2rem);
     font-weight: 800;
+    line-height: 1.2;
 }
 
 .identity-info p,
-.panel-subtitle,
-.empty-copy {
+.panel-subtitle {
     margin: 0;
     color: var(--color-text-secondary, #4A4E69);
-    line-height: 1.5;
+    line-height: 1.55;
     font-size: 0.95rem;
 }
 
-.loading-state {
+/* User area tabs */
+.tab-navigation {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+    padding: 4px;
+    background: rgba(226, 218, 211, 0.4);
+    border-radius: var(--radius-md, 12px);
+}
+
+.tab-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 40px;
+    gap: 8px;
+    min-width: 0;
+    min-height: 48px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
     color: var(--color-text-secondary, #4A4E69);
-    font-weight: 600;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.88rem;
+    line-height: 1.25;
+    text-align: center;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Grids */
+.tab-button ion-icon {
+    flex: 0 0 auto;
+    font-size: 1.1rem;
+}
+
+.tab-button.is-active {
+    background: var(--color-white, #FFFFFF);
+    color: var(--color-text-primary, #22223B);
+    box-shadow: 0 1px 3px rgba(34, 34, 59, 0.12);
+}
+
+.tab-button:focus-visible {
+    outline: 2px solid var(--color-brand-primary, #3B52F6);
+    outline-offset: 2px;
+}
+
+/* Panels Layout */
+.tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl, 32px);
+}
+
 .cards-grid {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: var(--space-lg, 24px);
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 24px;
 }
 
-.panel-header {
+.stack-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.panel {
+    padding: clamp(22px, 2.8vw, 32px);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.panel-header,
+.panel-header-simple {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 16px;
-    margin-bottom: 20px;
 }
 
-.panel-header-simple {
-    margin-bottom: 20px;
+.panel-header {
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--color-border-soft, #E2DAD3);
 }
 
-/* Formulaários */
 .stack-form {
     display: flex;
     flex-direction: column;
@@ -456,14 +600,13 @@ const {
 
 .grid-form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 16px;
-    align-items: flex-end;
-    margin-bottom: 24px;
-    background: var(--color-surface, #FBF8F5);
+    align-items: end;
     padding: 20px;
-    border-radius: var(--radius-md, 12px);
     border: 1px solid var(--color-border-soft, #E2DAD3);
+    border-radius: var(--radius-md, 12px);
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .form-group {
@@ -474,7 +617,7 @@ const {
 
 .form-group label {
     color: var(--color-text-primary, #22223B);
-    font-size: 0.825rem;
+    font-size: 0.82rem;
     font-weight: 700;
 }
 
@@ -483,101 +626,116 @@ const {
 }
 
 .btn-align-end {
-    margin-bottom: 2px;
+    align-self: end;
 }
 
-/* Campos de entrada e selects */
+/* Inputs & Form Controls */
 .field {
     --background: var(--color-white, #FFFFFF);
     --border-color: var(--color-border-soft, #E2DAD3);
-    --border-radius: 10px;
+    --border-radius: var(--radius-md, 12px);
     --border-style: solid;
     --border-width: 1px;
     --padding-start: 14px;
     --padding-end: 14px;
     --color: var(--color-text-primary, #22223B);
-    min-height: 44px;
+    min-height: 46px;
     font-size: 0.95rem;
 }
 
 .native-select {
-    height: 44px;
+    height: 46px;
     border: 1px solid var(--color-border-soft, #E2DAD3);
-    border-radius: 10px;
+    border-radius: var(--radius-md, 12px);
     background: var(--color-white, #FFFFFF);
     color: var(--color-text-primary, #22223B);
     padding: 0 12px;
     outline: none;
     font-size: 0.9rem;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.native-select:focus {
+.native-select:focus,
+.field:focus-within {
     border-color: var(--color-brand-primary, #3B52F6);
+    box-shadow: 0 0 0 3px rgba(59, 82, 246, 0.1);
 }
 
 .native-select.compact,
 .field.compact {
     min-height: 38px;
     height: 38px;
-    font-size: 0.875rem;
+    font-size: 0.85rem;
 }
 
-/* Botões e Links */
+/* Buttons & Links */
 .primary-button {
     --background: var(--color-primary-dark, #2D2D2D);
-    --color: #ffffff;
-    --border-radius: 10px;
-    height: 44px;
+    --color: var(--color-white, #FFFFFF);
+    --border-radius: var(--radius-md, 12px);
+    height: 46px;
     margin: 0;
     text-transform: none;
     font-weight: 700;
 }
 
+.compact-btn {
+    height: 38px;
+    min-width: 80px;
+}
+
 .ghost-button {
     --border-color: var(--color-border-soft, #E2DAD3);
     --color: var(--color-text-primary, #22223B);
-    --border-radius: 10px;
+    --background: var(--color-white, #FFFFFF);
+    --border-radius: var(--radius-md, 12px);
     text-transform: none;
     font-weight: 600;
+    height: 42px;
 }
 
-.action-link {
-    color: var(--color-brand-primary, #3B52F6);
+.action-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-brand-primary, #3B52F6);
+    color: var(--color-white, #FFFFFF);
+    padding: 10px 18px;
+    border-radius: var(--radius-md, 12px);
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     text-decoration: none;
-    white-space: nowrap;
+    transition: opacity 0.2s ease;
 }
 
-.action-link:hover {
-    text-decoration: underline;
+.action-link-btn:hover {
+    opacity: 0.92;
 }
 
-/* Lista de Envios */
+/* Cards & Media Lists */
 .list-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
 }
 
 .media-card {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 12px;
+    padding: 14px;
     border: 1px solid var(--color-border-soft, #E2DAD3);
     border-radius: var(--radius-md, 12px);
-    background: var(--color-surface, #FBF8F5);
+    background: var(--color-white, #FFFFFF);
 }
 
 .cover-wrapper {
-    width: 48px;
-    height: 64px;
+    width: 52px;
+    height: 68px;
     flex-shrink: 0;
-    border-radius: 6px;
+    border-radius: var(--radius-sm, 8px);
     overflow: hidden;
-    background: var(--color-border-soft, #E2DAD3);
+    background: var(--color-surface-alt, #EEE5DE);
 }
 
 .cover-img {
@@ -592,9 +750,8 @@ const {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--color-text-secondary, #4A4E69);
+    font-size: 1.4rem;
+    color: var(--color-text-muted, #6E6C7C);
 }
 
 .media-info h3 {
@@ -604,19 +761,33 @@ const {
 }
 
 .media-info .meta {
-    margin: 0;
+    margin: 0 0 6px 0;
     font-size: 0.8rem;
     color: var(--color-text-secondary, #4A4E69);
 }
 
-.badge {
-    background: var(--color-border-soft, #E2DAD3);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.75rem;
+.badge-group {
+    display: flex;
+    gap: 6px;
 }
 
-/* Listas Interativas (Progresso e Avaliações) */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    background: var(--color-surface-alt, #EEE5DE);
+    color: var(--color-text-primary, #22223B);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.badge-alt {
+    background: rgba(59, 82, 246, 0.1);
+    color: var(--color-brand-primary, #3B52F6);
+}
+
+/* Interactive List */
 .interactive-list {
     display: flex;
     flex-direction: column;
@@ -631,18 +802,12 @@ const {
     padding: 16px;
     border: 1px solid var(--color-border-soft, #E2DAD3);
     border-radius: var(--radius-md, 12px);
-    background: var(--color-surface, #FBF8F5);
+    background: var(--color-white, #FFFFFF);
 }
 
 .list-item-card.flex-column {
     flex-direction: column;
     align-items: flex-start;
-}
-
-.item-title-block {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
 }
 
 .item-title-block strong {
@@ -651,8 +816,9 @@ const {
 }
 
 .item-title-block span {
+    display: block;
     color: var(--color-text-secondary, #4A4E69);
-    font-size: 0.825rem;
+    font-size: 0.82rem;
 }
 
 .item-controls {
@@ -660,6 +826,7 @@ const {
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .width-full {
@@ -673,8 +840,8 @@ const {
 }
 
 .input-inline label {
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.78rem;
+    font-weight: 700;
     color: var(--color-text-muted, #6E6C7C);
 }
 
@@ -688,27 +855,59 @@ const {
     gap: 4px;
 }
 
-/* Zona de Perigo */
-.danger-panel {
-    border-color: rgba(180, 35, 24, 0.3);
-    background: #FFFBFB;
+/* Empty States & PageLoading */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 16px;
+    text-align: center;
+    color: var(--color-text-secondary, #4A4E69);
 }
 
-.danger-action {
-    margin-top: 16px;
+.empty-icon {
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+    color: var(--color-text-muted, #6E6C7C);
+}
+
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 48px 16px;
+    color: var(--color-text-secondary, #4A4E69);
+    font-weight: 600;
+}
+
+/* Danger Zone */
+.danger-panel {
+    border-color: rgba(224, 49, 49, 0.25);
+    background: rgba(254, 242, 242, 0.6);
 }
 
 .danger-button {
-    --border-radius: 10px;
+    --border-radius: var(--radius-md, 12px);
     font-weight: 700;
     text-transform: none;
     margin: 0;
 }
 
-/* Responsividade e Layout Adaptativo */
-@media (max-width: 900px) {
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .user-area {
+        width: min(100% - 24px, 100%);
+        padding-top: 20px;
+    }
+
     .cards-grid {
         grid-template-columns: 1fr;
+    }
+
+    .tab-navigation {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .identity-card {
@@ -728,6 +927,11 @@ const {
         grid-column: span 1;
     }
 
+    .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
     .list-item-card {
         flex-direction: column;
         align-items: flex-start;
@@ -742,4 +946,13 @@ const {
         grid-template-columns: 1fr;
     }
 }
-</style> 
+
+@media (max-width: 420px) {
+    .tab-button {
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px 4px;
+        font-size: 0.76rem;
+    }
+}
+</style>

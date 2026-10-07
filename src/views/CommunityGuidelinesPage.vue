@@ -1,7 +1,7 @@
 <template>
     <ion-page>
         <ion-content :fullscreen="true" :scroll-y="true" class="guidelines-content">
-            <Header />
+            <SiteHeader />
             <!-- HERO SECTION -->
             <section class="hero-section">
                 <div class="hero-container">
@@ -21,64 +21,98 @@
                 </div>
             </section>
 
-            <!-- LISTA DE DIRETRIZES -->
-            <section class="guidelines-section">
-                <div class="guidelines-container">
-                    <div v-for="item in guidelines" :key="item.id" class="guideline-card">
-                        <div class="icon-wrapper">
-                            <ion-icon :icon="item.icon" aria-hidden="true" />
+            <!-- CORPO DAS DIRETRIZES E PRINCÍPIOS -->
+            <div class="guidelines-page-body">
+                <div class="guidelines-main-container">
+                    <!-- SEÇÃO: PRINCÍPIOS -->
+                    <section class="principles-section">
+                        <div class="section-heading">
+                            <h2 class="section-title">Princípios</h2>
+                            <p class="section-subtitle">Acreditamos que o acesso ao conhecimento deve ser:</p>
                         </div>
-                        <div class="guideline-text">
-                            <h3>{{ item.id }}. {{ item.title }}</h3>
-                            <p>{{ item.description }}</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
-            <!-- FAQ / BANNER DA CENTRAL DE AJUDA -->
-            <section class="faq-section">
-                <div class="faq-container">
-                    <div class="faq-box">
-                        <div class="faq-left">
-                            <div class="icon-circle">
-                                <ion-icon :icon="helpCircleOutline" aria-hidden="true" />
-                            </div>
-                            <div class="faq-text">
-                                <h4>Ficou com alguma dúvida sobre as regras?</h4>
-                                <p>Nossa central possui artigos detalhados sobre direitos autorais e boas práticas.</p>
+                        <div class="principles-grid">
+                            <div v-for="principle in principles" :key="principle.title" class="principle-card">
+                                <div class="principle-icon-circle">
+                                    <ion-icon :icon="principle.icon" aria-hidden="true" />
+                                </div>
+                                <h3 class="principle-title">{{ principle.title }}</h3>
+                                <p class="principle-description">{{ principle.description }}</p>
                             </div>
                         </div>
-                        <ion-button router-link="/help" class="faq-btn" fill="clear">
-                            Ir para Central de Ajuda
-                        </ion-button>
-                    </div>
+                    </section>
+
+                    <!-- SEÇÃO: NOSSAS DIRETRIZES -->
+                    <section class="rules-section">
+                        <h2 class="section-title">Nossas Diretrizes</h2>
+
+                        <div class="rules-list">
+                            <div v-for="item in guidelines" :key="item.id" class="rule-card">
+                                <div class="rule-icon-circle">
+                                    <ion-icon :icon="item.icon" aria-hidden="true" />
+                                </div>
+                                <div class="rule-content">
+                                    <h3 class="rule-title">{{ item.id }}. {{ item.title }}</h3>
+                                    <p class="rule-description">{{ item.description }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- SEÇÃO: DÚVIDAS / AJUDA -->
+                    <section class="help-section">
+                        <div class="help-card">
+                            <div class="help-left">
+                                <div class="help-icon-circle">
+                                    <ion-icon :icon="chatbubbleEllipsesOutline" aria-hidden="true" />
+                                </div>
+                                <div class="help-text">
+                                    <h3 class="help-title">Tem Dúvidas?</h3>
+                                    <p class="help-description">
+                                        Consulte nossas Centrais de Ajuda ou entre em contato conosco.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <router-link to="/help" class="help-button">
+                                Ir para central de ajuda
+                            </router-link>
+                        </div>
+                    </section>
                 </div>
-            </section>
-            <Footer />
+            </div>
+            <SiteFooter />
         </ion-content>
     </ion-page>
 </template>
 
 <script setup lang="ts">
-import Header from '@/components/Header.vue';
-import Footer from '@/components/Footer.vue';
+import SiteHeader from '@/components/SiteHeader.vue';
+import SiteFooter from '@/components/SiteFooter.vue';
 
 import { ref } from 'vue';
 import {
     IonPage,
-    IonButton,
     IonContent,
     IonIcon
 } from '@ionic/vue';
 import {
-    shieldCheckmarkOutline,
-    documentTextOutline,
-    sparklesOutline,
-    ribbonOutline,
-    lockClosedOutline,
-    helpCircleOutline
+    personOutline,
+    shieldOutline,
+    heartOutline,
+    peopleOutline,
+    checkmarkOutline,
+    closeOutline,
+    chatbubbleOutline,
+    alertCircleOutline,
+    chatbubbleEllipsesOutline
 } from 'ionicons/icons';
+
+interface PrincipleItem {
+    title: string;
+    description: string;
+    icon: string;
+}
 
 interface GuidelineItem {
     id: number;
@@ -87,53 +121,77 @@ interface GuidelineItem {
     icon: string;
 }
 
+const principles = ref<PrincipleItem[]>([
+    {
+        title: 'Livre e Aberto',
+        description: 'Informação pública deve estar acessível a todos, sem barreiras.',
+        icon: personOutline
+    },
+    {
+        title: 'Ético e Legal',
+        description: 'Respeitamos as leis, as políticas, os princípios éticos e todas as estabelecidas.',
+        icon: shieldOutline
+    },
+    {
+        title: 'Inclusivo',
+        description: 'Valorizamos a diversidade e promovemos um ambiente respeitoso para todos.',
+        icon: heartOutline
+    },
+    {
+        title: 'Colaborativo',
+        description: 'Acreditamos no poder da colaboração e do compartilhamento.',
+        icon: peopleOutline
+    }
+]);
+
 const guidelines = ref<GuidelineItem[]>([
     {
         id: 1,
-        title: 'Autenticidade e domínio público',
-        description: 'Todo documento enviado deve ser de domínio público ou possuir autorização expressa de licenciamento livre. Não são permitidos materiais protegidos por direitos autorais sem a devida concessão legal.',
-        icon: shieldCheckmarkOutline
+        title: 'Conteúdo Permitido',
+        description: 'Compartilhe tutoriais, textos, imagens, áudios, vídeos e outros materiais que você tenha direito de compartilhar.',
+        icon: checkmarkOutline
     },
     {
         id: 2,
-        title: 'Conteúdo adequado e respeito',
-        description: 'É proibido o upload de arquivos que promovam discurso de ódio, violência, discriminação, assédio ou qualquer forma de conteúdo prejudicial ao ambiente acadêmico e seguro do projeto.',
-        icon: documentTextOutline
+        title: 'Conteúdo Não Permitido',
+        description: 'Não envie conteúdo que viole direitos autorais, promova fraude, violência, discriminação ou viole a privacidade de terceiros.',
+        icon: closeOutline
     },
     {
         id: 3,
-        title: 'Integridade de arquivos e segurança',
-        description: 'Garanta que os materiais carregados não contenham scripts maliciosos, vírus, links suspeitos ou metadados corrompidos. Arquivos inseguros serão descartados e a conta pode ser suspensa.',
-        icon: sparklesOutline
+        title: 'Sua Responsabilidade',
+        description: 'Você é responsável pelo conteúdo que envia. Certifique-se de que tem os direitos necessários.',
+        icon: personOutline
     },
     {
         id: 4,
-        title: 'Precisão de metadados',
-        description: 'Ao catalogar um documento, informe dados precisos como título, autoria, ano de publicação e contexto histórico. Metadados bem estruturados ajudam pesquisadores e preservam o acervo.',
-        icon: ribbonOutline
+        title: 'Respeito à Comunidade',
+        description: 'Seja respeitoso com todos os membros da comunidade. Evite comportamentos que causem desconforto ou que sejam ofensivos.',
+        icon: chatbubbleOutline
     },
     {
         id: 5,
-        title: 'Moderação e aplicação',
-        description: 'Nossa equipe revisará denúncias e manterá a comunidade alinhada aos padrões de convivência. O NexusVault reserva-se o direito de remover conteúdos fora das diretrizes sem aviso prévio.',
-        icon: lockClosedOutline
+        title: 'Moderação e Aplicação',
+        description: 'Reservamo-nos o direito de remover conteúdos que violem estas diretrizes.',
+        icon: alertCircleOutline
     }
 ]);
 </script>
 
 <style scoped>
 .guidelines-content {
-    --background: var(--color-page-background);
+    --background: var(--color-white, #FFFFFF);
 }
 
+/* HERO SECTION (ORIGINAL COM SVG) */
 .hero-section {
     width: 100%;
-    background: linear-gradient(180deg, var(--color-background) 0%, rgba(247, 240, 233, 0.96) 100%);
-    padding: clamp(32px, 5vw, 80px) 0 0;
+    background: linear-gradient(180deg, var(--color-background, #F7F0E9) 0%, rgba(247, 240, 233, 0.96) 100%);
+    padding: clamp(32px, 5vw, 72px) 0 24px;
 }
 
 .hero-container {
-    width: min(100% - 32px, var(--content-width));
+    width: min(100% - 32px, var(--content-width, 1200px));
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -151,9 +209,9 @@ const guidelines = ref<GuidelineItem[]>([
     align-items: center;
     padding: 7px 14px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.85);
     border: 1px solid rgba(154, 140, 152, 0.28);
-    color: var(--color-text-secondary);
+    color: var(--color-text-secondary, #4A4E69);
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -165,15 +223,15 @@ const guidelines = ref<GuidelineItem[]>([
     font-size: clamp(2.2rem, 4vw, 3.4rem);
     line-height: 1.1;
     letter-spacing: -0.04em;
-    color: var(--color-text-primary);
+    color: var(--color-text-primary, #22223B);
 }
 
 .hero-subtitle {
     margin: 0;
     max-width: 540px;
-    font-size: 1.06rem;
+    font-size: 1.05rem;
     line-height: 1.7;
-    color: var(--color-text-secondary);
+    color: var(--color-text-secondary, #4A4E69);
 }
 
 .hero-visual {
@@ -184,150 +242,254 @@ const guidelines = ref<GuidelineItem[]>([
 
 .hero-svg {
     display: block;
-    width: min(100%, 440px);
+    width: min(100%, 420px);
     height: auto;
     filter: drop-shadow(0 18px 30px rgba(34, 34, 59, 0.08));
 }
 
-.guidelines-section {
-    padding: clamp(40px, 5vw, 80px) 0;
+/* CORPO DAS DIRETRIZES E PRINCÍPIOS */
+.guidelines-page-body {
+    width: 100%;
+    background-color: var(--color-white, #FFFFFF);
+    padding: clamp(40px, 6vw, 68px) 0 clamp(48px, 6vw, 80px);
 }
 
-.guidelines-container {
-    width: min(100% - 32px, 900px);
+.guidelines-main-container {
+    width: min(100% - 32px, 760px);
     margin: 0 auto;
+}
+
+/* TIPOGRAFIA DAS SEÇÕES */
+.section-heading {
+    margin-bottom: 24px;
+}
+
+.section-title {
+    margin: 0;
+    font-size: clamp(1.8rem, 3.5vw, 2.3rem);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    color: #111118;
+}
+
+.section-subtitle {
+    margin: 8px 0 0;
+    font-size: 1.02rem;
+    line-height: 1.5;
+    color: #555566;
+}
+
+/* SEÇÃO PRINCÍPIOS (GRID 2x2) */
+.principles-section {
+    margin-bottom: 52px;
+}
+
+.principles-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 24px;
+}
+
+.principle-card {
+    background-color: var(--color-background, #F7F0E9);
+    border-radius: 18px;
+    padding: 26px 22px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-}
-
-.guideline-card {
-    display: flex;
     align-items: flex-start;
-    gap: 20px;
-    padding: 24px;
-    border-radius: var(--radius-lg);
-    background: rgba(255, 255, 255, 0.45);
-    border: 1px solid var(--color-border-soft);
-    box-shadow: var(--shadow-soft);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.guideline-card:hover {
+.principle-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
+    box-shadow: 0 8px 20px rgba(83, 83, 143, 0.08);
 }
 
-.icon-wrapper {
+.principle-icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: var(--color-brand-primary, #53538F);
+    color: #FFFFFF;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
-    background: rgba(221, 161, 94, 0.14);
-    color: var(--color-accent);
-    border-radius: 14px;
+    margin-bottom: 20px;
     flex-shrink: 0;
 }
 
-.icon-wrapper ion-icon {
-    font-size: 1.6rem;
+.principle-icon-circle ion-icon {
+    font-size: 1.55rem;
 }
 
-.guideline-text {
+.principle-title {
+    margin: 0 0 10px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #1f1f2e;
+}
+
+.principle-description {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: #5a5a6e;
+}
+
+/* SEÇÃO NOSSAS DIRETRIZES (LISTA VERTICAL) */
+.rules-section {
+    margin-bottom: 20px;
+}
+
+.rules-section .section-title {
+    margin-bottom: 24px;
+}
+
+.rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rule-card {
+    background-color: var(--color-background, #F7F0E9);
+    border-radius: 16px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rule-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(83, 83, 143, 0.06);
+}
+
+.rule-icon-circle {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background-color: var(--color-brand-primary, #53538F);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.rule-icon-circle ion-icon {
+    font-size: 1.45rem;
+}
+
+.rule-content {
+    flex: 1;
     min-width: 0;
 }
 
-.guideline-text h3 {
-    margin: 0 0 8px;
-    color: var(--color-text-primary);
-    font-size: 1.15rem;
+.rule-title {
+    margin: 0 0 4px;
+    font-size: 1.02rem;
     font-weight: 700;
     line-height: 1.35;
+    color: #1f1f2e;
 }
 
-.guideline-text p {
+.rule-description {
     margin: 0;
-    color: var(--color-text-secondary);
-    font-size: 0.98rem;
-    line-height: 1.7;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #5a5a6e;
 }
 
-.faq-section {
-    padding: 0 0 56px;
+/* SEÇÃO AJUDA / DÚVIDAS */
+.help-section {
+    margin-top: 16px;
 }
 
-.faq-container {
-    width: min(100% - 32px, 900px);
-    margin: 0 auto;
-}
-
-.faq-box {
+.help-card {
+    background-color: var(--color-background, #F7F0E9);
+    border-radius: 16px;
+    padding: 18px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
-    padding: 24px 28px;
-    border-radius: var(--radius-lg);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-soft);
-    box-shadow: var(--shadow-soft);
+    gap: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.faq-left {
+.help-card:hover {
+    box-shadow: 0 6px 16px rgba(83, 83, 143, 0.06);
+}
+
+.help-left {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 20px;
     min-width: 0;
 }
 
-.icon-circle {
+.help-icon-circle {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background-color: var(--color-brand-primary, #53538F);
+    color: #FFFFFF;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: var(--color-text-primary);
-    color: var(--color-white);
     flex-shrink: 0;
 }
 
-.faq-left ion-icon {
-    font-size: 1.6rem;
+.help-icon-circle ion-icon {
+    font-size: 1.45rem;
 }
 
-.faq-text {
+.help-text {
     min-width: 0;
 }
 
-.faq-text h4 {
-    margin: 0 0 6px;
-    color: var(--color-text-primary);
-    font-size: 1.05rem;
+.help-title {
+    margin: 0 0 4px;
+    font-size: 1.02rem;
     font-weight: 700;
+    line-height: 1.35;
+    color: #1f1f2e;
 }
 
-.faq-text p {
+.help-description {
     margin: 0;
-    color: var(--color-text-secondary);
-    font-size: 0.92rem;
-    line-height: 1.6;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #5a5a6e;
 }
 
-.faq-btn {
-    --background: var(--color-accent);
-    --color: var(--color-white);
-    --border-radius: var(--radius-sm);
-    --padding-start: 22px;
-    --padding-end: 22px;
-    --box-shadow: none;
-    min-height: 46px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
+.help-button {
+    background-color: var(--color-brand-primary, #53538F);
+    color: #FFFFFF;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
     flex-shrink: 0;
+    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
+.help-button:hover {
+    background-color: #424275;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(83, 83, 143, 0.25);
+}
+
+/* RESPONSIVIDADE */
 @media (max-width: 992px) {
     .hero-container {
         flex-direction: column-reverse;
@@ -349,31 +511,39 @@ const guidelines = ref<GuidelineItem[]>([
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 680px) {
     .hero-section {
-        padding-top: 28px;
+        padding-top: 24px;
     }
 
-    .guideline-card {
-        flex-direction: column;
-        gap: 16px;
+    .principles-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .principle-card {
         padding: 20px 18px;
     }
 
-    .faq-box {
+    .rule-card {
+        padding: 16px 18px;
+        gap: 16px;
+    }
+
+    .help-card {
         flex-direction: column;
         align-items: stretch;
-        text-align: center;
         padding: 20px 18px;
+        gap: 18px;
     }
 
-    .faq-left {
-        flex-direction: column;
-        justify-content: center;
+    .help-left {
+        gap: 16px;
     }
 
-    .faq-btn {
+    .help-button {
         width: 100%;
+        text-align: center;
     }
 }
 </style>

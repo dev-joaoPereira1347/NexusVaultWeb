@@ -1,1 +1,121 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="799.031" height="618.112" viewBox="0 0 799.031 618.112" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" artist="Katerina Limpitsouni" source="https://undraw.co/"><g transform="translate(-893 -197)"><path d="M15.18,488.763c0,.872.478,1.573,1.073,1.573h535.1c.6,0,1.073-.7,1.073-1.573s-.478-1.573-1.073-1.573H16.253C15.658,487.191,15.18,487.891,15.18,488.763Z" transform="translate(1007.711 324.776)" fill="#ccc"/><rect width="19.105" height="3.371" transform="translate(1198.162 808.354)" fill="#b6b3c5"/><rect width="19.105" height="3.371" transform="translate(1367.295 808.917)" fill="#b6b3c5"/><path d="M352.955,370.945a27.529,27.529,0,0,1-54.321,0H229.146V521.536h193.3V370.945Z" transform="translate(966.721 287.378)" fill="#d6d6e3"/><rect width="193.296" height="5.242" transform="translate(1196.43 796.983)" fill="#090814"/><path d="M788.255,487.17H10.776A10.788,10.788,0,0,1,0,476.394V32.688A10.788,10.788,0,0,1,10.776,21.911H788.255a10.789,10.789,0,0,1,10.776,10.776V476.394a10.789,10.789,0,0,1-10.776,10.776Z" transform="translate(893 175.089)" fill="#090814"/><rect width="760.822" height="429.297" transform="translate(911.104 213.968)" fill="#fff"/><g transform="translate(20.477 16.308)"><path d="M604.463,379.271H317.442a8.655,8.655,0,0,1-8.645-8.645V273.8a8.655,8.655,0,0,1,8.645-8.645H604.463a8.655,8.655,0,0,1,8.645,8.645v96.826a8.655,8.655,0,0,1-8.645,8.645Z" transform="translate(811.648 85.826)" fill="#DDA15E"/><rect width="76.078" height="8.645" rx="2" transform="translate(1165.4 380.374)" fill="#fff"/><ellipse cx="5.187" cy="5.187" rx="5.187" ry="5.187" transform="translate(1336.576 380.374)" fill="#090814"/><ellipse cx="5.187" cy="5.187" rx="5.187" ry="5.187" transform="translate(1353.865 380.374)" fill="#090814"/><ellipse cx="5.187" cy="5.187" rx="5.187" ry="5.187" transform="translate(1371.156 380.374)" fill="#090814"/></g><ellipse cx="40.952" cy="40.952" rx="40.952" ry="40.952" transform="translate(1404.281 440.452)" fill="#090814"/><path d="M10.863-57.7l-.524-29.6h8.246l-.554,29.6Zm3.613,14.307a4.7,4.7,0,0,1-3.409-1.3,4.368,4.368,0,0,1-1.34-3.278,4.39,4.39,0,0,1,1.34-3.322,4.732,4.732,0,0,1,3.409-1.282,4.732,4.732,0,0,1,3.409,1.282,4.39,4.39,0,0,1,1.34,3.322,4.368,4.368,0,0,1-1.34,3.278A4.7,4.7,0,0,1,14.476-43.394Z" transform="translate(1430.76 546.754)" fill="#fff"/></g></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="799.031"
+   height="618.112"
+   viewBox="0 0 799.031 618.112"
+   role="img"
+   artist="Katerina Limpitsouni"
+   source="https://undraw.co/"
+   version="1.1"
+   id="svg8"
+   sodipodi:docname="undraw_server-error.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs8" />
+  <sodipodi:namedview
+     id="namedview8"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:zoom="0.09342967"
+     inkscape:cx="326.44876"
+     inkscape:cy="802.74286"
+     inkscape:window-width="1360"
+     inkscape:window-height="707"
+     inkscape:window-x="0"
+     inkscape:window-y="29"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg8" />
+  <g
+     id="g8">
+    <path
+       d="m 129.891,616.539 c 0,0.872 0.478,1.573 1.073,1.573 h 535.1 c 0.6,0 1.073,-0.7 1.073,-1.573 0,-0.873 -0.478,-1.573 -1.073,-1.573 h -535.1 c -0.595,10e-4 -1.073,0.701 -1.073,1.573 z"
+       fill="#cccccc"
+       id="path1" />
+    <rect
+       width="19.105"
+       height="3.3710001"
+       fill="#b6b3c5"
+       id="rect1"
+       x="305.16199"
+       y="611.354" />
+    <rect
+       width="19.105"
+       height="3.3710001"
+       fill="#b6b3c5"
+       id="rect2"
+       x="474.29501"
+       y="611.91699" />
+    <path
+       d="m 426.676,461.323 a 27.529,27.529 0 0 1 -54.321,0 h -69.488 v 150.591 h 193.3 V 461.323 Z"
+       fill="#d6d6e3"
+       id="path2" />
+    <rect
+       width="193.29601"
+       height="5.2420001"
+       fill="#090814"
+       id="rect3"
+       x="303.42999"
+       y="599.98297" />
+    <path
+       d="M 788.255,465.259 H 10.776 A 10.788,10.788 0 0 1 0,454.483 V 10.777 A 10.788,10.788 0 0 1 10.776,0 h 777.479 a 10.789,10.789 0 0 1 10.776,10.776 v 443.707 a 10.789,10.789 0 0 1 -10.776,10.776 z"
+       fill="#090814"
+       id="path3" />
+    <rect
+       width="760.82202"
+       height="429.297"
+       fill="#ffffff"
+       id="rect4"
+       x="18.104"
+       y="16.968" />
+    <path
+       d="M 543.588,284.405 H 256.567 a 8.655,8.655 0 0 1 -8.645,-8.645 v -96.826 a 8.655,8.655 0 0 1 8.645,-8.645 h 287.021 a 8.655,8.655 0 0 1 8.645,8.645 v 96.826 a 8.655,8.655 0 0 1 -8.645,8.645 z"
+       fill="#dda15e"
+       id="path4"
+       style="fill:#53538f;fill-opacity:1" />
+    <rect
+       width="76.078003"
+       height="8.6450005"
+       rx="2"
+       fill="#ffffff"
+       id="rect5"
+       x="292.87701"
+       y="199.68201" />
+    <circle
+       cx="469.23999"
+       cy="204.869"
+       fill="#090814"
+       id="ellipse5"
+       r="5.1869998" />
+    <circle
+       cx="486.52899"
+       cy="204.869"
+       fill="#090814"
+       id="ellipse6"
+       r="5.1869998" />
+    <circle
+       cx="503.82001"
+       cy="204.869"
+       fill="#090814"
+       id="ellipse7"
+       r="5.1869998" />
+    <circle
+       cx="552.23297"
+       cy="284.40399"
+       fill="#090814"
+       id="ellipse8"
+       r="40.952" />
+    <path
+       d="m 548.623,292.054 -0.524,-29.6 h 8.246 l -0.554,29.6 z m 3.613,14.307 a 4.7,4.7 0 0 1 -3.409,-1.3 4.368,4.368 0 0 1 -1.34,-3.278 4.39,4.39 0 0 1 1.34,-3.322 4.732,4.732 0 0 1 3.409,-1.282 4.732,4.732 0 0 1 3.409,1.282 4.39,4.39 0 0 1 1.34,3.322 4.368,4.368 0 0 1 -1.34,3.278 4.7,4.7 0 0 1 -3.409,1.299 z"
+       fill="#ffffff"
+       id="path8" />
+  </g>
+</svg>

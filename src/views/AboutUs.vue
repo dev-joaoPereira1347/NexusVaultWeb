@@ -1,15 +1,11 @@
 <template>
     <ion-page>
         <ion-content :fullscreen="true" class="about-content">
-            <Header />
+            <SiteHeader />
 
-            <UmbrellaHero
-                badge="MUSEU DIGITAL LIVRE"
-                title="Preservando o conhecimento<br />da humanidade"
+            <UmbrellaHero badge="MUSEU DIGITAL LIVRE" title="Preservando o conhecimento<br />da humanidade"
                 description="A NexusVault nasce para guardar, organizar e compartilhar documentos, obras e saberes em domínio público com uma experiência acessível, segura e inspirada por uma comunidade de colaboração constante."
-                image-src="/src/assets/images/Logo Umbrella Code.svg"
-                image-alt="Logo da Umbrella Code"
-            />
+                image-src="/src/assets/images/Logo Umbrella Code.svg" image-alt="Logo da Umbrella Code" />
 
             <main class="about-main">
                 <section class="section-block">
@@ -57,7 +53,8 @@
                 <section class="section-block developer-block">
                     <div class="developer-card">
                         <div class="developer-brand">
-                            <img src="@/assets/images/Logo Umbrella Code.svg" alt="Logo da Umbrella Code" class="developer-logo" />
+                            <img src="@/assets/images/Logo Umbrella Code.svg" alt="Logo da Umbrella Code"
+                                class="developer-logo" />
                             <span>Umbrella Code</span>
                         </div>
 
@@ -94,7 +91,7 @@
                 </section>
             </main>
 
-            <Footer />
+            <SiteFooter />
         </ion-content>
     </ion-page>
 </template>
@@ -118,8 +115,8 @@ import {
     clipboardOutline
 } from 'ionicons/icons';
 
-import Header from '@/components/Header.vue';
-import Footer from '@/components/Footer.vue';
+import SiteHeader from '@/components/SiteHeader.vue';
+import SiteFooter from '@/components/SiteFooter.vue';
 import UmbrellaHero from '@/components/UmbrellaHero.vue';
 
 interface TeamMember {
@@ -195,12 +192,17 @@ const teamMembers: TeamMember[] = [
 }
 
 .eyebrow {
-    display: inline-block;
-    margin-bottom: 10px;
-    color: var(--color-text-secondary);
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(154, 140, 152, 0.28);
+    color: var(--color-text-secondary, #4A4E69);
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.12em;
+    margin-bottom: 14px;
 }
 
 .section-header h2 {
@@ -270,7 +272,7 @@ const teamMembers: TeamMember[] = [
     align-items: center;
     gap: 28px;
     padding: 28px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(238,229,222,0.8));
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(238, 229, 222, 0.8));
     border: 1px solid var(--color-border-soft);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-soft);
@@ -347,7 +349,7 @@ const teamMembers: TeamMember[] = [
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent 45%, transparent 100%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 45%, transparent 100%);
     pointer-events: none;
 }
 
@@ -409,6 +411,7 @@ const teamMembers: TeamMember[] = [
 }
 
 @keyframes floatGlow {
+
     0%,
     100% {
         transform: translateY(0);

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import HomePage from '@/views/HomePage.vue'
+import LibraryPage from '@/views/LibraryPage.vue'
 import UploadPage from '@/views/UploadPage.vue'
 import CommunityGuidelines from '@/views/CommunityGuidelinesPage.vue'
 import AuthPage from '@/views/AuthPage.vue';
@@ -27,7 +28,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/generos',
     name: 'Generos',
-    component: HomePage
+    component: LibraryPage
   },
   {
     path: '/genres',

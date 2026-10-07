@@ -1,7 +1,8 @@
 import { supabase } from '@/services/supabase';
 import { getCurrentUser } from '@/services/authService';
+import { convertImageToWebp } from '@/utils/convertImageToWebp';
 import type { UploadForm } from '@/types/upload';
-import type { LibraryItemInsert } from '@/types/library';
+import type { LibraryItem, LibraryItemInsert } from '@/types/library';
 
 /** Bucket público para arquivos (PDF, EPUB, TXT, MD). */
 export const LIBRARY_DOCUMENTS_BUCKET = 'library-documents';
@@ -45,7 +46,7 @@ const removeFromBucket = async (bucket: string, path: string) => {
     await supabase.storage.from(bucket).remove([path]);
 };
 
-export const uploadLibraryItem = async (file: File, form: UploadForm) => {
+export const uploadLibraryItem = async (file: File, form: UploadForm): Promise<LibraryItem> => {
     const extension = extensionFromFileName(file.name);
     if (!extension || !ALLOWED_EXTENSIONS.has(extension)) {
         throw new Error('Formato não suportado. Utilize PDF, TXT, EPUB ou MD.');
@@ -55,8 +56,19 @@ export const uploadLibraryItem = async (file: File, form: UploadForm) => {
         throw new Error('O arquivo não pode ser maior que 50MB.');
     }
 
-    if (form.cover && form.cover.type !== 'image/webp') {
-        throw new Error('A capa deve estar no formato WebP.');
+    let coverFile: File | null = form.cover;
+    if (coverFile) {
+        if (!coverFile.type.startsWith('image/')) {
+            throw new Error('O arquivo de capa deve ser uma imagem válida (JPEG, PNG ou WebP).');
+        }
+
+        if (coverFile.type !== 'image/webp') {
+            try {
+                coverFile = await convertImageToWebp(coverFile, { maxSize: 1200, quality: 0.85 });
+            } catch {
+                throw new Error('Não foi possível processar e converter a capa para o formato WebP.');
+            }
+        }
     }
 
     const { data: { user }, error: userError } = await getCurrentUser();
@@ -64,7 +76,7 @@ export const uploadLibraryItem = async (file: File, form: UploadForm) => {
     if (!user) throw new Error('É necessário estar autenticado para enviar conteúdo.');
 
     const documentPath = `${user.id}/${crypto.randomUUID()}.${extension}`;
-    const coverPath = form.cover ? `${user.id}/${crypto.randomUUID()}.webp` : null;
+    const coverPath = coverFile ? `${user.id}/${crypto.randomUUID()}.webp` : null;
 
     await uploadToBucket(
         LIBRARY_DOCUMENTS_BUCKET,
@@ -73,9 +85,9 @@ export const uploadLibraryItem = async (file: File, form: UploadForm) => {
         mimeFromExtension(extension)
     );
 
-    if (form.cover && coverPath) {
+    if (coverFile && coverPath) {
         try {
-            await uploadToBucket(LIBRARY_COVERS_BUCKET, coverPath, form.cover, 'image/webp');
+            await uploadToBucket(LIBRARY_COVERS_BUCKET, coverPath, coverFile, 'image/webp');
         } catch (coverError) {
             await removeFromBucket(LIBRARY_DOCUMENTS_BUCKET, documentPath);
             throw coverError;
@@ -100,7 +112,11 @@ export const uploadLibraryItem = async (file: File, form: UploadForm) => {
         cover_path: coverPath
     };
 
-    const { error: insertError } = await supabase.from('library_items').insert(row);
+    const { data: insertedItem, error: insertError } = await supabase
+        .from('library_items')
+        .insert(row)
+        .select()
+        .single();
 
     if (insertError) {
         await removeFromBucket(LIBRARY_DOCUMENTS_BUCKET, documentPath);
@@ -109,4 +125,6 @@ export const uploadLibraryItem = async (file: File, form: UploadForm) => {
         }
         throw insertError;
     }
+
+    return insertedItem as LibraryItem;
 };

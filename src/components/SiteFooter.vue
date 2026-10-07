@@ -42,7 +42,13 @@
             v-slot="{ navigate, href, isActive }"
         >
             <a :href="href" class="nav-item" :class="{ active: isActive }" @click="navigate">
-                <ion-icon :icon="item.icon" aria-hidden="true" />
+                <img
+                    v-if="item.label === 'Conta' && currentUser && avatarUrl"
+                    :src="avatarUrl"
+                    alt="Avatar do usuário"
+                    class="nav-avatar"
+                />
+                <ion-icon v-else :icon="item.icon" aria-hidden="true" />
                 <span>{{ item.label }}</span>
             </a>
         </RouterLink>
@@ -50,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue';
 import { IonIcon, IonNote } from '@ionic/vue';
 import {
     homeOutline,
@@ -60,6 +67,8 @@ import {
 import FooterLinkList from './FooterLinkList.vue';
 import SocialLinks from './SocialLinks.vue';
 import SiteLogo from './SiteLogo.vue';
+import { getCurrentSession, getProfile } from '@/services/authService';
+import { supabase } from '@/services/supabase';
 
 const usefulLinks = [
     { label: 'Gêneros', to: '/genres' },
@@ -75,6 +84,44 @@ const navItems = [
     { label: 'Meu Acervo', to: '/upload', icon: libraryOutline },
     { label: 'Conta', to: '/profile', icon: personOutline }
 ];
+
+const currentUser = ref(false);
+const avatarUrl = ref('');
+let removeAuthListener: (() => void) | undefined;
+
+const updateUserAvatar = async (userId?: string) => {
+    const activeUserId = userId ?? (await getCurrentSession()).data.session?.user?.id;
+
+    if (!activeUserId) {
+        currentUser.value = false;
+        avatarUrl.value = '';
+        return;
+    }
+
+    try {
+        const profile = await getProfile(activeUserId);
+        currentUser.value = true;
+        avatarUrl.value = profile?.avatar_url || '';
+    } catch {
+        currentUser.value = false;
+        avatarUrl.value = '';
+    }
+};
+
+onMounted(async () => {
+    const { data: { session } } = await getCurrentSession();
+    await updateUserAvatar(session?.user.id);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        void updateUserAvatar(session?.user.id);
+    });
+
+    removeAuthListener = () => subscription.unsubscribe();
+});
+
+onUnmounted(() => {
+    removeAuthListener?.();
+});
 </script>
 
 <style scoped>
@@ -211,6 +258,14 @@ const navItems = [
     .nav-item ion-icon {
         font-size: 2rem;
         --ionicon-stroke-width: 42;
+    }
+
+    .nav-avatar {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid rgba(154, 140, 152, 0.3);
     }
 
     .nav-item.active {

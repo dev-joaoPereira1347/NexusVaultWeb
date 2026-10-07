@@ -45,7 +45,15 @@
             <router-link to="/generos" @click="closeMobileMenu">Gêneros</router-link>
             <router-link to="/upload" @click="closeMobileMenu">Contribuir</router-link>
             <router-link to="/about-us" @click="closeMobileMenu">Sobre Nós</router-link>
-            <router-link v-if="currentUser" to="/profile" @click="closeMobileMenu">Área do usuário</router-link>
+
+            <router-link v-if="currentUser" to="/profile" class="mobile-user-link" @click="closeMobileMenu">
+                <span class="mobile-user-identity">
+                    <img v-if="avatarUrl" :src="avatarUrl" alt="Avatar do usuário" class="mobile-user-avatar" />
+                    <ion-icon v-else :icon="personOutline" class="mobile-user-icon" aria-hidden="true" />
+                    <span>Área do usuário</span>
+                </span>
+            </router-link>
+
             <router-link v-else to="/auth" @click="closeMobileMenu">Registrar</router-link>
         </nav>
     </header>
@@ -193,15 +201,16 @@ onUnmounted(() => {
 }
 
 .header-container {
-    width: min(100% - 32px, 1280px);
+    width: min(100% - 24px, 1280px);
     max-width: 1280px;
     height: 100%;
     margin: 0 auto;
 
     display: flex;
     align-items: center;
-
-    gap: 24px;
+    justify-content: space-between;
+    gap: 12px;
+    padding-inline: 4px;
 }
 
 /* =========================
@@ -211,9 +220,9 @@ onUnmounted(() => {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 32px;
-    margin-left: 24px;
-
+    justify-content: flex-end;
+    gap: 12px;
+    margin-left: auto;
     flex-shrink: 0;
 }
 
@@ -388,45 +397,88 @@ onUnmounted(() => {
 
 @media (max-width: 900px) {
     .header-container {
-        gap: 16px;
+        gap: 8px;
+        width: calc(100% - 20px);
+        padding-inline: 0;
     }
 
     .desktop-nav {
         display: none;
     }
 
+    .user-menu,
+    .register-button {
+        display: none;
+    }
+
     .header-actions {
-        margin-left: auto;
+        margin-left: 0;
+        gap: 8px;
+        flex: 1;
+        justify-content: flex-end;
     }
 
     .mobile-menu-button {
         display: flex;
+        flex-shrink: 0;
     }
 
     .mobile-nav {
         position: absolute;
         z-index: 10;
         top: 78px;
-        right: 16px;
-        left: 16px;
+        right: 10px;
+        left: 10px;
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 10px;
+        gap: 6px;
+        padding: 12px;
         border: 1px solid var(--color-border-soft);
-        border-radius: var(--radius-md);
+        border-radius: 14px;
         background: var(--color-white);
         box-shadow: var(--shadow-medium);
     }
 
     .mobile-nav a {
-        padding: 13px 14px;
-        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+        border-radius: 10px;
         color: var(--color-text-primary);
         font-family: var(--font-family);
         font-size: 15px;
         font-weight: 600;
         text-decoration: none;
+    }
+
+    .mobile-user-link {
+        display: block;
+    }
+
+    .mobile-user-identity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .mobile-user-avatar,
+    .mobile-user-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .mobile-user-avatar {
+        object-fit: cover;
+        border: 1px solid var(--color-border-soft);
+    }
+
+    .mobile-user-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-alt);
+        color: var(--color-text-primary);
+        font-size: 16px;
     }
 
     .mobile-nav a:hover,

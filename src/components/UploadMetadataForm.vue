@@ -100,7 +100,7 @@
                         id="cover"
                         ref="coverInput"
                         type="file"
-                        accept=".webp,image/webp"
+                        accept="image/*"
                         class="hidden-cover-input"
                         @change="handleCoverChange"
                     />
@@ -147,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 import type { UploadForm } from '../types/upload';
 
 defineProps<{
@@ -157,10 +157,41 @@ defineProps<{
 
 const form = defineModel<UploadForm>({ required: true });
 const coverInput = ref<HTMLInputElement | null>(null);
+const coverPreview = ref('');
+let activeCoverObjectUrl: string | null = null;
 
-const coverPreview = computed(() => {
-    if (!form.value?.cover) return '';
-    return URL.createObjectURL(form.value.cover);
+const releaseCoverPreview = () => {
+    if (!activeCoverObjectUrl) return;
+
+    URL.revokeObjectURL(activeCoverObjectUrl);
+    activeCoverObjectUrl = null;
+};
+
+watch(
+    () => form.value?.cover,
+    (coverFile, previousFile) => {
+        if (coverFile === previousFile && coverFile) {
+            return;
+        }
+
+        releaseCoverPreview();
+
+        if (!coverFile) {
+            if (coverInput.value) {
+                coverInput.value.value = '';
+            }
+            coverPreview.value = '';
+            return;
+        }
+
+        activeCoverObjectUrl = URL.createObjectURL(coverFile);
+        coverPreview.value = activeCoverObjectUrl;
+    },
+    { immediate: true }
+);
+
+onBeforeUnmount(() => {
+    releaseCoverPreview();
 });
 
 const openCoverPicker = () => {
@@ -171,28 +202,20 @@ const handleCoverChange = (event: Event) => {
     const input = event.target as HTMLInputElement;
     const selectedFile = input.files?.[0] ?? null;
 
-    if (selectedFile && selectedFile.type !== 'image/webp') {
-        form.value = {
-            ...form.value,
-            cover: null
-        };
+    if (!selectedFile) return;
+
+    if (!selectedFile.type.startsWith('image/')) {
         input.value = '';
-        window.alert('A capa deve estar no formato WebP.');
+        window.alert('Selecione um arquivo de imagem.');
         return;
     }
 
-    form.value = {
-        ...form.value,
-        cover: selectedFile
-    };
+    form.value.cover = selectedFile;
+    input.value = '';
 };
 
 const removeCover = () => {
-    form.value = {
-        ...form.value,
-        cover: null
-    };
-
+    form.value.cover = null;
     if (coverInput.value) {
         coverInput.value.value = '';
     }
@@ -288,12 +311,17 @@ const currentYear = new Date().getFullYear();
 }
 
 .cover-preview {
-    width: 120px;
-    height: 150px;
+    display: grid;
+    place-items: center;
+    width: min(160px, 100%);
+    aspect-ratio: 4 / 5;
     overflow: hidden;
     border: 1px solid var(--color-border-soft);
     border-radius: var(--radius-sm);
-    background: var(--color-surface-alt);
+    background:
+        linear-gradient(135deg, rgba(210, 219, 255, 0.35), rgba(255, 255, 255, 0.15)),
+        var(--color-surface-alt);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
 }
 
 .cover-preview img {
@@ -306,6 +334,7 @@ const currentYear = new Date().getFullYear();
 .cover-name {
     color: var(--color-text-secondary);
     font-size: 0.75rem;
+    word-break: break-word;
 }
 
 .custom-input,

@@ -1,7 +1,7 @@
 <template>
   <ion-page>
     <ion-content class="page-container" :scroll-y="true">
-      <Header />
+      <SiteHeader />
 
       <HeroSection badge="MUSEU DIGITAL ABERTO" title="Preserve, organize e compartilhe<br />conhecimento."
         description="Explore milhares de documentos, contribua com novas coleções e ajude a preservar conhecimento de forma aberta e acessível para todos."
@@ -26,15 +26,15 @@
         </ion-grid>
       </section>
 
-      <Footer />
+      <SiteFooter />
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { IonPage, IonContent, IonGrid, IonRow, IonCol } from '@ionic/vue';
-import Header from '../components/Header.vue';
-import Footer from '../components/Footer.vue';
+import SiteHeader from '../components/SiteHeader.vue';
+import SiteFooter from '../components/SiteFooter.vue';
 import HeroSection from '../components/HeroSection.vue';
 import StatCard from '../components/StatCard.vue';
 
