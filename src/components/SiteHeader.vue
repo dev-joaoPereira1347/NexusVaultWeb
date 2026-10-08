@@ -197,7 +197,8 @@ onUnmounted(() => {
 <style scoped>
 .site-header {
     width: 100%;
-    height: 78px;
+    height: calc(78px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
 
     background: var(--color-background);
 }

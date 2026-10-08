@@ -5,7 +5,7 @@
 
       <HeroSection badge="MUSEU DIGITAL ABERTO" title="Preserve, organize e compartilhe<br />conhecimento."
         description="Explore milhares de documentos, contribua com novas coleções e ajude a preservar conhecimento de forma aberta e acessível para todos."
-        primary-label="EXPLORAR ACERVO" secondary-label="CONTRIBUIR" image-src="./src/assets/images/library.webp"
+        primary-label="EXPLORAR ACERVO" secondary-label="CONTRIBUIR" :image-src="libraryImage"
         image-alt="Estante de madeira com luminárias" />
 
       <section class="stats-section">
@@ -40,6 +40,7 @@ import SiteFooter from '../components/SiteFooter.vue';
 import HeroSection from '../components/HeroSection.vue';
 import StatCard from '../components/StatCard.vue';
 import { getPublicLibraryStatistics } from '../services/statisticsService';
+import libraryImage from '../assets/images/library.webp';
 
 import {
   documentTextOutline,
