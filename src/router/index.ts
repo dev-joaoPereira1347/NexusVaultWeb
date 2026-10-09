@@ -8,6 +8,8 @@ import AuthPage from '@/views/AuthPage.vue';
 import AboutUsPage from '@/views/AboutUs.vue';
 import UserAreaPage from '@/views/UserAreaPage.vue';
 import DocumentDetailsPage from '@/views/DocumentDetailsPage.vue';
+import PublicProfilePage from '@/views/PublicProfilePage.vue';
+import GenresPage from '@/views/GenresPage.vue';
 import { supabase } from '@/services/supabase';
 
 const routes: Array<RouteRecordRaw> = [
@@ -29,12 +31,22 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/generos',
     name: 'Generos',
+    component: GenresPage
+  },
+  {
+    path: '/search',
+    name: 'Search',
     component: LibraryPage
   },
   {
     path: '/documentos/:id',
     name: 'DocumentDetails',
     component: DocumentDetailsPage
+  },
+  {
+    path: '/colaborador/:id',
+    name: 'PublicProfile',
+    component: PublicProfilePage
   },
   {
     path: '/genres',

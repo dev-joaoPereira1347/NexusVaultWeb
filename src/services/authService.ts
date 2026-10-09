@@ -77,6 +77,20 @@ export const getProfile = async (userId: string): Promise<ProfileData | null> =>
     };
 };
 
+export const getPublicProfile = async (userId: string): Promise<Pick<ProfileData, 'username' | 'avatar_url'> | null> => {
+    const { data, error } = await supabase
+        .rpc('get_public_profile', { requested_user_id: userId })
+        .maybeSingle();
+
+    if (error) throw error;
+    if (!data || typeof data !== 'object') return null;
+
+    return {
+        username: 'username' in data && typeof data.username === 'string' ? data.username : null,
+        avatar_url: 'avatar_url' in data && typeof data.avatar_url === 'string' ? data.avatar_url : null
+    };
+};
+
 export const uploadAvatar = async (userId: string, file: File): Promise<string> => {
     const webpFile = await convertImageToWebp(file);
 

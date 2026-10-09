@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router';
 
-import { IonicVue } from '@ionic/vue';
+import { IonicVue, IonIcon } from '@ionic/vue';
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
 
@@ -42,6 +42,8 @@ defineCustomElements(window);
 const app = createApp(App)
   .use(IonicVue)
   .use(router);
+
+app.component('IonIcon', IonIcon);
 
 router.isReady().then(() => {
   console.log('[router]', router.currentRoute.value.fullPath, router.getRoutes().map(route => route.path));

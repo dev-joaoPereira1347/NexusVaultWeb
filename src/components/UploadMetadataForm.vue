@@ -4,9 +4,9 @@
 
         <form @submit.prevent="$emit('submit')">
             <div class="form-group">
-                <label for="title">Título</label>
+                <label :for="fieldId('title')">Título</label>
                 <input
-                    id="title"
+                    :id="fieldId('title')"
                     v-model="form.title"
                     type="text"
                     placeholder="Ex.: Memórias Póstumas de Brás Cubas"
@@ -16,9 +16,9 @@
             </div>
 
             <div class="form-group">
-                <label for="author">Autor</label>
+                <label :for="fieldId('author')">Autor</label>
                 <input
-                    id="author"
+                    :id="fieldId('author')"
                     v-model="form.author"
                     type="text"
                     placeholder="Nome do autor ou usuário"
@@ -29,8 +29,8 @@
 
             <div class="form-row">
                 <div class="form-group flex-1">
-                    <label for="category">Categoria</label>
-                    <select id="category" v-model="form.category" class="custom-select" required>
+                    <label :for="fieldId('category')">Categoria</label>
+                    <select :id="fieldId('category')" v-model="form.category" class="custom-select" required>
                         <option value="" disabled>Selecione</option>
                         <option value="literatura">Literatura</option>
                         <option value="historia">História &amp; Documentos</option>
@@ -42,8 +42,8 @@
                 </div>
 
                 <div class="form-group flex-1">
-                    <label for="type">Tipo</label>
-                    <select id="type" v-model="form.type" class="custom-select" required>
+                    <label :for="fieldId('type')">Tipo</label>
+                    <select :id="fieldId('type')" v-model="form.type" class="custom-select" required>
                         <option value="" disabled>Selecione</option>
                         <option value="livro">Livro</option>
                         <option value="documento">Documento</option>
@@ -56,9 +56,9 @@
 
             <div class="form-row">
                 <div class="form-group flex-1">
-                    <label for="year">Ano</label>
+                    <label :for="fieldId('year')">Ano</label>
                     <input
-                        id="year"
+                        :id="fieldId('year')"
                         v-model="form.year"
                         type="number"
                         min="1"
@@ -69,8 +69,8 @@
                 </div>
 
                 <div class="form-group flex-1">
-                    <label for="language">Idioma</label>
-                    <select id="language" v-model="form.language" class="custom-select">
+                    <label :for="fieldId('language')">Idioma</label>
+                    <select :id="fieldId('language')" v-model="form.language" class="custom-select">
                         <option value="">Selecione</option>
                         <option value="pt">Português</option>
                         <option value="en">Inglês</option>
@@ -82,9 +82,9 @@
             </div>
 
             <div class="form-group">
-                <label for="genre">Gênero / Tema <span>(opcional)</span></label>
+                <label :for="fieldId('genre')">Gênero / Tema <span>(opcional)</span></label>
                 <input
-                    id="genre"
+                    :id="fieldId('genre')"
                     v-model="form.genre"
                     type="text"
                     placeholder="Ex.: Romance, Poesia, Programação..."
@@ -93,11 +93,11 @@
             </div>
 
             <div class="form-group">
-                <label for="cover">Capa <span>(opcional)</span></label>
+                <label :for="fieldId('cover')">Capa <span>(opcional)</span></label>
 
                 <div class="cover-upload">
                     <input
-                        id="cover"
+                        :id="fieldId('cover')"
                         ref="coverInput"
                         type="file"
                         accept="image/*"
@@ -129,9 +129,9 @@
             </div>
 
             <div class="form-group">
-                <label for="description">Descrição <span>(opcional)</span></label>
+                <label :for="fieldId('description')">Descrição <span>(opcional)</span></label>
                 <textarea
-                    id="description"
+                    :id="fieldId('description')"
                     v-model="form.description"
                     class="custom-textarea"
                     placeholder="Descreva brevemente este conteúdo..."
@@ -140,7 +140,7 @@
             </div>
 
             <button type="submit" class="btn-submit-book" :disabled="!isValid || isUploading">
-                {{ isUploading ? 'ENVIANDO...' : 'ADICIONAR À BIBLIOTECA' }}
+                {{ isUploading ? 'SALVANDO...' : submitLabel }}
             </button>
         </form>
     </section>
@@ -150,12 +150,18 @@
 import { onBeforeUnmount, ref, watch } from 'vue';
 import type { UploadForm } from '../types/upload';
 
-defineProps<{
+const props = withDefaults(defineProps<{
     isValid: boolean;
     isUploading: boolean;
-}>();
+    submitLabel?: string;
+    idPrefix?: string;
+}>(), {
+    submitLabel: 'ADICIONAR À BIBLIOTECA',
+    idPrefix: ''
+});
 
 const form = defineModel<UploadForm>({ required: true });
+const fieldId = (name: string) => props.idPrefix ? `${props.idPrefix}-${name}` : name;
 const coverInput = ref<HTMLInputElement | null>(null);
 const coverPreview = ref('');
 let activeCoverObjectUrl: string | null = null;

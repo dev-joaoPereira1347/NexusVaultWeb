@@ -1,6 +1,6 @@
 <template>
-  <ion-page>
-    <ion-content class="page-container" :scroll-y="true">
+  <IonPage>
+    <IonContent class="page-container" :scroll-y="true">
       <SiteHeader />
 
       <HeroSection badge="MUSEU DIGITAL ABERTO" title="Preserve, organize e compartilhe<br />conhecimento."
@@ -28,8 +28,8 @@
       </section>
 
       <SiteFooter />
-    </ion-content>
-  </ion-page>
+    </IonContent>
+  </IonPage>
 </template>
 
 <script setup lang="ts">

@@ -1,13 +1,93 @@
 @font-face {
     font-family: 'Plus Jakarta Sans';
     src: url('../assets/fonts/PlusJakartaSans-VariableFont_wght.ttf') format('truetype');
-    font-weight: normal;
+    font-weight: 400 800;
     font-style: normal;
     font-display: swap;
 }
 
 :root {
-    --font-family: 'Plus Jakarta Sans';
+    /* 00 Primitives: raw type scale */
+    --primitive-font-family-display: 'Plus Jakarta Sans', sans-serif;
+    --primitive-font-family-body: 'Inter', sans-serif;
+
+    --primitive-font-weight-regular: 400;
+    --primitive-font-weight-medium: 500;
+    --primitive-font-weight-semibold: 600;
+    --primitive-font-weight-bold: 700;
+
+    --primitive-font-size-100: 0.75rem;
+    --primitive-font-size-200: 0.875rem;
+    --primitive-font-size-300: 1rem;
+    --primitive-font-size-350: 1.125rem;
+    --primitive-font-size-400: 1.25rem;
+    --primitive-font-size-500: 1.5rem;
+    --primitive-font-size-600: 2rem;
+    --primitive-font-size-700: 2.5rem;
+    --primitive-font-size-900: 3.5rem;
+
+    --primitive-line-height-tight: 1.15;
+    --primitive-line-height-snug: 1.25;
+    --primitive-line-height-normal: 1.4;
+    --primitive-line-height-relaxed: 1.5;
+
+    --primitive-letter-spacing-dense: -0.02em;
+    --primitive-letter-spacing-normal: 0;
+    --primitive-letter-spacing-wide: 0.05em;
+
+    /* 01 Semantic typography: desktop defaults */
+    --typography-heading-display-font-size: var(--primitive-font-size-900);
+    --typography-heading-display-font-weight: var(--primitive-font-weight-bold);
+    --typography-heading-display-line-height: var(--primitive-line-height-tight);
+    --typography-heading-display-letter-spacing: var(--primitive-letter-spacing-dense);
+
+    --typography-heading-h1-font-size: var(--primitive-font-size-700);
+    --typography-heading-h1-font-weight: var(--primitive-font-weight-bold);
+    --typography-heading-h1-line-height: var(--primitive-line-height-tight);
+    --typography-heading-h1-letter-spacing: var(--primitive-letter-spacing-dense);
+
+    --typography-heading-h2-font-size: var(--primitive-font-size-600);
+    --typography-heading-h2-font-weight: var(--primitive-font-weight-semibold);
+    --typography-heading-h2-line-height: var(--primitive-line-height-snug);
+    --typography-heading-h2-letter-spacing: var(--primitive-letter-spacing-normal);
+
+    --typography-heading-h3-font-size: var(--primitive-font-size-500);
+    --typography-heading-h3-font-weight: var(--primitive-font-weight-semibold);
+    --typography-heading-h3-line-height: var(--primitive-line-height-snug);
+    --typography-heading-h3-letter-spacing: var(--primitive-letter-spacing-normal);
+
+    --typography-heading-h4-font-size: var(--primitive-font-size-400);
+    --typography-heading-h4-font-weight: var(--primitive-font-weight-medium);
+    --typography-heading-h4-line-height: var(--primitive-line-height-normal);
+    --typography-heading-h4-letter-spacing: var(--primitive-letter-spacing-normal);
+
+    --typography-body-md-font-size: var(--primitive-font-size-350);
+    --typography-body-md-font-weight: var(--primitive-font-weight-regular);
+    --typography-body-md-line-height: var(--primitive-line-height-relaxed);
+    --typography-body-sm-font-size: var(--primitive-font-size-300);
+    --typography-body-sm-font-weight: var(--primitive-font-weight-regular);
+    --typography-body-sm-line-height: var(--primitive-line-height-relaxed);
+
+    --typography-caption-default-font-size: var(--primitive-font-size-200);
+    --typography-caption-default-font-weight: var(--primitive-font-weight-regular);
+    --typography-caption-default-line-height: var(--primitive-line-height-normal);
+
+    /* 02 Component typography: semantic mappings */
+    --hero-title-font-size: var(--typography-heading-display-font-size);
+    --hero-title-font-weight: var(--typography-heading-display-font-weight);
+    --hero-title-line-height: var(--typography-heading-display-line-height);
+    --hero-title-letter-spacing: var(--typography-heading-display-letter-spacing);
+    --card-title-font-size: var(--typography-heading-h3-font-size);
+    --card-title-font-weight: var(--typography-heading-h3-font-weight);
+    --card-title-line-height: var(--typography-heading-h3-line-height);
+    --modal-title-font-size: var(--typography-heading-h4-font-size);
+    --modal-title-font-weight: var(--typography-heading-h4-font-weight);
+    --modal-title-line-height: var(--typography-heading-h4-line-height);
+    --button-label-font-size: var(--typography-body-sm-font-size);
+    --button-label-font-weight: var(--primitive-font-weight-medium);
+
+    /* Legacy aliases retained while component styles migrate to semantic tokens. */
+    --font-family: var(--primitive-font-family-body);
 
     --color-background: #F7F0E9;
     --color-page-background: #F3ECE6;
@@ -50,7 +130,19 @@
     --section-gap: clamp(32px, 4vw, 48px);
     --surface-padding: clamp(20px, 3vw, 32px);
     --control-height: 46px;
-    --font-size-body: 1rem;
-    --font-size-caption: 0.875rem;
-    --font-size-eyebrow: 0.75rem;
+    --font-size-body: var(--typography-body-sm-font-size);
+    --font-size-caption: var(--typography-caption-default-font-size);
+    --font-size-eyebrow: var(--primitive-font-size-100);
+}
+
+@media (max-width: 700px) {
+    :root {
+        --typography-heading-display-font-size: var(--primitive-font-size-700);
+        --typography-heading-h1-font-size: var(--primitive-font-size-600);
+        --typography-heading-h2-font-size: var(--primitive-font-size-500);
+        --typography-heading-h3-font-size: var(--primitive-font-size-400);
+        --typography-heading-h4-font-size: var(--primitive-font-size-350);
+        --typography-body-md-font-size: var(--primitive-font-size-300);
+        --typography-caption-default-font-size: var(--primitive-font-size-100);
+    }
 }

@@ -1,18 +1,15 @@
 <template>
-  <ion-app>
+  <IonApp>
     <div v-if="isPageLoading" class="loading-overlay">
       <PageLoading />
     </div>
-    <BaseLayout v-else>
-      <router-view />
-    </BaseLayout>
-  </ion-app>
+    <IonRouterOutlet v-else />
+  </IonApp>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { IonApp } from '@ionic/vue';
-import BaseLayout from './components/BaseLayout.vue';
+import { IonApp, IonRouterOutlet } from '@ionic/vue';
 import PageLoading from './components/PageLoading.vue';
 
 const isPageLoading = ref(true);

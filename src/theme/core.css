@@ -3,7 +3,8 @@ body,
 #app,
 ion-app {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
 }
@@ -11,26 +12,30 @@ ion-app {
 html {
   background: var(--color-background);
   color: var(--color-text-primary);
-  font-family: var(--font-family);
+  font-family: var(--primitive-font-family-body);
   scroll-behavior: smooth;
 }
 
 body {
-  min-height: 100vh;
   background: var(--color-page-background);
   color: var(--color-text-primary);
-  font-family: var(--font-family);
+  font-family: var(--primitive-font-family-body);
+  font-size: var(--typography-body-sm-font-size);
+  font-weight: var(--typography-body-sm-font-weight);
+  line-height: var(--typography-body-sm-line-height);
 }
 
-ion-content {
-  --overflow: auto;
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--primitive-font-family-display);
 }
 
-ion-content::part(scroll) {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-  touch-action: pan-y;
+ion-button {
+  font-family: var(--primitive-font-family-body);
+  font-size: var(--button-label-font-size);
+  font-weight: var(--button-label-font-weight);
 }
 
 @media (max-width: 700px) {

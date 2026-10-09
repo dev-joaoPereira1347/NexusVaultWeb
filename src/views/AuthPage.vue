@@ -1,6 +1,6 @@
 <template>
-    <ion-page>
-        <ion-content class="auth-content" :scroll-y="true">
+    <IonPage>
+        <IonContent class="auth-content" :scroll-y="true">
             <div class="auth-wrapper">
                 <div class="auth-shell">
                     <aside class="auth-visual" aria-label="NexusVault">
@@ -121,8 +121,8 @@
                     </section>
                 </div>
             </div>
-        </ion-content>
-    </ion-page>
+        </IonContent>
+    </IonPage>
 </template>
 
 <script setup lang="ts">

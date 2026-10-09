@@ -1,6 +1,6 @@
 <template>
-    <ion-page>
-        <ion-content :fullscreen="true" class="details-content">
+    <IonPage>
+        <IonContent :fullscreen="true" class="details-content">
             <SiteHeader />
 
             <main class="details-page nv-page-shell">
@@ -12,6 +12,11 @@
                     {{ errorMessage }}
                 </section>
                 <template v-else-if="item">
+                    <RouterLink class="back-link" :to="{ name: 'Search' }">
+                        <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
+                        Voltar ao acervo
+                    </RouterLink>
+
                     <section class="document-summary nv-surface" aria-labelledby="document-title">
                         <div class="cover-panel">
                             <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`" />
@@ -19,23 +24,46 @@
                         </div>
 
                         <div class="summary-info">
-                            <p class="nv-eyebrow">{{ item.category }} · {{ item.content_type }}</p>
+                            <div class="summary-topline">
+                                <p class="nv-eyebrow">{{ item.category }} · {{ item.content_type }}</p>
+                                <ion-button class="report-button" fill="clear" type="button" aria-label="Denunciar livro">
+                                    <ion-icon slot="start" :icon="flagOutline" />
+                                    Denunciar livro
+                                </ion-button>
+                            </div>
                             <h1 id="document-title" class="nv-page-title">{{ item.title }}</h1>
                             <p class="author">Por {{ item.author }}</p>
-                            <p class="summary-meta">
-                                <span v-if="item.year">{{ item.year }}</span>
-                                <span v-if="item.language">{{ item.language }}</span>
-                                <span>{{ formatFileSize(item.file_size) }}</span>
+                            <p class="uploader">
+                                Enviado por
+                                <RouterLink v-if="uploaderName" :to="{ name: 'PublicProfile', params: { id: item.uploaded_by } }">
+                                    {{ uploaderName }}
+                                </RouterLink>
+                                <span v-else>Perfil indisponível</span>
                             </p>
+                            <ul class="summary-meta" aria-label="Metadados do livro">
+                                <li v-if="item.year">
+                                    <ion-icon :icon="calendarOutline" aria-hidden="true" />
+                                    <span>{{ item.year }}</span>
+                                </li>
+                                <li v-if="item.language">
+                                    <ion-icon :icon="languageOutline" aria-hidden="true" />
+                                    <span>{{ item.language.toUpperCase() }}</span>
+                                </li>
+                                <li v-if="getFileExtension(item.file_name)">
+                                    <ion-icon :icon="bookOutline" aria-hidden="true" />
+                                    <span>{{ getFileExtension(item.file_name) }}</span>
+                                </li>
+                                <li>
+                                    <ion-icon :icon="documentOutline" aria-hidden="true" />
+                                    <span>{{ formatFileSize(item.file_size) }}</span>
+                                </li>
+                            </ul>
                             <div class="summary-actions">
                                 <ion-button class="download-button" :href="item.download_url" target="_blank"
-                                    rel="noopener noreferrer">
+                                    rel="noopener noreferrer" :download="item.file_name">
                                     <ion-icon slot="start" :icon="downloadOutline" />
-                                    Abrir documento
+                                    Download
                                 </ion-button>
-                                <RouterLink class="back-button" :to="{ name: 'Generos' }">
-                                    Voltar ao acervo
-                                </RouterLink>
                             </div>
                         </div>
                     </section>
@@ -104,6 +132,7 @@
                                 </div>
                                 <strong>{{ related.title }}</strong>
                                 <span>{{ related.author }}</span>
+                                <span v-if="getFileExtension(related.file_name)">{{ getFileExtension(related.file_name) }}</span>
                             </RouterLink>
                         </div>
                     </section>
@@ -112,21 +141,33 @@
             </main>
 
             <SiteFooter />
-        </ion-content>
-    </ion-page>
+        </IonContent>
+    </IonPage>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { IonButton, IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue';
-import { documentTextOutline, downloadOutline, personCircleOutline } from 'ionicons/icons';
+import {
+    arrowBackOutline,
+    bookOutline,
+    calendarOutline,
+    documentOutline,
+    documentTextOutline,
+    downloadOutline,
+    flagOutline,
+    languageOutline,
+    personCircleOutline
+} from 'ionicons/icons';
 import SiteHeader from '@/components/SiteHeader.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
+import { getPublicProfile } from '@/services/authService';
 import { getPublicLibraryItem, listRelatedPublicLibraryItems } from '@/services/libraryService';
 import { listPublicDocumentReviews } from '@/services/publicReviewService';
 import type { PublicDocumentReview } from '@/services/publicReviewService';
 import type { PublicLibraryItem, PublicLibraryItemDetails } from '@/types/library';
+import { getFileExtension } from '@/utils/getFileExtension';
 
 const route = useRoute();
 const item = ref<PublicLibraryItemDetails | null>(null);
@@ -134,6 +175,7 @@ const reviews = ref<PublicDocumentReview[]>([]);
 const relatedItems = ref<PublicLibraryItem[]>([]);
 const reviewsError = ref('');
 const relatedError = ref('');
+const uploaderName = ref('');
 const loading = ref(true);
 const errorMessage = ref('');
 const averageRating = computed(() => reviews.value.reduce((total, review) => total + review.rating, 0) / reviews.value.length);
@@ -161,6 +203,7 @@ watch(
         errorMessage.value = '';
         reviewsError.value = '';
         relatedError.value = '';
+        uploaderName.value = '';
         loading.value = true;
 
         if (typeof id !== 'string' || !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(id)) {
@@ -173,9 +216,10 @@ watch(
             item.value = await getPublicLibraryItem(id);
             if (!item.value) errorMessage.value = 'O documento solicitado não foi encontrado.';
             if (item.value) {
-                const [reviewResult, relatedResult] = await Promise.allSettled([
+                const [reviewResult, relatedResult, uploaderResult] = await Promise.allSettled([
                     listPublicDocumentReviews(id),
-                    listRelatedPublicLibraryItems(item.value)
+                    listRelatedPublicLibraryItems(item.value),
+                    getPublicProfile(item.value.uploaded_by)
                 ]);
 
                 if (reviewResult.status === 'fulfilled') {
@@ -192,6 +236,10 @@ watch(
                     relatedError.value = relatedResult.reason instanceof Error
                         ? `Não foi possível carregar recomendações: ${relatedResult.reason.message}`
                         : 'Não foi possível carregar recomendações.';
+                }
+
+                if (uploaderResult.status === 'fulfilled') {
+                    uploaderName.value = uploaderResult.value?.username || '';
                 }
             }
         } catch (error) {
@@ -222,10 +270,29 @@ watch(
     min-height: 60vh;
 }
 
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin: 0 0 var(--space-md);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-caption);
+    text-decoration: none;
+}
+
+.back-link:hover {
+    color: var(--color-text-primary);
+    text-decoration: underline;
+}
+
+.back-link ion-icon {
+    font-size: 1.2rem;
+}
+
 .document-summary {
     display: grid;
     grid-template-columns: minmax(160px, 0.34fr) minmax(0, 1fr);
-    align-items: start;
+    align-items: stretch;
     gap: var(--space-lg);
     margin-bottom: var(--space-md);
     padding: var(--surface-padding);
@@ -233,7 +300,7 @@ watch(
 
 .cover-panel {
     display: grid;
-    min-height: 240px;
+    min-height: 260px;
     padding: var(--space-sm);
     place-items: center;
     color: var(--color-text-muted);
@@ -242,21 +309,32 @@ watch(
 
 .cover-panel img {
     width: 100%;
-    max-height: 300px;
+    height: 100%;
+    min-height: 240px;
+    max-height: 320px;
     border-radius: var(--radius-md);
     object-fit: contain;
 }
 
 .summary-info {
+    display: flex;
+    flex-direction: column;
     min-width: 0;
 }
 
+.summary-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
 .summary-info .nv-eyebrow {
-    margin-bottom: var(--space-sm);
+    margin: 0;
 }
 
 .summary-info .nv-page-title {
-    font-size: clamp(1.6rem, 3vw, 2.25rem);
+    margin-top: var(--space-sm);
 }
 
 .author {
@@ -265,46 +343,51 @@ watch(
     font-size: var(--font-size-body);
 }
 
-.summary-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xs) var(--space-md);
-    margin: var(--space-md) 0 0;
+.uploader {
+    margin: var(--space-xs) 0 0;
     color: var(--color-text-secondary);
     font-size: var(--font-size-caption);
 }
 
-.summary-meta span + span::before {
-    content: '·';
-    margin-right: var(--space-md);
-    color: var(--color-text-muted);
+.uploader a {
+    color: var(--color-brand-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.summary-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin: var(--space-md) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-caption);
+    padding: 0;
+    list-style: none;
+}
+
+.summary-meta li {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 1px solid var(--color-border-soft);
+    border-radius: 999px;
+    background: var(--color-surface);
+    white-space: nowrap;
+}
+
+.summary-meta ion-icon {
+    font-size: 1rem;
 }
 
 .summary-actions {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-sm);
-    margin-top: var(--space-lg);
-}
-
-.back-button {
-    display: inline-flex;
-    min-height: var(--control-height);
-    align-items: center;
-    justify-content: center;
-    padding: 0 var(--space-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-control);
-    background: var(--color-surface);
-    color: var(--color-text-primary);
-    font-size: var(--font-size-caption);
-    font-weight: 700;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.back-button:hover {
-    background: var(--color-surface-alt);
+    margin-top: auto;
+    padding-top: var(--space-md);
 }
 
 .download-button {
@@ -323,12 +406,23 @@ watch(
     font-size: var(--font-size-caption);
     font-weight: 700;
     text-transform: none;
+    width: 100%;
 }
 
-.back-button {
-    --color: var(--color-text-primary);
-    --border-color: var(--color-border);
-    --background: var(--color-surface);
+.report-button {
+    --color: var(--color-text-secondary);
+    --padding-start: var(--space-xs);
+    --padding-end: var(--space-xs);
+    height: 34px;
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: none;
+    white-space: nowrap;
+}
+
+.report-button:hover {
+    --color: var(--color-danger);
 }
 
 .detail-section {
@@ -532,17 +626,14 @@ watch(
     }
 
     .cover-panel {
-        min-height: 142px;
+        min-height: 180px;
         align-self: start;
+        padding: 0;
     }
 
     .cover-panel img {
-        max-height: 180px;
-    }
-
-    .summary-info .nv-page-title {
-        font-size: 1.25rem;
-        letter-spacing: -0.03em;
+        min-height: 180px;
+        max-height: 240px;
     }
 
     .summary-info .nv-eyebrow {
@@ -550,25 +641,25 @@ watch(
         font-size: 0.65rem;
     }
 
+    .summary-topline {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: var(--space-xs);
+    }
+
     .summary-meta {
-        gap: 4px var(--space-sm);
+        gap: 6px;
         font-size: 0.75rem;
     }
 
-    .summary-meta span + span::before {
-        margin-right: var(--space-sm);
-    }
-
     .summary-actions {
-        grid-column: 1 / -1;
-        flex-direction: column;
-        align-items: stretch;
         gap: var(--space-xs);
-        margin-top: var(--space-md);
+        padding-top: var(--space-sm);
     }
 
-    .summary-actions ion-button {
-        width: 100%;
+    .report-button {
+        --padding-start: 0;
+        --padding-end: 0;
     }
 
     .related-grid {
@@ -591,6 +682,7 @@ watch(
     }
 
     .cover-panel img {
+        min-height: 180px;
         max-height: 220px;
     }
 }

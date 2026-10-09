@@ -1,6 +1,6 @@
 <template>
-    <ion-page>
-        <ion-content :fullscreen="true" :scroll-y="true" class="user-area-content">
+    <IonPage>
+        <IonContent :fullscreen="true" :scroll-y="true" class="user-area-content">
             <SiteHeader />
 
             <main class="user-area nv-page-shell">
@@ -175,6 +175,25 @@
                                         <div class="badge-group">
                                             <span class="badge">{{ item.category }}</span>
                                             <span class="badge badge-alt">{{ item.content_type }}</span>
+                                            <span v-if="getFileExtension(item.file_name)" class="badge">{{
+                                                getFileExtension(item.file_name) }}</span>
+                                        </div>
+                                        <div class="media-actions">
+                                            <ion-button fill="clear" size="small"
+                                                :router-link="{ name: 'DocumentDetails', params: { id: item.id } }">
+                                                <ion-icon slot="start" :icon="eyeOutline" />
+                                                Visualizar
+                                            </ion-button>
+                                            <ion-button fill="outline" size="small" :disabled="savingContribution"
+                                                @click="openContributionEditor(item)">
+                                                <ion-icon slot="start" :icon="pencilOutline" />
+                                                Editar
+                                            </ion-button>
+                                            <ion-button fill="clear" color="danger" size="small"
+                                                :disabled="savingContribution" @click="handleDeleteContribution(item)">
+                                                <ion-icon slot="start" :icon="trashOutline" />
+                                                Excluir
+                                            </ion-button>
                                         </div>
                                     </div>
                                 </article>
@@ -376,26 +395,64 @@
             </main>
 
             <SiteFooter />
-        </ion-content>
-    </ion-page>
+        </IonContent>
+        <IonModal :is-open="Boolean(editingContribution)" @didDismiss="closeContributionEditor">
+            <section class="contribution-editor" aria-labelledby="edit-contribution-title">
+                <header class="editor-header">
+                    <h2 id="edit-contribution-title">Editar documento</h2>
+                    <ion-button fill="clear" aria-label="Fechar edição" :disabled="savingContribution"
+                        @click="closeContributionEditor">
+                        <ion-icon :icon="closeOutline" />
+                    </ion-button>
+                </header>
+
+                <p v-if="editingContribution" class="current-file-note">
+                    Arquivo atual: <strong>{{ editingContribution.file_name }}</strong>.
+                    Selecione outro apenas se quiser substituí-lo.
+                </p>
+                <UploadDropzone :file="replacementFile" @select="replacementFile = $event"
+                    @clear="replacementFile = null" />
+
+                <div v-if="editingContribution?.cover_url" class="current-cover">
+                    <img :src="editingContribution.cover_url" alt="Capa atual do documento" />
+                    <ion-button fill="outline" size="small"
+                        :disabled="savingContribution || Boolean(contributionDraft.cover)"
+                        @click="removeExistingCover = !removeExistingCover">
+                        {{ removeExistingCover ? 'Manter capa atual' : 'Remover capa atual' }}
+                    </ion-button>
+                </div>
+                <p v-if="removeExistingCover && !contributionDraft.cover" class="cover-removal-note">
+                    A capa será removida ao salvar.
+                </p>
+
+                <UploadMetadataForm v-model="contributionDraft" id-prefix="edit-contribution"
+                    :is-valid="isContributionFormValid" :is-uploading="savingContribution"
+                    submit-label="SALVAR ALTERAÇÕES" @submit="handleUpdateContribution" />
+            </section>
+        </IonModal>
+    </IonPage>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import {
     IonButton,
     IonContent,
     IonIcon,
     IonInput,
+    IonModal,
     IonPage,
     IonSpinner
 } from '@ionic/vue';
 import {
     addOutline,
     bookOutline,
+    closeOutline,
     documentOutline,
     documentTextOutline,
+    eyeOutline,
     logOutOutline,
+    pencilOutline,
     personOutline,
     starOutline,
     trashOutline
@@ -403,7 +460,10 @@ import {
 import SiteHeader from '@/components/SiteHeader.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import AuthAvatarPicker from '@/components/AuthAvatarPicker.vue';
+import UploadDropzone from '@/components/UploadDropzone.vue';
+import UploadMetadataForm from '@/components/UploadMetadataForm.vue';
 import { useUserArea } from '@/composables/useUserArea';
+import { getFileExtension } from '@/utils/getFileExtension';
 
 const selectedTab = ref('profile');
 
@@ -413,10 +473,15 @@ const {
     savingPassword,
     savingProgress,
     savingReview,
+    savingContribution,
     profileForm,
     newPassword,
     avatarPreviewUrl,
     contributions,
+    editingContribution,
+    contributionDraft,
+    replacementFile,
+    removeExistingCover,
     catalog,
     progressList,
     reviews,
@@ -431,9 +496,18 @@ const {
     handleCreateReview,
     handleUpdateReview,
     handleDeleteReview,
+    openContributionEditor,
+    closeContributionEditor,
+    handleUpdateContribution,
+    handleDeleteContribution,
     handleSignOut,
     handleDeleteAccount
 } = useUserArea();
+
+const isContributionFormValid = computed(() =>
+    Boolean(contributionDraft.title.trim() && contributionDraft.author.trim()
+        && contributionDraft.category && contributionDraft.type)
+);
 </script>
 
 <style scoped>
@@ -771,10 +845,64 @@ const {
     color: var(--color-text-primary, #22223B);
 }
 
+.media-info {
+    flex: 1;
+    min-width: 0;
+}
+
 .media-info .meta {
     margin: 0 0 6px 0;
     font-size: 0.8rem;
     color: var(--color-text-secondary, #4A4E69);
+}
+
+.media-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.contribution-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+    overflow-y: auto;
+    padding: clamp(16px, 4vw, 32px);
+    background: var(--color-page-background);
+}
+
+.editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.editor-header h2 {
+    margin: 0;
+    color: var(--color-text-primary);
+}
+
+.current-file-note,
+.cover-removal-note {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.current-cover {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.current-cover img {
+    width: 56px;
+    height: 72px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
 }
 
 .badge-group {

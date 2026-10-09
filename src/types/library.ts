@@ -40,17 +40,19 @@ export interface PublicLibraryItem {
     title: string;
     author: string;
     category: string;
+    genre: string | null;
     content_type: string;
     year: number | null;
     description: string | null;
+    file_name: string;
     cover_url: string;
     download_url: string;
 }
 
 export interface PublicLibraryItemDetails extends PublicLibraryItem {
+    uploaded_by: string;
     genre: string | null;
     language: string | null;
-    file_name: string;
     file_size: number;
     created_at: string;
 }

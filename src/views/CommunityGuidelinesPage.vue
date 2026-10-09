@@ -1,6 +1,6 @@
 <template>
-    <ion-page>
-        <ion-content :fullscreen="true" :scroll-y="true" class="guidelines-content">
+    <IonPage>
+        <IonContent :fullscreen="true" :scroll-y="true" class="guidelines-content">
             <SiteHeader />
             <!-- HERO SECTION -->
             <section class="nv-hero">
@@ -25,7 +25,7 @@
                     <!-- SEÇÃO: PRINCÍPIOS -->
                     <section class="principles-section">
                         <div class="section-heading">
-                            <h2 class="section-title nv-page-title">Princípios</h2>
+                            <h2 class="section-title nv-heading-h2">Princípios</h2>
                             <p class="section-subtitle nv-page-description">Acreditamos que o acesso ao conhecimento deve ser:</p>
                         </div>
 
@@ -42,7 +42,7 @@
 
                     <!-- SEÇÃO: NOSSAS DIRETRIZES -->
                     <section class="rules-section">
-                        <h2 class="section-title nv-page-title">Nossas Diretrizes</h2>
+                        <h2 class="section-title nv-heading-h2">Nossas Diretrizes</h2>
 
                         <div class="rules-list">
                             <div v-for="item in guidelines" :key="item.id" class="rule-card nv-surface">
@@ -80,8 +80,8 @@
                 </div>
             </div>
             <SiteFooter />
-        </ion-content>
-    </ion-page>
+        </IonContent>
+    </IonPage>
 </template>
 
 <script setup lang="ts">

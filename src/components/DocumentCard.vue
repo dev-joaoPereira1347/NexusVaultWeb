@@ -13,7 +13,7 @@
             <!-- Detalhes do Documento -->
             <div class="info-container">
                 <header class="card-header">
-                    <h2 class="document-title">{{ title }}</h2>
+                    <h2 class="document-title nv-card-title">{{ title }}</h2>
                     <p class="document-author">{{ author }}</p>
                 </header>
 
@@ -160,9 +160,6 @@ defineEmits<{
 
 .document-title {
     margin: 0 0 2px 0;
-    font-size: 1.3rem;
-    font-weight: 800;
-    line-height: 1.2;
     color: #000000;
 }
 

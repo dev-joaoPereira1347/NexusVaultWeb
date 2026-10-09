@@ -1,6 +1,6 @@
 <template>
-    <ion-page>
-        <ion-content :fullscreen="true" :scroll-y="true" class="main-content">
+    <IonPage>
+        <IonContent :fullscreen="true" :scroll-y="true" class="main-content">
             <SiteHeader />
 
             <main class="shelf-background">
@@ -27,8 +27,8 @@
             </main>
 
             <SiteFooter />
-        </ion-content>
-    </ion-page>
+        </IonContent>
+    </IonPage>
 </template>
 
 <script setup lang="ts">

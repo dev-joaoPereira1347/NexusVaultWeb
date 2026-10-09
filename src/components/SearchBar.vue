@@ -1,20 +1,30 @@
 <template>
-  <div class="search-box">
+  <form class="search-box" role="search" aria-label="Pesquisar documentos" @submit.prevent="submitSearch">
     <button class="search-menu" type="button" aria-label="Abrir opções de pesquisa">
       <ion-icon :icon="menuOutline" aria-hidden="true" />
     </button>
 
-    <input type="search" placeholder="Pesquisar" aria-label="Pesquisar documentos" />
+    <input v-model="searchQuery" type="search" placeholder="Pesquisar" aria-label="Pesquisar documentos" />
 
-    <button class="search-button" type="button" aria-label="Pesquisar">
+    <button class="search-button" type="submit" aria-label="Pesquisar">
       <ion-icon :icon="searchOutline" aria-hidden="true" />
     </button>
-  </div>
+  </form>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { IonIcon } from '@ionic/vue';
 import { menuOutline, searchOutline } from 'ionicons/icons';
+
+const router = useRouter();
+const searchQuery = ref('');
+
+const submitSearch = () => {
+  const query = searchQuery.value.trim();
+  void router.push({ name: 'Search', query: query ? { q: query } : {} });
+};
 </script>
 
 <style scoped>

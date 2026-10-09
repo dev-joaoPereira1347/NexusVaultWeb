@@ -4,8 +4,12 @@
       Início
     </router-link>
 
-    <router-link to="/generos">
+    <router-link to="/search">
       Acervo
+    </router-link>
+
+    <router-link to="/generos">
+      Gêneros
     </router-link>
 
     <router-link to="/community-guidelines">

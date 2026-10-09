@@ -80,8 +80,8 @@ const usefulLinks = [
 
 const navItems = [
     { label: 'Início', to: '/home', icon: homeOutline },
-    { label: 'Descobrir', to: '/community-guidelines', icon: searchOutline },
-    { label: 'Meu Acervo', to: '/upload', icon: libraryOutline },
+    { label: 'Descobrir', to: '/search', icon: searchOutline },
+    { label: 'Upload', to: '/upload', icon: libraryOutline },
     { label: 'Conta', to: '/profile', icon: personOutline }
 ];
 

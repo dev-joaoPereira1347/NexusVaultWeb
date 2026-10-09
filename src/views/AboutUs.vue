@@ -1,17 +1,17 @@
 <template>
-    <ion-page>
-        <ion-content :fullscreen="true" class="about-content">
+    <IonPage>
+        <IonContent :fullscreen="true" class="about-content">
             <SiteHeader />
 
             <UmbrellaHero badge="MUSEU DIGITAL LIVRE" title="Preservando o conhecimento<br />da humanidade"
                 description="A NexusVault nasce para guardar, organizar e compartilhar documentos, obras e saberes em domínio público com uma experiência acessível, segura e inspirada por uma comunidade de colaboração constante."
-                image-src="/src/assets/images/Logo Umbrella Code.svg" image-alt="Logo da Umbrella Code" />
+                :image-src="umbrellaLogo" image-alt="Logo da Umbrella Code" />
 
             <main class="about-main nv-page-shell">
                 <section class="section-block nv-section">
                     <div class="section-header">
                         <span class="nv-eyebrow">NOSSA MISSÃO</span>
-                        <h2 class="nv-page-title">O que movemos</h2>
+                        <h2 class="nv-heading-h2">O que movemos</h2>
                     </div>
 
                     <div class="cards-grid">
@@ -53,7 +53,7 @@
                 <section class="section-block developer-block nv-section">
                     <div class="developer-card nv-surface">
                         <div class="developer-brand">
-                            <img src="@/assets/images/Logo Umbrella Code.svg" alt="Logo da Umbrella Code"
+                            <img :src="umbrellaLogo" alt="Logo da Umbrella Code"
                                 class="developer-logo" />
                             <span>Umbrella Code</span>
                         </div>
@@ -72,7 +72,7 @@
                 <section class="section-block team-section nv-section">
                     <div class="section-header team-header">
                         <span class="nv-eyebrow">EQUIPE</span>
-                        <h2 class="nv-page-title">Quem constrói a experiência</h2>
+                        <h2 class="nv-heading-h2">Quem constrói a experiência</h2>
                     </div>
 
                     <div class="team-grid">
@@ -92,8 +92,8 @@
             </main>
 
             <SiteFooter />
-        </ion-content>
-    </ion-page>
+        </IonContent>
+    </IonPage>
 </template>
 
 <script setup lang="ts">
@@ -118,6 +118,7 @@ import {
 import SiteHeader from '@/components/SiteHeader.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import UmbrellaHero from '@/components/UmbrellaHero.vue';
+import umbrellaLogo from '@/assets/images/Logo Umbrella Code.svg';
 
 interface TeamMember {
     name: string;

@@ -1,13 +1,17 @@
 <template>
-    <ion-page>
-        <ion-content :fullscreen="true" class="library-content">
+    <IonPage>
+        <IonContent :fullscreen="true" class="library-content">
             <SiteHeader />
 
             <main class="library-page nv-page-shell">
                 <header class="page-header nv-page-heading">
                     <p class="nv-eyebrow">ACERVO DIGITAL</p>
-                    <h1 class="nv-page-title">Explore o acervo</h1>
-                    <p class="nv-page-description">Encontre documentos e obras compartilhados pela comunidade.</p>
+                    <h1 class="nv-page-title">
+                        {{ selectedGenre ? `Gênero: ${selectedGenre}` : 'Pesquisar no acervo' }}
+                    </h1>
+                    <p class="nv-page-description">
+                        {{ selectedGenre ? `Documentos e livros encontrados em “${selectedGenre}”.` : 'Encontre documentos e obras compartilhados pela comunidade.' }}
+                    </p>
                 </header>
 
                 <label class="search-field">
@@ -40,7 +44,9 @@
                             <p class="author">{{ item.author }}</p>
                             <p v-if="item.description" class="description">{{ item.description }}</p>
                             <p class="metadata">
-                                {{ item.category }} · {{ item.content_type }}<span v-if="item.year"> · {{ item.year }}</span>
+                                {{ item.category }} · {{ item.content_type }}
+                                <span v-if="item.year"> · {{ item.year }}</span>
+                                <span v-if="getFileExtension(item.file_name)"> · {{ getFileExtension(item.file_name) }}</span>
                             </p>
                             <ion-button :href="item.download_url" target="_blank" rel="noopener noreferrer">
                                 <ion-icon slot="start" :icon="downloadOutline" />
@@ -55,32 +61,55 @@
             </main>
 
             <SiteFooter />
-        </ion-content>
-    </ion-page>
+        </IonContent>
+    </IonPage>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { IonButton, IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue';
 import { documentTextOutline, downloadOutline, searchOutline } from 'ionicons/icons';
 import SiteHeader from '@/components/SiteHeader.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import { listPublicLibraryItems } from '@/services/libraryService';
 import type { PublicLibraryItem } from '@/types/library';
+import { getFileExtension } from '@/utils/getFileExtension';
+import { getLibraryItemTags, normalizeLibraryTerm } from '@/utils/libraryTaxonomy';
 
 const items = ref<PublicLibraryItem[]>([]);
-const searchQuery = ref('');
+const route = useRoute();
+const searchQuery = ref(typeof route.query.q === 'string' ? route.query.q : '');
+const selectedGenre = ref(typeof route.query.genre === 'string' ? route.query.genre : '');
 const loading = ref(true);
 const errorMessage = ref('');
 
-const filteredItems = computed(() => {
-    const query = searchQuery.value.trim().toLocaleLowerCase();
-    if (!query) return items.value;
+watch(
+    () => route.query.q,
+    (query) => {
+        searchQuery.value = typeof query === 'string' ? query : '';
+    }
+);
 
-    return items.value.filter((item) =>
-        [item.title, item.author, item.category, item.content_type]
-            .some((value) => value.toLocaleLowerCase().includes(query))
-    );
+watch(
+    () => route.query.genre,
+    (genre) => {
+        selectedGenre.value = typeof genre === 'string' ? genre : '';
+    }
+);
+
+const filteredItems = computed(() => {
+    const query = normalizeLibraryTerm(searchQuery.value);
+    const genre = normalizeLibraryTerm(selectedGenre.value);
+    if (!query && !genre) return items.value;
+
+    return items.value.filter((item) => {
+        const matchesQuery = !query || [item.title, item.author, item.category, item.genre ?? '', item.content_type]
+            .some((value) => normalizeLibraryTerm(value).includes(query));
+        const matchesGenre = !genre || getLibraryItemTags(item.genre, item.category)
+            .some((tag) => normalizeLibraryTerm(tag) === genre);
+        return matchesQuery && matchesGenre;
+    });
 });
 
 onMounted(async () => {

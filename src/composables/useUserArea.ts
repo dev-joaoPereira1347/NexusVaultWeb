@@ -12,6 +12,7 @@ import {
     uploadAvatar
 } from '@/services/authService';
 import { listLibraryCatalog, listMyContributions } from '@/services/libraryService';
+import { deleteMyLibraryItem, updateMyLibraryItem } from '@/services/uploadService';
 import {
     createReadingProgress,
     deleteReadingProgress,
@@ -28,6 +29,7 @@ import type {
     ReviewDraft,
     UserProfileForm
 } from '@/types/userArea';
+import type { UploadForm } from '@/types/upload';
 
 const emptyProfile = (): UserProfileForm => ({
     fullName: '',
@@ -49,6 +51,18 @@ const emptyReviewDraft = (): ReviewDraft => ({
     comment: ''
 });
 
+const emptyUploadForm = (): UploadForm => ({
+    title: '',
+    author: '',
+    category: '',
+    year: String(new Date().getFullYear()),
+    type: '',
+    genre: '',
+    language: '',
+    description: '',
+    cover: null
+});
+
 export const useUserArea = () => {
     const router = useRouter();
     const pageLoading = ref(true);
@@ -56,6 +70,7 @@ export const useUserArea = () => {
     const savingPassword = ref(false);
     const savingProgress = ref(false);
     const savingReview = ref(false);
+    const savingContribution = ref(false);
 
     const profileForm = reactive<UserProfileForm>(emptyProfile());
     const newPassword = ref('');
@@ -64,6 +79,10 @@ export const useUserArea = () => {
     const originalEmail = ref('');
 
     const contributions = ref<LibraryContribution[]>([]);
+    const editingContribution = ref<LibraryContribution | null>(null);
+    const contributionDraft = reactive<UploadForm>(emptyUploadForm());
+    const replacementFile = ref<File | null>(null);
+    const removeExistingCover = ref(false);
     const catalog = ref<LibraryCatalogItem[]>([]);
     const progressList = ref<ReadingProgress[]>([]);
     const reviews = ref<DocumentReview[]>([]);
@@ -145,6 +164,19 @@ export const useUserArea = () => {
         catalog.value = catalogItems.status === 'fulfilled' ? catalogItems.value : [];
         progressList.value = myProgress.status === 'fulfilled' ? myProgress.value : [];
         reviews.value = myReviews.status === 'fulfilled' ? myReviews.value : [];
+
+        if (myItems.status === 'rejected') {
+            await showToast(
+                translateError(getErrorMessage(myItems.reason, 'Não foi possível carregar seus documentos.'), 'Não foi possível carregar seus documentos.'),
+                'danger'
+            );
+        }
+        if (catalogItems.status === 'rejected') {
+            await showToast(
+                translateError(getErrorMessage(catalogItems.reason, 'Não foi possível carregar o acervo.'), 'Não foi possível carregar o acervo.'),
+                'danger'
+            );
+        }
 
         const firstMissingTable = [myProgress, myReviews].find((result) => {
             if (result.status !== 'rejected') return false;
@@ -275,6 +307,124 @@ export const useUserArea = () => {
         }, 'Erro ao excluir a avaliação.');
     };
 
+    const openContributionEditor = (item: LibraryContribution) => {
+        editingContribution.value = item;
+        Object.assign(contributionDraft, {
+            title: item.title,
+            author: item.author,
+            category: item.category,
+            year: item.year ? String(item.year) : '',
+            type: item.content_type,
+            genre: item.genre ?? '',
+            language: item.language ?? '',
+            description: item.description ?? '',
+            cover: null
+        });
+        replacementFile.value = null;
+        removeExistingCover.value = false;
+    };
+
+    const closeContributionEditor = () => {
+        if (savingContribution.value) return;
+        editingContribution.value = null;
+        replacementFile.value = null;
+        removeExistingCover.value = false;
+        Object.assign(contributionDraft, emptyUploadForm());
+    };
+
+    const getAuthenticatedUserId = async () => {
+        const { data: { user }, error } = await getCurrentUser();
+        if (error) throw error;
+        if (!user) throw new Error('Usuário não autenticado.');
+        return user.id;
+    };
+
+    const handleUpdateContribution = async () => {
+        if (!editingContribution.value || savingContribution.value) return;
+
+        savingContribution.value = true;
+        try {
+            const userId = await getAuthenticatedUserId();
+            const cleanupErrors = await updateMyLibraryItem(
+                userId,
+                editingContribution.value.id,
+                contributionDraft,
+                replacementFile.value,
+                removeExistingCover.value
+            );
+
+            try {
+                contributions.value = await listMyContributions(userId);
+            } catch (error) {
+                await showToast(
+                    `Documento atualizado, mas a lista não pôde ser recarregada: ${getErrorMessage(error, 'erro desconhecido')}`,
+                    'warning'
+                );
+            }
+
+            try {
+                catalog.value = await listLibraryCatalog();
+            } catch (error) {
+                await showToast(
+                    `Documento atualizado, mas o catálogo não pôde ser atualizado: ${getErrorMessage(error, 'erro desconhecido')}`,
+                    'warning'
+                );
+            }
+
+            savingContribution.value = false;
+            closeContributionEditor();
+            await showToast(
+                cleanupErrors.length
+                    ? `Documento atualizado, mas não foi possível remover arquivos antigos: ${cleanupErrors.join('; ')}`
+                    : 'Documento atualizado com sucesso.',
+                cleanupErrors.length ? 'warning' : 'success'
+            );
+        } catch (error) {
+            await showToast(
+                translateError(getErrorMessage(error, 'Erro ao atualizar o documento.'), 'Erro ao atualizar o documento.'),
+                'danger'
+            );
+        } finally {
+            savingContribution.value = false;
+        }
+    };
+
+    const handleDeleteContribution = async (item: LibraryContribution) => {
+        const alert = await alertController.create({
+            header: 'Excluir documento',
+            message: `“${item.title}” será removido do acervo. Esta ação não pode ser desfeita.`,
+            buttons: [
+                { text: 'Cancelar', role: 'cancel' },
+                { text: 'Excluir', role: 'destructive' }
+            ]
+        });
+        await alert.present();
+        const { role } = await alert.onDidDismiss();
+        if (role !== 'destructive') return;
+
+        await run(savingContribution, async () => {
+            const userId = await getAuthenticatedUserId();
+            const cleanupErrors = await deleteMyLibraryItem(userId, item.id);
+            contributions.value = contributions.value.filter((contribution) => contribution.id !== item.id);
+
+            try {
+                catalog.value = await listLibraryCatalog();
+            } catch (error) {
+                await showToast(
+                    `Documento excluído, mas o catálogo não pôde ser atualizado: ${getErrorMessage(error, 'erro desconhecido')}`,
+                    'warning'
+                );
+            }
+
+            await showToast(
+                cleanupErrors.length
+                    ? `Documento excluído, mas não foi possível remover arquivos: ${cleanupErrors.join('; ')}`
+                    : 'Documento excluído com sucesso.',
+                cleanupErrors.length ? 'warning' : 'success'
+            );
+        }, 'Erro ao excluir o documento.');
+    };
+
     const handleSignOut = () => run(pageLoading, async () => {
         await signOut();
         await router.replace('/auth');
@@ -321,10 +471,15 @@ export const useUserArea = () => {
         savingPassword,
         savingProgress,
         savingReview,
+        savingContribution,
         profileForm,
         newPassword,
         avatarPreviewUrl,
         contributions,
+        editingContribution,
+        contributionDraft,
+        replacementFile,
+        removeExistingCover,
         catalog,
         progressList,
         reviews,
@@ -339,6 +494,10 @@ export const useUserArea = () => {
         handleCreateReview,
         handleUpdateReview,
         handleDeleteReview,
+        openContributionEditor,
+        closeContributionEditor,
+        handleUpdateContribution,
+        handleDeleteContribution,
         handleSignOut,
         handleDeleteAccount
     };

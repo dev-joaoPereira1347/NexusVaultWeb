@@ -8,13 +8,73 @@
     margin: 0 0 var(--space-lg);
 }
 
+.nv-heading-display,
+.nv-heading-h1,
+.nv-heading-h2,
+.nv-heading-h3,
+.nv-heading-h4 {
+    margin-block: 0;
+    color: var(--color-text-primary);
+    font-family: var(--primitive-font-family-display);
+}
+
+.nv-heading-display {
+    font-size: var(--typography-heading-display-font-size);
+    font-weight: var(--typography-heading-display-font-weight);
+    line-height: var(--typography-heading-display-line-height);
+    letter-spacing: var(--typography-heading-display-letter-spacing);
+}
+
+.nv-heading-h1 {
+    font-size: var(--typography-heading-h1-font-size);
+    font-weight: var(--typography-heading-h1-font-weight);
+    line-height: var(--typography-heading-h1-line-height);
+    letter-spacing: var(--typography-heading-h1-letter-spacing);
+}
+
+.nv-heading-h2 {
+    font-size: var(--typography-heading-h2-font-size);
+    font-weight: var(--typography-heading-h2-font-weight);
+    line-height: var(--typography-heading-h2-line-height);
+    letter-spacing: var(--typography-heading-h2-letter-spacing);
+}
+
+.nv-heading-h3 {
+    font-size: var(--typography-heading-h3-font-size);
+    font-weight: var(--typography-heading-h3-font-weight);
+    line-height: var(--typography-heading-h3-line-height);
+    letter-spacing: var(--typography-heading-h3-letter-spacing);
+}
+
+.nv-heading-h4 {
+    font-size: var(--typography-heading-h4-font-size);
+    font-weight: var(--typography-heading-h4-font-weight);
+    line-height: var(--typography-heading-h4-line-height);
+    letter-spacing: var(--typography-heading-h4-letter-spacing);
+}
+
+.nv-card-title {
+    font-family: var(--primitive-font-family-display);
+    font-size: var(--card-title-font-size);
+    font-weight: var(--card-title-font-weight);
+    line-height: var(--card-title-line-height);
+}
+
+.nv-modal-title {
+    font-family: var(--primitive-font-family-display);
+    font-size: var(--modal-title-font-size);
+    font-weight: var(--modal-title-font-weight);
+    line-height: var(--modal-title-line-height);
+}
+
 .nv-page-title {
     margin: 0;
     color: var(--color-text-primary);
-    font-size: clamp(1.8rem, 4vw, 2.5rem);
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.04em;
+    font-family: var(--primitive-font-family-display);
+    font-size: var(--typography-heading-h1-font-size);
+    font-weight: var(--typography-heading-h1-font-weight);
+    line-height: var(--typography-heading-h1-line-height);
+    letter-spacing: var(--typography-heading-h1-letter-spacing);
 }
 
 .nv-page-description {
@@ -34,9 +94,10 @@
     border-radius: 999px;
     background: var(--color-surface);
     color: var(--color-text-secondary);
-    font-size: var(--font-size-eyebrow);
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-size: var(--typography-caption-default-font-size);
+    font-weight: var(--typography-caption-default-font-weight);
+    line-height: var(--typography-caption-default-line-height);
+    letter-spacing: var(--primitive-letter-spacing-wide);
 }
 
 .nv-surface {
@@ -80,27 +141,29 @@
     border-radius: 999px;
     background: var(--color-surface);
     color: var(--color-text-secondary);
-    font-size: var(--font-size-eyebrow);
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-size: var(--typography-caption-default-font-size);
+    font-weight: var(--primitive-font-weight-bold);
+    line-height: var(--typography-caption-default-line-height);
+    letter-spacing: var(--primitive-letter-spacing-wide);
 }
 
 .nv-hero__title {
     margin: 0 0 var(--space-md);
     color: var(--color-text-primary);
-    font-family: var(--font-family);
-    font-size: clamp(2.25rem, 4.5vw, 3.5rem);
-    font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -0.045em;
+    font-family: var(--primitive-font-family-display);
+    font-size: var(--hero-title-font-size);
+    font-weight: var(--hero-title-font-weight);
+    line-height: var(--hero-title-line-height);
+    letter-spacing: var(--hero-title-letter-spacing);
 }
 
 .nv-hero__description {
     max-width: 58ch;
     margin: 0;
     color: var(--color-text-secondary);
-    font-size: 1.05rem;
-    line-height: 1.65;
+    font-size: var(--typography-body-md-font-size);
+    font-weight: var(--typography-body-md-font-weight);
+    line-height: var(--typography-body-md-line-height);
 }
 
 .nv-hero__visual {
@@ -147,14 +210,6 @@
         min-height: 0;
         margin-block: var(--space-md) var(--space-lg);
         padding: var(--space-lg);
-    }
-
-    .nv-hero__title {
-        font-size: clamp(2rem, 8vw, 2.75rem);
-    }
-
-    .nv-hero__description {
-        font-size: 1rem;
     }
 
     .nv-hero__visual {

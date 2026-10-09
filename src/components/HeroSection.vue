@@ -88,13 +88,13 @@ withDefaults(
 }
 
 .hero-title {
-  font-family: var(--font-family);
-  font-size: 3rem;
-  font-weight: 800;
-  line-height: 1.15;
+  font-family: var(--primitive-font-family-display);
+  font-size: var(--hero-title-font-size);
+  font-weight: var(--hero-title-font-weight);
+  line-height: var(--hero-title-line-height);
   color: var(--color-text-primary);
   margin: 0 0 20px 0;
-  letter-spacing: -0.5px;
+  letter-spacing: var(--hero-title-letter-spacing);
 }
 
 .hero-description {
@@ -126,10 +126,6 @@ withDefaults(
 }
 
 @media (max-width: 768px) {
-  .hero-title {
-    font-size: 2.1rem;
-  }
-
   .hero-actions {
     flex-direction: column;
   }

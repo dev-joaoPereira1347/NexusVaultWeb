@@ -12,6 +12,8 @@
 </template>
 
 <script setup lang="ts">
+import { IonCard, IonIcon } from '@ionic/vue';
+
 defineProps<{
   icon: string;
   value: string;

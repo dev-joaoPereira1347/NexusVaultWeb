@@ -13,7 +13,14 @@ export interface LibraryContribution {
     category: string;
     content_type: string;
     year: number | null;
+    genre: string | null;
+    language: string | null;
+    description: string | null;
     file_name: string;
+    file_path: string;
+    file_mime: string;
+    file_size: number;
+    cover_path: string | null;
     cover_url: string;
     created_at: string;
 }
