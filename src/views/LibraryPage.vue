@@ -66,13 +66,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { IonButton, IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue';
 import { documentTextOutline, downloadOutline, searchOutline } from 'ionicons/icons';
 import SiteHeader from '@/components/SiteHeader.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import { listPublicLibraryItems } from '@/services/libraryService';
+import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import type { PublicLibraryItem } from '@/types/library';
 import { getFileExtension } from '@/utils/getFileExtension';
 import { getLibraryItemTags, normalizeLibraryTerm } from '@/utils/libraryTaxonomy';
@@ -112,17 +113,24 @@ const filteredItems = computed(() => {
     });
 });
 
-onMounted(async () => {
+const refreshItems = async () => {
     try {
         items.value = await listPublicLibraryItems();
+        errorMessage.value = '';
     } catch (error) {
-        errorMessage.value = error instanceof Error
-            ? `Não foi possível carregar o acervo: ${error.message}`
-            : 'Não foi possível carregar o acervo.';
+        if (items.value.length === 0) {
+            errorMessage.value = error instanceof Error
+                ? `Não foi possível carregar o acervo: ${error.message}`
+                : 'Não foi possível carregar o acervo.';
+        } else {
+            console.error('Não foi possível atualizar o acervo.', error);
+        }
     } finally {
         loading.value = false;
     }
-});
+};
+
+useLibraryItemsSync(refreshItems);
 </script>
 
 <style scoped>

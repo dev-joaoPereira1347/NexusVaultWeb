@@ -33,13 +33,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { IonPage, IonContent, IonGrid, IonRow, IonCol } from '@ionic/vue';
 import SiteHeader from '../components/SiteHeader.vue';
 import SiteFooter from '../components/SiteFooter.vue';
 import HeroSection from '../components/HeroSection.vue';
 import StatCard from '../components/StatCard.vue';
 import { getPublicLibraryStatistics } from '../services/statisticsService';
+import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import libraryImage from '../assets/images/library.webp';
 
 import {
@@ -52,11 +53,12 @@ const documentCount = ref('—');
 const contributorCount = ref('—');
 const statisticsError = ref('');
 
-onMounted(async () => {
+const refreshStatistics = async () => {
   try {
     const statistics = await getPublicLibraryStatistics();
     documentCount.value = statistics.documentCount.toLocaleString('pt-BR');
     contributorCount.value = statistics.contributorCount.toLocaleString('pt-BR');
+    statisticsError.value = '';
   } catch (error) {
     const message = error instanceof Error
       ? error.message
@@ -68,7 +70,9 @@ onMounted(async () => {
       ? `Não foi possível carregar as estatísticas: ${message}`
       : 'Não foi possível carregar as estatísticas.';
   }
-});
+};
+
+useLibraryItemsSync(refreshStatistics);
 </script>
 
 <style scoped>

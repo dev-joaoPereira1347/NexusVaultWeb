@@ -1,59 +1,63 @@
 <style scoped>
 .loader {
-    --background: linear-gradient(135deg, #23C4F8, #275EFE);
-    --shadow: rgba(39, 94, 254, 0.28);
-    --text: #6C7486;
-    --page: rgba(255, 255, 255, 0.36);
-    --page-fold: rgba(255, 255, 255, 0.52);
     --duration: 3s;
-    width: 200px;
+    display: flex;
+    width: min(200px, calc(100vw - 48px));
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    position: relative;
+}
+
+.loader__animation {
+    width: 100%;
     height: 140px;
     position: relative;
 }
 
-.loader:before,
-.loader:after {
+.loader__animation:before,
+.loader__animation:after {
     --r: -6deg;
     content: "";
     position: absolute;
-    bottom: 8px;
-    width: 120px;
-    top: 80%;
-    box-shadow: 0 16px 12px var(--shadow);
+    bottom: 0;
+    width: 60%;
+    height: 16px;
+    box-shadow: var(--shadow-soft);
     transform: rotate(var(--r));
 }
 
-.loader:before {
+.loader__animation:before {
     left: 4px;
 }
 
-.loader:after {
+.loader__animation:after {
     --r: 6deg;
     right: 4px;
 }
 
-.loader div {
+.loader__animation > div {
     width: 100%;
     height: 100%;
-    border-radius: 13px;
+    border-radius: var(--radius-md);
     position: relative;
     z-index: 1;
     perspective: 600px;
-    box-shadow: 0 4px 6px var(--shadow);
-    background-image: var(--background);
+    box-shadow: var(--shadow-soft);
+    background-image: linear-gradient(135deg, var(--color-brand-primary), var(--color-accent));
 }
 
-.loader div ul {
+.loader__animation ul {
     margin: 0;
     padding: 0;
     list-style: none;
     position: relative;
 }
 
-.loader div ul li {
+.loader__animation li {
     --r: 180deg;
     --o: 0;
-    --c: var(--page);
+    --c: var(--color-surface);
     position: absolute;
     top: 10px;
     left: 10px;
@@ -65,53 +69,52 @@
     animation: var(--duration) ease infinite;
 }
 
-.loader div ul li:nth-child(2) {
-    --c: var(--page-fold);
+.loader__animation li:nth-child(2) {
+    --c: var(--color-surface-alt);
     -webkit-animation-name: page-2;
     animation-name: page-2;
 }
 
-.loader div ul li:nth-child(3) {
-    --c: var(--page-fold);
+.loader__animation li:nth-child(3) {
+    --c: var(--color-surface-alt);
     -webkit-animation-name: page-3;
     animation-name: page-3;
 }
 
-.loader div ul li:nth-child(4) {
-    --c: var(--page-fold);
+.loader__animation li:nth-child(4) {
+    --c: var(--color-surface-alt);
     -webkit-animation-name: page-4;
     animation-name: page-4;
 }
 
-.loader div ul li:nth-child(5) {
-    --c: var(--page-fold);
+.loader__animation li:nth-child(5) {
+    --c: var(--color-surface-alt);
     -webkit-animation-name: page-5;
     animation-name: page-5;
 }
 
-.loader div ul li svg {
+.loader__animation li svg {
     width: 90px;
     height: 120px;
     display: block;
 }
 
-.loader div ul li:first-child {
+.loader__animation li:first-child {
     --r: 0deg;
     --o: 1;
 }
 
-.loader div ul li:last-child {
+.loader__animation li:last-child {
     --o: 1;
 }
 
-.loader span {
+.loader__label {
     display: block;
-    left: 0;
-    right: 0;
-    top: 100%;
-    margin-top: 20px;
     text-align: center;
-    color: var(--text);
+    color: var(--color-text-secondary);
+    font-size: var(--typography-body-sm-font-size);
+    font-weight: var(--primitive-font-weight-medium);
+    line-height: var(--typography-body-sm-line-height);
 }
 
 @keyframes page-2 {
@@ -200,8 +203,9 @@
 </style>
 
 <template>
-    <div class="loader">
-        <div>
+    <div class="loader" role="status" aria-live="polite">
+        <div class="loader__animation" aria-hidden="true">
+            <div>
             <ul>
                 <li>
                     <svg fill="currentColor" viewBox="0 0 90 120">
@@ -246,6 +250,8 @@
                     </svg>
                 </li>
             </ul>
-        </div><span>PageLoading</span>
+            </div>
+        </div>
+        <span class="loader__label">Carregando...</span>
     </div>
 </template>

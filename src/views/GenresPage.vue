@@ -47,13 +47,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue';
 import { arrowForwardOutline, bookOutline } from 'ionicons/icons';
 import SiteFooter from '@/components/SiteFooter.vue';
 import SiteHeader from '@/components/SiteHeader.vue';
 import { listPublicLibraryItems } from '@/services/libraryService';
+import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import type { PublicLibraryItem } from '@/types/library';
 import { getLibraryItemTags, normalizeLibraryTerm } from '@/utils/libraryTaxonomy';
 
@@ -81,17 +82,24 @@ const genres = computed(() => {
         .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
 });
 
-onMounted(async () => {
+const refreshItems = async () => {
     try {
         items.value = await listPublicLibraryItems();
+        errorMessage.value = '';
     } catch (error) {
-        errorMessage.value = error instanceof Error
-            ? `Não foi possível carregar os gêneros: ${error.message}`
-            : 'Não foi possível carregar os gêneros.';
+        if (items.value.length === 0) {
+            errorMessage.value = error instanceof Error
+                ? `Não foi possível carregar os gêneros: ${error.message}`
+                : 'Não foi possível carregar os gêneros.';
+        } else {
+            console.error('Não foi possível atualizar os gêneros do acervo.', error);
+        }
     } finally {
         loading.value = false;
     }
-});
+};
+
+useLibraryItemsSync(refreshItems);
 </script>
 
 <style scoped>

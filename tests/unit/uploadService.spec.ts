@@ -8,6 +8,7 @@ const selectMock = vi.fn();
 const singleMock = vi.fn();
 const getCurrentUserMock = vi.fn();
 const convertImageToWebpMock = vi.fn();
+const scanVirusTotalMock = vi.fn();
 
 vi.mock('@/services/supabase', () => ({
   supabase: {
@@ -16,6 +17,9 @@ vi.mock('@/services/supabase', () => ({
         upload: uploadMock,
         remove: removeMock,
       })),
+    },
+    functions: {
+      invoke: scanVirusTotalMock,
     },
     from: vi.fn(() => ({
       insert: insertMock,
@@ -54,33 +58,27 @@ describe('uploadLibraryItem', () => {
       error: null,
     });
 
+    scanVirusTotalMock.mockResolvedValue({ data: { success: true }, error: null });
     uploadMock.mockResolvedValue({ error: null });
     removeMock.mockResolvedValue({ error: null });
     insertMock.mockReturnValue({ select: selectMock });
     selectMock.mockReturnValue({ single: singleMock });
     singleMock.mockResolvedValue({
       data: {
-        id: 'item-123',
-        uploaded_by: 'user-123',
+        id: 'request-123',
+        target_item_id: 'item-123',
         title: 'Livro de Teste',
-        author: 'Autor de Teste',
-        category: 'literatura',
-        content_type: 'livro',
-        year: 2024,
-        genre: 'Ficção',
-        language: 'pt',
-        description: 'Descrição de teste',
-        file_path: 'user-123/document.pdf',
         file_name: 'document.pdf',
-        file_mime: 'application/pdf',
-        file_size: 10,
-        cover_path: null,
+        status: 'pending',
+        status_message: null,
+        created_at: '2026-10-14T12:00:00Z',
+        updated_at: '2026-10-14T12:00:00Z',
       },
       error: null,
     });
   });
 
-  test('uploads a document and returns the inserted item', async () => {
+  test('stores a document in quarantine and starts asynchronous scanning', async () => {
     const file = new File(['conteúdo'], 'document.pdf', { type: 'application/pdf' });
 
     const result = await uploadLibraryItem(file, baseForm);
@@ -92,12 +90,35 @@ describe('uploadLibraryItem', () => {
       contentType: 'application/pdf',
       upsert: false,
     }));
+    expect(scanVirusTotalMock).toHaveBeenCalledWith('scan-virus-total', {
+      body: { action: 'start', requestId: insertMock.mock.calls[0][0].id },
+    });
     expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
       uploaded_by: 'user-123',
+      status: 'pending',
+      target_item_id: expect.any(String),
       title: 'Livro de Teste',
       file_name: 'document.pdf',
+      document_quarantine_path: uploadMock.mock.calls[0][0],
+      file_path: uploadMock.mock.calls[0][0],
     }));
-    expect(result.id).toBe('item-123');
+    expect(result.id).toBe('request-123');
+    expect(result.status).toBe('pending');
+  });
+
+  test('keeps the queued upload when starting the background scan fails', async () => {
+    const file = new File(['conteúdo'], 'document.pdf', { type: 'application/pdf' });
+    scanVirusTotalMock.mockResolvedValue({
+      data: null,
+      error: new Error('Arquivo bloqueado: o VirusTotal detectou conteúdo malicioso ou suspeito.'),
+    });
+
+    const result = await uploadLibraryItem(file, baseForm);
+
+    expect(uploadMock).toHaveBeenCalledTimes(1);
+    expect(insertMock).toHaveBeenCalledTimes(1);
+    expect(result.status_message).toContain('O envio foi salvo');
+    expect(removeMock).not.toHaveBeenCalled();
   });
 
   test('requires an authenticated user', async () => {

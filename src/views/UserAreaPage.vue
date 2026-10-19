@@ -40,7 +40,7 @@
                             :aria-selected="selectedTab === 'uploads'" aria-controls="uploads-panel"
                             @click="selectedTab = 'uploads'">
                             <ion-icon :icon="documentTextOutline" />
-                            <span>Meus Envios ({{ contributions.length }})</span>
+                            <span>Meus Envios ({{ contributions.length + uploadRequests.length }})</span>
                         </button>
                         <button id="progress-tab" type="button" role="tab" class="tab-button"
                             :class="{ 'is-active': selectedTab === 'progress' }"
@@ -149,18 +149,51 @@
                                     <p class="panel-subtitle">Documentos e obras que você disponibilizou para
                                         preservação no acervo público.</p>
                                 </div>
-                                <router-link to="/upload" class="action-link-btn">
-                                    <ion-icon :icon="addOutline" />
-                                    Enviar novo documento
-                                </router-link>
+                                <div class="upload-panel-actions">
+                                    <ion-button v-if="uploadRequests.some((item) => ['pending', 'processing', 'scanning'].includes(item.status))"
+                                        fill="outline" :disabled="checkingUploads" @click="refreshUploadStatuses">
+                                        <ion-spinner v-if="checkingUploads" name="crescent" />
+                                        <span v-else>Verificar status</span>
+                                    </ion-button>
+                                    <router-link to="/upload" class="action-link-btn">
+                                        <ion-icon :icon="addOutline" />
+                                        Enviar novo documento
+                                    </router-link>
+                                </div>
                             </div>
 
-                            <div v-if="contributions.length === 0" class="empty-state">
+                            <p v-if="uploadRequests.length" class="panel-subtitle scan-explanation">
+                                Os arquivos aguardando verificação permanecem privados. O status é consultado ao
+                                selecionar “Verificar status”. Para respeitar os limites do VirusTotal, cada consulta
+                                atualiza um envio; resultados concluídos aparecem abaixo.
+                            </p>
+
+                            <div v-if="uploadRequests.length" class="list-container upload-request-list">
+                                <article v-for="item in uploadRequests" :key="item.id" class="media-card upload-request-card">
+                                    <div class="cover-wrapper">
+                                        <div class="cover-fallback">
+                                            <ion-icon :icon="documentOutline" />
+                                        </div>
+                                    </div>
+                                    <div class="media-info">
+                                        <h3>{{ item.title }}</h3>
+                                        <p class="meta">{{ item.file_name }}</p>
+                                        <span class="scan-status" :class="`scan-status--${item.status}`">
+                                            {{ getUploadStatusLabel(item.status) }}
+                                        </span>
+                                        <p v-if="item.status_message" class="scan-status-message" role="status">
+                                            {{ item.status_message }}
+                                        </p>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div v-if="contributions.length === 0 && uploadRequests.length === 0" class="empty-state">
                                 <ion-icon :icon="documentTextOutline" class="empty-icon" />
                                 <p>Você ainda não contribuiu com documentos para o acervo.</p>
                             </div>
 
-                            <div v-else class="list-container">
+                            <div v-if="contributions.length" class="list-container">
                                 <article v-for="item in contributions" :key="item.id" class="media-card">
                                     <div class="cover-wrapper">
                                         <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`"
@@ -435,6 +468,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import {
     IonButton,
     IonContent,
@@ -464,8 +498,10 @@ import UploadDropzone from '@/components/UploadDropzone.vue';
 import UploadMetadataForm from '@/components/UploadMetadataForm.vue';
 import { useUserArea } from '@/composables/useUserArea';
 import { getFileExtension } from '@/utils/getFileExtension';
+import type { UploadScanStatus } from '@/types/userArea';
 
-const selectedTab = ref('profile');
+const route = useRoute();
+const selectedTab = ref(route.query.tab === 'uploads' ? 'uploads' : 'profile');
 
 const {
     pageLoading,
@@ -474,10 +510,12 @@ const {
     savingProgress,
     savingReview,
     savingContribution,
+    checkingUploads,
     profileForm,
     newPassword,
     avatarPreviewUrl,
     contributions,
+    uploadRequests,
     editingContribution,
     contributionDraft,
     replacementFile,
@@ -499,6 +537,7 @@ const {
     openContributionEditor,
     closeContributionEditor,
     handleUpdateContribution,
+    refreshUploadStatuses,
     handleDeleteContribution,
     handleSignOut,
     handleDeleteAccount
@@ -508,6 +547,17 @@ const isContributionFormValid = computed(() =>
     Boolean(contributionDraft.title.trim() && contributionDraft.author.trim()
         && contributionDraft.category && contributionDraft.type)
 );
+
+const getUploadStatusLabel = (status: UploadScanStatus) => {
+    switch (status) {
+        case 'pending': return 'Aguardando início';
+        case 'processing': return 'Preparando análise';
+        case 'scanning': return 'Em verificação';
+        case 'approved': return 'Aprovado';
+        case 'rejected': return 'Rejeitado';
+        case 'failed': return 'Falha na verificação';
+    }
+};
 </script>
 
 <style scoped>
@@ -675,6 +725,54 @@ const isContributionFormValid = computed(() =>
 .panel-header {
     padding-bottom: 14px;
     border-bottom: 1px solid var(--color-border-soft, #E2DAD3);
+}
+
+.upload-panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.scan-explanation {
+    margin: 0;
+}
+
+.upload-request-list {
+    margin-bottom: 16px;
+}
+
+.upload-request-card {
+    align-items: flex-start;
+}
+
+.scan-status {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--color-surface-alt, #EEE5DE);
+    color: var(--color-text-primary, #22223B);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.scan-status--scanning,
+.scan-status--processing,
+.scan-status--pending {
+    background: #fff4d6;
+    color: #795600;
+}
+
+.scan-status--rejected,
+.scan-status--failed {
+    background: #fde8e7;
+    color: #9f2420;
+}
+
+.scan-status-message {
+    margin: 6px 0 0;
+    color: var(--color-text-secondary, #4A4E69);
+    font-size: 0.82rem;
 }
 
 .stack-form {
@@ -1068,6 +1166,10 @@ const isContributionFormValid = computed(() =>
     .panel-header {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .upload-panel-actions {
+        width: 100%;
     }
 
     .list-item-card {

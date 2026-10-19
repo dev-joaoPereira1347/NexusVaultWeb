@@ -2,7 +2,7 @@ import { supabase } from '@/services/supabase';
 import { getCurrentUser } from '@/services/authService';
 import { convertImageToWebp } from '@/utils/convertImageToWebp';
 import type { UploadForm } from '@/types/upload';
-import type { LibraryItem, LibraryItemInsert } from '@/types/library';
+import type { LibraryUploadRequest } from '@/types/userArea';
 
 /** Bucket público para arquivos (PDF, EPUB, TXT, MD). */
 export const LIBRARY_DOCUMENTS_BUCKET = 'library-documents';
@@ -10,6 +10,7 @@ export const LIBRARY_DOCUMENTS_BUCKET = 'library-documents';
 /** Bucket público para capas em WebP. */
 export const LIBRARY_COVERS_BUCKET = 'library-covers';
 
+const LIBRARY_QUARANTINE_BUCKET = 'library-quarantine';
 const ALLOWED_EXTENSIONS = new Set(['pdf', 'txt', 'epub', 'md']);
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
@@ -86,6 +87,13 @@ const cleanupUploadedFiles = async (files: Array<{ bucket: string; path: string 
         : []);
 };
 
+type ScannableFile = {
+    file: File;
+    kind: 'document' | 'cover';
+    mimeType: string;
+    path: string;
+};
+
 const getCleanupFailure = (error: unknown, cleanupErrors: string[]) => {
     const message = error instanceof Error
         ? error.message
@@ -97,7 +105,103 @@ const getCleanupFailure = (error: unknown, cleanupErrors: string[]) => {
         : message);
 };
 
-export const uploadLibraryItem = async (file: File, form: UploadForm): Promise<LibraryItem> => {
+type QueueUploadDetails = {
+    userId: string;
+    form: UploadForm;
+    fileName: string;
+    fileMime: string;
+    fileSize: number;
+    filePath: string;
+    documentQuarantinePath: string | null;
+    coverPath: string | null;
+    coverQuarantinePath: string | null;
+    targetItemId: string | null;
+    isUpdate: boolean;
+    files: ScannableFile[];
+};
+
+const startBackgroundScan = async (requestId: string) => {
+    try {
+        const { error } = await supabase.functions.invoke('scan-virus-total', {
+            body: { action: 'start', requestId }
+        });
+        if (!error) return null;
+
+        const response = 'context' in error && error.context instanceof Response
+            ? await error.context.clone().json().catch(() => null)
+            : null;
+        return typeof response?.error === 'string'
+            ? response.error
+            : 'O envio foi salvo, mas ainda não foi possível iniciar a verificação. Atualize o status na área do usuário.';
+    } catch {
+        return 'O envio foi salvo, mas ainda não foi possível iniciar a verificação. Atualize o status na área do usuário.';
+    }
+};
+
+export const checkLibraryUploadRequest = async (requestId: string): Promise<void> => {
+    const { error } = await supabase.functions.invoke('scan-virus-total', {
+        body: { action: 'check', requestId }
+    });
+    if (!error) return;
+
+    const response = 'context' in error && error.context instanceof Response
+        ? await error.context.clone().json().catch(() => null)
+        : null;
+    throw new Error(typeof response?.error === 'string' ? response.error : error.message);
+};
+
+const createUploadRequest = async (details: QueueUploadDetails): Promise<LibraryUploadRequest> => {
+    const { userId, form, files } = details;
+    const uploadedFiles: Array<{ bucket: string; path: string }> = [];
+
+    try {
+        for (const { file, mimeType, path } of files) {
+            await uploadToBucket(LIBRARY_QUARANTINE_BUCKET, path, file, mimeType);
+            uploadedFiles.push({ bucket: LIBRARY_QUARANTINE_BUCKET, path });
+        }
+
+        const parsedYear = Number.parseInt(form.year, 10);
+        const requestId = crypto.randomUUID();
+        const { data, error } = await supabase
+            .from('library_upload_requests')
+            .insert({
+                id: requestId,
+                uploaded_by: userId,
+                target_item_id: details.targetItemId ?? requestId,
+                is_update: details.isUpdate,
+                status: 'pending',
+                title: form.title.trim(),
+                author: form.author.trim(),
+                category: form.category,
+                content_type: form.type,
+                year: Number.isFinite(parsedYear) && parsedYear > 0 ? parsedYear : null,
+                genre: form.genre.trim() || null,
+                language: form.language || null,
+                description: form.description.trim() || null,
+                file_name: details.fileName,
+                file_mime: details.fileMime,
+                file_size: details.fileSize,
+                file_path: details.filePath,
+                document_quarantine_path: details.documentQuarantinePath,
+                cover_path: details.coverPath,
+                cover_quarantine_path: details.coverQuarantinePath
+            })
+            .select('id, target_item_id, title, file_name, status, status_message, created_at, updated_at')
+            .single();
+        if (error) throw error;
+
+        const statusMessage = await startBackgroundScan(requestId);
+        return {
+            ...data,
+            status_message: statusMessage ?? data.status_message
+        } as LibraryUploadRequest;
+    } catch (error) {
+        const cleanupErrors = await cleanupUploadedFiles(uploadedFiles);
+        throw getCleanupFailure(error, cleanupErrors);
+    }
+};
+
+export const uploadLibraryItem = async (file: File, form: UploadForm): Promise<LibraryUploadRequest> => {
     const { extension, mimeType } = validateDocumentFile(file);
     const coverFile = await prepareCoverFile(form.cover);
 
@@ -107,56 +211,25 @@ export const uploadLibraryItem = async (file: File, form: UploadForm): Promise<L
 
     const documentPath = `${user.id}/${crypto.randomUUID()}.${extension}`;
     const coverPath = coverFile ? `${user.id}/${crypto.randomUUID()}.webp` : null;
-
-    await uploadToBucket(
-        LIBRARY_DOCUMENTS_BUCKET,
-        documentPath,
-        file,
-        mimeType
-    );
-
-    if (coverFile && coverPath) {
-        try {
-            await uploadToBucket(LIBRARY_COVERS_BUCKET, coverPath, coverFile, 'image/webp');
-        } catch (coverError) {
-            await removeFromBucket(LIBRARY_DOCUMENTS_BUCKET, documentPath);
-            throw coverError;
-        }
-    }
-
-    const parsedYear = Number.parseInt(form.year, 10);
-    const row: LibraryItemInsert = {
-        uploaded_by: user.id,
-        title: form.title.trim(),
-        author: form.author.trim(),
-        category: form.category,
-        content_type: form.type,
-        year: Number.isFinite(parsedYear) && parsedYear > 0 ? parsedYear : null,
-        genre: form.genre.trim() || null,
-        language: form.language || null,
-        description: form.description.trim() || null,
-        file_path: documentPath,
-        file_name: file.name,
-        file_mime: mimeType,
-        file_size: file.size,
-        cover_path: coverPath
-    };
-
-    const { data: insertedItem, error: insertError } = await supabase
-        .from('library_items')
-        .insert(row)
-        .select()
-        .single();
-
-    if (insertError) {
-        const cleanupErrors = await cleanupUploadedFiles([
-            { bucket: LIBRARY_DOCUMENTS_BUCKET, path: documentPath },
-            ...(coverPath ? [{ bucket: LIBRARY_COVERS_BUCKET, path: coverPath }] : [])
-        ]);
-        throw getCleanupFailure(insertError, cleanupErrors);
-    }
-
-    return insertedItem as LibraryItem;
+    return createUploadRequest({
+        userId: user.id,
+        form,
+        fileName: file.name,
+        fileMime: mimeType,
+        fileSize: file.size,
+        filePath: documentPath,
+        documentQuarantinePath: documentPath,
+        coverPath,
+        coverQuarantinePath: coverPath,
+        targetItemId: null,
+        isUpdate: false,
+        files: [
+        { file, kind: 'document', mimeType, path: documentPath },
+        ...(coverFile && coverPath
+            ? [{ file: coverFile, kind: 'cover' as const, mimeType: 'image/webp', path: coverPath }]
+            : [])
+        ]
+    });
 };
 
 export const updateMyLibraryItem = async (
@@ -165,7 +238,7 @@ export const updateMyLibraryItem = async (
     form: UploadForm,
     replacementFile: File | null,
     removeCover: boolean
-): Promise<string[]> => {
+): Promise<{ cleanupErrors: string[]; uploadRequest: LibraryUploadRequest | null }> => {
     if (!form.title.trim() || !form.author.trim() || !form.category || !form.type) {
         throw new Error('Preencha título, autor, categoria e tipo.');
     }
@@ -174,7 +247,7 @@ export const updateMyLibraryItem = async (
     const coverFile = await prepareCoverFile(form.cover);
     const { data: currentItem, error: lookupError } = await supabase
         .from('library_items')
-        .select('file_path, cover_path')
+        .select('file_path, file_name, file_mime, file_size, cover_path')
         .eq('id', itemId)
         .eq('uploaded_by', userId)
         .maybeSingle();
@@ -182,7 +255,6 @@ export const updateMyLibraryItem = async (
     if (lookupError) throw lookupError;
     if (!currentItem) throw new Error('Documento não encontrado ou você não tem permissão para alterá-lo.');
 
-    const stagedFiles: Array<{ bucket: string; path: string }> = [];
     const documentPath = fileDetails
         ? `${userId}/${crypto.randomUUID()}.${fileDetails.extension}`
         : currentItem.file_path;
@@ -192,18 +264,40 @@ export const updateMyLibraryItem = async (
             ? null
             : currentItem.cover_path;
 
-    try {
-        if (fileDetails && replacementFile) {
-            await uploadToBucket(LIBRARY_DOCUMENTS_BUCKET, documentPath, replacementFile, fileDetails.mimeType);
-            stagedFiles.push({ bucket: LIBRARY_DOCUMENTS_BUCKET, path: documentPath });
+    if (replacementFile || coverFile) {
+        const files: ScannableFile[] = [];
+        if (replacementFile && fileDetails) {
+            files.push({
+                file: replacementFile,
+                kind: 'document',
+                mimeType: fileDetails.mimeType,
+                path: documentPath
+            });
         }
         if (coverFile && coverPath) {
-            await uploadToBucket(LIBRARY_COVERS_BUCKET, coverPath, coverFile, 'image/webp');
-            stagedFiles.push({ bucket: LIBRARY_COVERS_BUCKET, path: coverPath });
+            files.push({
+                file: coverFile,
+                kind: 'cover',
+                mimeType: 'image/webp',
+                path: coverPath
+            });
         }
-    } catch (error) {
-        const cleanupErrors = await cleanupUploadedFiles(stagedFiles);
-        throw getCleanupFailure(error, cleanupErrors);
+
+        const uploadRequest = await createUploadRequest({
+            userId,
+            form,
+            fileName: replacementFile ? replacementFile.name : currentItem.file_name,
+            fileMime: fileDetails ? fileDetails.mimeType : currentItem.file_mime,
+            fileSize: replacementFile ? replacementFile.size : currentItem.file_size,
+            filePath: documentPath,
+            documentQuarantinePath: replacementFile ? documentPath : null,
+            coverPath,
+            coverQuarantinePath: coverFile ? coverPath : null,
+            targetItemId: itemId,
+            isUpdate: true,
+            files
+        });
+        return { cleanupErrors: [], uploadRequest };
     }
 
     const parsedYear = Number.parseInt(form.year, 10);
@@ -216,12 +310,6 @@ export const updateMyLibraryItem = async (
         genre: form.genre.trim() || null,
         language: form.language || null,
         description: form.description.trim() || null,
-        file_path: documentPath,
-        ...(replacementFile && fileDetails ? {
-            file_name: replacementFile.name,
-            file_mime: fileDetails.mimeType,
-            file_size: replacementFile.size
-        } : {}),
         cover_path: coverPath,
         updated_at: new Date().toISOString()
     };
@@ -236,8 +324,7 @@ export const updateMyLibraryItem = async (
 
     if (updateError || !updatedItem) {
         const error = updateError ?? new Error('Documento não encontrado ou você não tem permissão para alterá-lo.');
-        const cleanupErrors = await cleanupUploadedFiles(stagedFiles);
-        throw getCleanupFailure(error, cleanupErrors);
+        throw error;
     }
 
     const obsoleteFiles = [
@@ -247,7 +334,7 @@ export const updateMyLibraryItem = async (
             : [])
     ];
 
-    return cleanupUploadedFiles(obsoleteFiles);
+    return { cleanupErrors: await cleanupUploadedFiles(obsoleteFiles), uploadRequest: null };
 };
 
 export const deleteMyLibraryItem = async (userId: string, itemId: string): Promise<string[]> => {

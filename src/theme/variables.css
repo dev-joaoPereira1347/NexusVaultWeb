@@ -138,6 +138,7 @@
 @media (max-width: 700px) {
     :root {
         --typography-heading-display-font-size: var(--primitive-font-size-700);
+        --hero-title-font-size: clamp(1.75rem, 8vw, var(--primitive-font-size-700));
         --typography-heading-h1-font-size: var(--primitive-font-size-600);
         --typography-heading-h2-font-size: var(--primitive-font-size-500);
         --typography-heading-h3-font-size: var(--primitive-font-size-400);

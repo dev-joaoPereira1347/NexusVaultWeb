@@ -71,6 +71,7 @@ import SiteFooter from '@/components/SiteFooter.vue';
 import SiteHeader from '@/components/SiteHeader.vue';
 import { getPublicProfile } from '@/services/authService';
 import { listPublicLibraryItemsByUploader } from '@/services/libraryService';
+import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import type { ProfileData } from '@/types/auth';
 import type { PublicLibraryItem } from '@/types/library';
 
@@ -115,6 +116,19 @@ watch(
     },
     { immediate: true }
 );
+
+const refreshItems = async () => {
+    const id = route.params.id;
+    if (typeof id !== 'string' || !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(id)) return;
+
+    try {
+        items.value = await listPublicLibraryItemsByUploader(id);
+    } catch (error) {
+        console.error('Não foi possível atualizar os documentos do perfil.', error);
+    }
+};
+
+useLibraryItemsSync(refreshItems);
 </script>
 
 <style scoped>

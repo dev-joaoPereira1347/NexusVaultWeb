@@ -1,6 +1,7 @@
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import { alertController, toastController } from '@ionic/vue';
 import { useRouter } from 'vue-router';
+import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import {
     deleteAccount,
     getCurrentUser,
@@ -11,8 +12,8 @@ import {
     updatePassword,
     uploadAvatar
 } from '@/services/authService';
-import { listLibraryCatalog, listMyContributions } from '@/services/libraryService';
-import { deleteMyLibraryItem, updateMyLibraryItem } from '@/services/uploadService';
+import { listLibraryCatalog, listMyContributions, listMyUploadRequests } from '@/services/libraryService';
+import { checkLibraryUploadRequest, deleteMyLibraryItem, updateMyLibraryItem } from '@/services/uploadService';
 import {
     createReadingProgress,
     deleteReadingProgress,
@@ -24,6 +25,7 @@ import type {
     DocumentReview,
     LibraryCatalogItem,
     LibraryContribution,
+    LibraryUploadRequest,
     ProgressDraft,
     ReadingProgress,
     ReviewDraft,
@@ -71,6 +73,7 @@ export const useUserArea = () => {
     const savingProgress = ref(false);
     const savingReview = ref(false);
     const savingContribution = ref(false);
+    const checkingUploads = ref(false);
 
     const profileForm = reactive<UserProfileForm>(emptyProfile());
     const newPassword = ref('');
@@ -79,6 +82,7 @@ export const useUserArea = () => {
     const originalEmail = ref('');
 
     const contributions = ref<LibraryContribution[]>([]);
+    const uploadRequests = ref<LibraryUploadRequest[]>([]);
     const editingContribution = ref<LibraryContribution | null>(null);
     const contributionDraft = reactive<UploadForm>(emptyUploadForm());
     const replacementFile = ref<File | null>(null);
@@ -153,14 +157,16 @@ export const useUserArea = () => {
         originalEmail.value = user.email || '';
         avatarPreviewUrl.value = profileForm.avatarUrl;
 
-        const [myItems, catalogItems, myProgress, myReviews] = await Promise.allSettled([
+        const [myItems, myRequests, catalogItems, myProgress, myReviews] = await Promise.allSettled([
             listMyContributions(user.id),
+            listMyUploadRequests(user.id),
             listLibraryCatalog(),
             listMyReadingProgress(),
             listMyReviews()
         ]);
 
         contributions.value = myItems.status === 'fulfilled' ? myItems.value : [];
+        uploadRequests.value = myRequests.status === 'fulfilled' ? myRequests.value : [];
         catalog.value = catalogItems.status === 'fulfilled' ? catalogItems.value : [];
         progressList.value = myProgress.status === 'fulfilled' ? myProgress.value : [];
         reviews.value = myReviews.status === 'fulfilled' ? myReviews.value : [];
@@ -168,6 +174,12 @@ export const useUserArea = () => {
         if (myItems.status === 'rejected') {
             await showToast(
                 translateError(getErrorMessage(myItems.reason, 'Não foi possível carregar seus documentos.'), 'Não foi possível carregar seus documentos.'),
+                'danger'
+            );
+        }
+        if (myRequests.status === 'rejected') {
+            await showToast(
+                translateError(getErrorMessage(myRequests.reason, 'Não foi possível carregar o status dos envios.'), 'Não foi possível carregar o status dos envios.'),
                 'danger'
             );
         }
@@ -186,6 +198,45 @@ export const useUserArea = () => {
 
         if (firstMissingTable) {
             await showToast('Progresso e avaliações precisam do script supabase/user-area-setup.sql.', 'warning');
+        }
+    };
+
+    const refreshLibraryData = async () => {
+        const { data: { user }, error } = await getCurrentUser();
+        if (error) throw error;
+        if (!user) return;
+
+        const [myItems, myRequests, catalogItems] = await Promise.allSettled([
+            listMyContributions(user.id),
+            listMyUploadRequests(user.id),
+            listLibraryCatalog()
+        ]);
+
+        if (myItems.status === 'fulfilled') {
+            contributions.value = myItems.value;
+        } else {
+            await showToast(
+                translateError(getErrorMessage(myItems.reason, 'Não foi possível atualizar seus documentos.'), 'Não foi possível atualizar seus documentos.'),
+                'danger'
+            );
+        }
+
+        if (myRequests.status === 'fulfilled') {
+            uploadRequests.value = myRequests.value;
+        } else {
+            await showToast(
+                translateError(getErrorMessage(myRequests.reason, 'Não foi possível atualizar o status dos envios.'), 'Não foi possível atualizar o status dos envios.'),
+                'danger'
+            );
+        }
+
+        if (catalogItems.status === 'fulfilled') {
+            catalog.value = catalogItems.value;
+        } else {
+            await showToast(
+                translateError(getErrorMessage(catalogItems.reason, 'Não foi possível atualizar o acervo.'), 'Não foi possível atualizar o acervo.'),
+                'danger'
+            );
         }
     };
 
@@ -345,7 +396,7 @@ export const useUserArea = () => {
         savingContribution.value = true;
         try {
             const userId = await getAuthenticatedUserId();
-            const cleanupErrors = await updateMyLibraryItem(
+            const { cleanupErrors, uploadRequest } = await updateMyLibraryItem(
                 userId,
                 editingContribution.value.id,
                 contributionDraft,
@@ -355,6 +406,7 @@ export const useUserArea = () => {
 
             try {
                 contributions.value = await listMyContributions(userId);
+                uploadRequests.value = await listMyUploadRequests(userId);
             } catch (error) {
                 await showToast(
                     `Documento atualizado, mas a lista não pôde ser recarregada: ${getErrorMessage(error, 'erro desconhecido')}`,
@@ -373,12 +425,16 @@ export const useUserArea = () => {
 
             savingContribution.value = false;
             closeContributionEditor();
-            await showToast(
-                cleanupErrors.length
-                    ? `Documento atualizado, mas não foi possível remover arquivos antigos: ${cleanupErrors.join('; ')}`
-                    : 'Documento atualizado com sucesso.',
-                cleanupErrors.length ? 'warning' : 'success'
-            );
+            if (uploadRequest) {
+                await showToast('Alteração recebida. O arquivo continuará privado até a verificação antivírus terminar.');
+            } else {
+                await showToast(
+                    cleanupErrors.length
+                        ? `Documento atualizado, mas não foi possível remover arquivos antigos: ${cleanupErrors.join('; ')}`
+                        : 'Documento atualizado com sucesso.',
+                    cleanupErrors.length ? 'warning' : 'success'
+                );
+            }
         } catch (error) {
             await showToast(
                 translateError(getErrorMessage(error, 'Erro ao atualizar o documento.'), 'Erro ao atualizar o documento.'),
@@ -388,6 +444,41 @@ export const useUserArea = () => {
             savingContribution.value = false;
         }
     };
+
+    const refreshUploadStatuses = () => run(checkingUploads, async () => {
+        const userId = await getAuthenticatedUserId();
+        const requests = await listMyUploadRequests(userId);
+        const pendingRequests = requests.filter((item) =>
+            item.status === 'pending' || item.status === 'scanning' || item.status === 'processing'
+        );
+        const failures: string[] = [];
+
+        const requestToCheck = pendingRequests[pendingRequests.length - 1];
+        if (requestToCheck) {
+            try {
+                await checkLibraryUploadRequest(requestToCheck.id);
+            } catch (error) {
+                failures.push(`${requestToCheck.title}: ${getErrorMessage(error, 'falha ao consultar o status')}`);
+            }
+        }
+
+        uploadRequests.value = await listMyUploadRequests(userId);
+        const [myItems, catalogItems] = await Promise.all([
+            listMyContributions(userId),
+            listLibraryCatalog()
+        ]);
+        contributions.value = myItems;
+        catalog.value = catalogItems;
+
+        await showToast(
+            failures.length
+                ? `Status atualizado com erros: ${failures.join('; ')}`
+                : pendingRequests.length > 1
+                    ? `Um status foi consultado. Ainda há ${pendingRequests.length - 1} envio(s) aguardando consulta.`
+                    : 'Status dos envios atualizado.',
+            failures.length ? 'warning' : 'success'
+        );
+    }, 'Não foi possível atualizar os status dos envios.');
 
     const handleDeleteContribution = async (item: LibraryContribution) => {
         const alert = await alertController.create({
@@ -461,6 +552,8 @@ export const useUserArea = () => {
         }
     });
 
+    useLibraryItemsSync(refreshLibraryData);
+
     onUnmounted(() => {
         if (avatarPreviewUrl.value.startsWith('blob:')) URL.revokeObjectURL(avatarPreviewUrl.value);
     });
@@ -472,10 +565,12 @@ export const useUserArea = () => {
         savingProgress,
         savingReview,
         savingContribution,
+        checkingUploads,
         profileForm,
         newPassword,
         avatarPreviewUrl,
         contributions,
+        uploadRequests,
         editingContribution,
         contributionDraft,
         replacementFile,
@@ -497,6 +592,7 @@ export const useUserArea = () => {
         openContributionEditor,
         closeContributionEditor,
         handleUpdateContribution,
+        refreshUploadStatuses,
         handleDeleteContribution,
         handleSignOut,
         handleDeleteAccount

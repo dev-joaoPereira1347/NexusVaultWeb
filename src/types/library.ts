@@ -53,6 +53,7 @@ export interface PublicLibraryItemDetails extends PublicLibraryItem {
     uploaded_by: string;
     genre: string | null;
     language: string | null;
+    file_path: string;
     file_size: number;
     created_at: string;
 }

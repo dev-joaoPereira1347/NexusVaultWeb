@@ -25,6 +25,19 @@ export interface LibraryContribution {
     created_at: string;
 }
 
+export type UploadScanStatus = 'pending' | 'processing' | 'scanning' | 'approved' | 'rejected' | 'failed';
+
+export interface LibraryUploadRequest {
+    id: string;
+    target_item_id: string;
+    title: string;
+    file_name: string;
+    status: UploadScanStatus;
+    status_message: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface ReadingProgress {
     id: string;
     document_id: string;

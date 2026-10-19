@@ -1,7 +1,7 @@
 import { supabase } from '@/services/supabase';
 import { LIBRARY_COVERS_BUCKET, LIBRARY_DOCUMENTS_BUCKET } from '@/services/uploadService';
 import type { PublicLibraryItem, PublicLibraryItemDetails } from '@/types/library';
-import type { LibraryCatalogItem, LibraryContribution } from '@/types/userArea';
+import type { LibraryCatalogItem, LibraryContribution, LibraryUploadRequest } from '@/types/userArea';
 
 const getCoverUrl = (coverPath: string | null): string => {
     if (!coverPath) return '';
@@ -35,6 +35,19 @@ export const listMyContributions = async (userId: string): Promise<LibraryContri
         cover_url: getCoverUrl(item.cover_path),
         created_at: item.created_at
     }));
+};
+
+export const listMyUploadRequests = async (userId: string): Promise<LibraryUploadRequest[]> => {
+    const { data, error } = await supabase
+        .from('library_upload_requests')
+        .select('id, target_item_id, title, file_name, status, status_message, created_at, updated_at')
+        .eq('uploaded_by', userId)
+        .neq('status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+    if (error) throw error;
+    return data ?? [];
 };
 
 export const listLibraryCatalog = async (): Promise<LibraryCatalogItem[]> => {
@@ -96,11 +109,21 @@ export const getPublicLibraryItem = async (id: string): Promise<PublicLibraryIte
         language: data.language,
         description: data.description,
         file_name: data.file_name,
+        file_path: data.file_path,
         file_size: data.file_size,
         created_at: data.created_at,
         cover_url: getCoverUrl(data.cover_path),
         download_url: supabase.storage.from(LIBRARY_DOCUMENTS_BUCKET).getPublicUrl(data.file_path).data.publicUrl
     };
+};
+
+export const downloadLibraryDocument = async (filePath: string): Promise<Blob> => {
+    const { data, error } = await supabase.storage
+        .from(LIBRARY_DOCUMENTS_BUCKET)
+        .download(filePath);
+
+    if (error) throw error;
+    return data;
 };
 
 export const listPublicLibraryItemsByUploader = async (uploaderId: string): Promise<PublicLibraryItem[]> => {

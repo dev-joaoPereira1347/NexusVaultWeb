@@ -34,6 +34,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import { IonContent, IonPage, toastController } from '@ionic/vue';
+import { useRouter } from 'vue-router';
 import SiteHeader from '../components/SiteHeader.vue';
 import SiteFooter from '../components/SiteFooter.vue';
 import UploadDropzone from '../components/UploadDropzone.vue';
@@ -43,6 +44,7 @@ import { uploadLibraryItem } from '@/services/uploadService';
 import { findOpenLibraryMetadata } from '@/services/openLibraryMetadataService';
 
 const selectedFile = ref<File | null>(null);
+const router = useRouter();
 const isUploading = ref(false);
 const metadataMessage = ref('');
 let metadataRequestId = 0;
@@ -188,10 +190,15 @@ const submitForm = async () => {
     try {
         isUploading.value = true;
 
-        await uploadLibraryItem(selectedFile.value, { ...form });
-
-        await presentToast('Livro e metadados cadastrados com sucesso!', 'success');
+        const request = await uploadLibraryItem(selectedFile.value, { ...form });
+        await presentToast(
+            request.status_message
+                ? request.status_message
+                : 'Envio recebido. A verificação acontece em segundo plano; acompanhe o resultado em Meus envios.',
+            request.status_message ? 'warning' : 'success'
+        );
         resetForm();
+        await router.replace({ name: 'Profile', query: { tab: 'uploads' } });
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao realizar o upload.';
         await presentToast(message, 'danger');
