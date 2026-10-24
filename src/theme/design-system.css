@@ -85,19 +85,49 @@
     line-height: 1.6;
 }
 
-.nv-eyebrow {
+.nv-badge {
     display: inline-flex;
     align-items: center;
-    margin: 0 0 var(--space-sm);
+    width: fit-content;
+    max-width: 100%;
     padding: 6px 12px;
     border: 1px solid var(--color-border-soft);
     border-radius: 999px;
     background: var(--color-surface);
     color: var(--color-text-secondary);
-    font-size: var(--typography-caption-default-font-size);
-    font-weight: var(--typography-caption-default-font-weight);
-    line-height: var(--typography-caption-default-line-height);
+    font-family: var(--font-family);
+    font-size: var(--font-size-caption);
+    font-weight: var(--primitive-font-weight-bold);
+    line-height: 1.25;
     letter-spacing: var(--primitive-letter-spacing-wide);
+    text-transform: uppercase;
+}
+
+.nv-eyebrow {
+    margin: 0 0 var(--space-sm);
+}
+
+.nv-hero__badge {
+    margin: 0 0 var(--space-md);
+}
+
+.nv-badge--compact {
+    padding: 2px 8px;
+    font-size: var(--font-size-caption);
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.nv-badge--inverse {
+    border-color: rgba(255, 255, 255, 0.24);
+    background: rgba(255, 255, 255, 0.08);
+    color: #A7B7FF;
+}
+
+.nv-badge--status {
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 0.75rem;
 }
 
 .nv-surface {
@@ -130,21 +160,6 @@
 .nv-hero__content {
     min-width: 0;
     max-width: 600px;
-}
-
-.nv-hero__badge {
-    display: inline-flex;
-    align-items: center;
-    margin: 0 0 var(--space-md);
-    padding: 7px 14px;
-    border: 1px solid var(--color-border-soft);
-    border-radius: 999px;
-    background: var(--color-surface);
-    color: var(--color-text-secondary);
-    font-size: var(--typography-caption-default-font-size);
-    font-weight: var(--primitive-font-weight-bold);
-    line-height: var(--typography-caption-default-line-height);
-    letter-spacing: var(--primitive-letter-spacing-wide);
 }
 
 .nv-hero__title {

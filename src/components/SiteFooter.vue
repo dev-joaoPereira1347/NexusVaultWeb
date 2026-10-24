@@ -56,12 +56,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { IonIcon, IonNote } from '@ionic/vue';
 import {
     homeOutline,
     searchOutline,
     libraryOutline,
+    logInOutline,
     personOutline
 } from 'ionicons/icons';
 import FooterLinkList from './FooterLinkList.vue';
@@ -78,12 +79,14 @@ const usefulLinks = [
     { label: 'Sobre Nós', to: '/about-us' }
 ];
 
-const navItems = [
+const navItems = computed(() => [
     { label: 'Início', to: '/home', icon: homeOutline },
     { label: 'Descobrir', to: '/search', icon: searchOutline },
     { label: 'Upload', to: '/upload', icon: libraryOutline },
-    { label: 'Conta', to: '/profile', icon: personOutline }
-];
+    currentUser.value
+        ? { label: 'Conta', to: '/profile', icon: personOutline }
+        : { label: 'Entrar', to: '/auth', icon: logInOutline }
+]);
 
 const currentUser = ref(false);
 const avatarUrl = ref('');

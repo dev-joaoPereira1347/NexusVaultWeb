@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { UploadForm } from '@/types/upload';
 
 const uploadMock = vi.fn();
+const signedUploadMock = vi.fn();
 const removeMock = vi.fn();
 const insertMock = vi.fn();
 const selectMock = vi.fn();
@@ -15,6 +16,7 @@ vi.mock('@/services/supabase', () => ({
     storage: {
       from: vi.fn(() => ({
         upload: uploadMock,
+        createSignedUploadUrl: signedUploadMock,
         remove: removeMock,
       })),
     },
@@ -47,9 +49,14 @@ const baseForm: UploadForm = {
   language: 'pt',
   description: 'Descrição de teste',
   cover: null,
+  rightsDeclarationAccepted: true,
 };
 
 describe('uploadLibraryItem', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -60,6 +67,10 @@ describe('uploadLibraryItem', () => {
 
     scanVirusTotalMock.mockResolvedValue({ data: { success: true }, error: null });
     uploadMock.mockResolvedValue({ error: null });
+    signedUploadMock.mockResolvedValue({
+      data: { signedUrl: 'https://storage.example/upload?token=temporary-token' },
+      error: null,
+    });
     removeMock.mockResolvedValue({ error: null });
     insertMock.mockReturnValue({ select: selectMock });
     selectMock.mockReturnValue({ single: singleMock });
@@ -68,6 +79,9 @@ describe('uploadLibraryItem', () => {
         id: 'request-123',
         target_item_id: 'item-123',
         title: 'Livro de Teste',
+        year: 2024,
+        rights_declaration_accepted: true,
+        rights_declaration_accepted_at: expect.any(String),
         file_name: 'document.pdf',
         status: 'pending',
         status_message: null,
@@ -106,6 +120,41 @@ describe('uploadLibraryItem', () => {
     expect(result.status).toBe('pending');
   });
 
+  test('reports real transfer progress when requested', async () => {
+    class MockXMLHttpRequest extends EventTarget {
+      upload = new EventTarget();
+      status = 201;
+      open = vi.fn();
+      setRequestHeader = vi.fn();
+
+      send = (file: File) => {
+        const midpoint = Math.floor(file.size / 2);
+        this.upload.dispatchEvent(new ProgressEvent('progress', {
+          lengthComputable: true,
+          loaded: midpoint,
+          total: file.size,
+        }));
+        this.upload.dispatchEvent(new ProgressEvent('progress', {
+          lengthComputable: true,
+          loaded: file.size,
+          total: file.size,
+        }));
+        this.dispatchEvent(new Event('load'));
+      };
+    }
+
+    vi.stubGlobal('XMLHttpRequest', MockXMLHttpRequest);
+    const file = new File(['conteúdo'], 'document.pdf', { type: 'application/pdf' });
+    const progress: number[] = [];
+
+    await uploadLibraryItem(file, baseForm, (percentage) => progress.push(percentage));
+
+    expect(signedUploadMock).toHaveBeenCalledOnce();
+    expect(uploadMock).not.toHaveBeenCalled();
+    expect(progress.some((percentage) => percentage > 0 && percentage < 100)).toBe(true);
+    expect(progress.at(-1)).toBe(100);
+  });
+
   test('keeps the queued upload when starting the background scan fails', async () => {
     const file = new File(['conteúdo'], 'document.pdf', { type: 'application/pdf' });
     scanVirusTotalMock.mockResolvedValue({
@@ -133,6 +182,30 @@ describe('uploadLibraryItem', () => {
       'É necessário estar autenticado para enviar conteúdo.',
     );
     expect(uploadMock).not.toHaveBeenCalled();
+  });
+
+  test('requires the rights declaration before uploading any file', async () => {
+    const file = new File(['conteúdo'], 'document.pdf', { type: 'application/pdf' });
+
+    await expect(uploadLibraryItem(file, {
+      ...baseForm,
+      rightsDeclarationAccepted: false,
+    })).rejects.toThrow('Confirme a declaração de direitos autorais');
+
+    expect(uploadMock).not.toHaveBeenCalled();
+    expect(getCurrentUserMock).not.toHaveBeenCalled();
+  });
+
+  test('requires a valid publication year before uploading any file', async () => {
+    const file = new File(['conteúdo'], 'document.pdf', { type: 'application/pdf' });
+
+    await expect(uploadLibraryItem(file, {
+      ...baseForm,
+      year: '',
+    })).rejects.toThrow('Informe um ano válido');
+
+    expect(uploadMock).not.toHaveBeenCalled();
+    expect(getCurrentUserMock).not.toHaveBeenCalled();
   });
 
   test('removes the document when the database insert fails', async () => {

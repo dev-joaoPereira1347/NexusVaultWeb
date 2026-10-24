@@ -5,7 +5,7 @@
 
             <main class="library-page nv-page-shell">
                 <header class="page-header nv-page-heading">
-                    <p class="nv-eyebrow">ACERVO DIGITAL</p>
+                    <p class="nv-eyebrow nv-badge">ACERVO DIGITAL</p>
                     <h1 class="nv-page-title">
                         {{ selectedGenre ? `Gênero: ${selectedGenre}` : 'Pesquisar no acervo' }}
                     </h1>
@@ -17,7 +17,9 @@
                 <label class="search-field">
                     <span class="visually-hidden">Pesquisar no acervo</span>
                     <ion-icon :icon="searchOutline" aria-hidden="true" />
-                    <input v-model="searchQuery" type="search" placeholder="Pesquisar por título, autor ou categoria" />
+                    <input v-model="searchQuery" type="search"
+                        placeholder="Pesquisar por título, autor ou palavras-chave"
+                        autocomplete="off" />
                 </label>
 
                 <div v-if="loading" class="feedback" role="status">
@@ -48,12 +50,8 @@
                                 <span v-if="item.year"> · {{ item.year }}</span>
                                 <span v-if="getFileExtension(item.file_name)"> · {{ getFileExtension(item.file_name) }}</span>
                             </p>
-                            <ion-button :href="item.download_url" target="_blank" rel="noopener noreferrer">
-                                <ion-icon slot="start" :icon="downloadOutline" />
-                                Abrir documento
-                            </ion-button>
                             <router-link class="details-link" :to="{ name: 'DocumentDetails', params: { id: item.id } }">
-                                Ver detalhes
+                                Abrir documento e detalhes
                             </router-link>
                         </div>
                     </article>
@@ -68,8 +66,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { IonButton, IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue';
-import { documentTextOutline, downloadOutline, searchOutline } from 'ionicons/icons';
+import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/vue';
+import { documentTextOutline, searchOutline } from 'ionicons/icons';
 import SiteHeader from '@/components/SiteHeader.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import { listPublicLibraryItems } from '@/services/libraryService';
@@ -77,6 +75,7 @@ import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import type { PublicLibraryItem } from '@/types/library';
 import { getFileExtension } from '@/utils/getFileExtension';
 import { getLibraryItemTags, normalizeLibraryTerm } from '@/utils/libraryTaxonomy';
+import { matchesLibrarySearch } from '@/utils/librarySearch';
 
 const items = ref<PublicLibraryItem[]>([]);
 const route = useRoute();
@@ -100,13 +99,11 @@ watch(
 );
 
 const filteredItems = computed(() => {
-    const query = normalizeLibraryTerm(searchQuery.value);
     const genre = normalizeLibraryTerm(selectedGenre.value);
-    if (!query && !genre) return items.value;
+    if (!searchQuery.value.trim() && !genre) return items.value;
 
     return items.value.filter((item) => {
-        const matchesQuery = !query || [item.title, item.author, item.category, item.genre ?? '', item.content_type]
-            .some((value) => normalizeLibraryTerm(value).includes(query));
+        const matchesQuery = matchesLibrarySearch(item, searchQuery.value);
         const matchesGenre = !genre || getLibraryItemTags(item.genre, item.category)
             .some((tag) => normalizeLibraryTerm(tag) === genre);
         return matchesQuery && matchesGenre;

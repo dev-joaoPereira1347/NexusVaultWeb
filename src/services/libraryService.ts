@@ -1,6 +1,11 @@
 import { supabase } from '@/services/supabase';
 import { LIBRARY_COVERS_BUCKET, LIBRARY_DOCUMENTS_BUCKET } from '@/services/uploadService';
-import type { PublicLibraryItem, PublicLibraryItemDetails } from '@/types/library';
+import type {
+    LibraryRankingMetric,
+    PublicLibraryItem,
+    PublicLibraryItemDetails,
+    RankedPublicLibraryItem
+} from '@/types/library';
 import type { LibraryCatalogItem, LibraryContribution, LibraryUploadRequest } from '@/types/userArea';
 
 const getCoverUrl = (coverPath: string | null): string => {
@@ -62,17 +67,61 @@ export const listLibraryCatalog = async (): Promise<LibraryCatalogItem[]> => {
 };
 
 export const listPublicLibraryItems = async (): Promise<PublicLibraryItem[]> => {
+    const pageSize = 1000;
+    const items: PublicLibraryItem[] = [];
+    let offset = 0;
+    let totalCount: number | null = null;
+
+    do {
+        const { data, error, count } = await supabase
+            .from('library_items')
+            .select(
+                'id, title, author, category, genre, content_type, year, description, file_name, file_path, cover_path',
+                { count: 'exact' }
+            )
+            .order('title', { ascending: true })
+            .order('id', { ascending: true })
+            .range(offset, offset + pageSize - 1);
+
+        if (error) throw error;
+        if (count === null) {
+            throw new Error('O banco não retornou a contagem do acervo para concluir a busca.');
+        }
+        if (!data?.length && offset < count) {
+            throw new Error('O banco retornou uma página vazia antes do fim do acervo.');
+        }
+
+        totalCount = count;
+        items.push(...(data ?? []).map((item) => ({
+            id: item.id,
+            title: item.title,
+            author: item.author,
+            category: item.category,
+            genre: item.genre,
+            content_type: item.content_type,
+            year: item.year,
+            description: item.description,
+            file_name: item.file_name,
+            cover_url: getCoverUrl(item.cover_path),
+            download_url: supabase.storage.from(LIBRARY_DOCUMENTS_BUCKET).getPublicUrl(item.file_path).data.publicUrl
+        })));
+        offset += data?.length ?? 0;
+    } while (totalCount !== null && offset < totalCount);
+
+    return items;
+};
+
+export const listFeaturedPublicLibraryItems = async (): Promise<PublicLibraryItem[]> => {
     const { data, error } = await supabase
         .from('library_items')
         .select('id, title, author, category, genre, content_type, year, description, file_name, file_path, cover_path')
-        .order('title', { ascending: true })
-        .limit(200);
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
+        .limit(8);
 
     if (error) throw error;
 
-    const items = Array.isArray(data) ? data : data ? [data] : [];
-
-    return items.map((item) => ({
+    return (data ?? []).map((item) => ({
         id: item.id,
         title: item.title,
         author: item.author,
@@ -85,6 +134,51 @@ export const listPublicLibraryItems = async (): Promise<PublicLibraryItem[]> => 
         cover_url: getCoverUrl(item.cover_path),
         download_url: supabase.storage.from(LIBRARY_DOCUMENTS_BUCKET).getPublicUrl(item.file_path).data.publicUrl
     }));
+};
+
+export const listRankedPublicLibraryItems = async (
+    metric: LibraryRankingMetric,
+    category: string | null = null,
+    limit = 10
+): Promise<RankedPublicLibraryItem[]> => {
+    const { data, error } = await supabase.rpc('get_library_item_rankings', {
+        p_metric: metric,
+        p_category: category,
+        p_limit: limit
+    });
+
+    if (error) throw error;
+    if (!Array.isArray(data)) {
+        throw new Error('O banco retornou um ranking em formato inválido.');
+    }
+
+    return data.map((item) => ({
+        id: item.id,
+        title: item.title,
+        author: item.author,
+        category: item.category,
+        genre: item.genre,
+        content_type: item.content_type,
+        year: item.year,
+        description: item.description,
+        file_name: item.file_name,
+        cover_url: getCoverUrl(item.cover_path),
+        download_url: supabase.storage.from(LIBRARY_DOCUMENTS_BUCKET).getPublicUrl(item.file_path).data.publicUrl,
+        access_count: Number(item.access_count),
+        download_count: Number(item.download_count)
+    }));
+};
+
+export const recordLibraryItemMetric = async (
+    documentId: string,
+    metric: LibraryRankingMetric
+): Promise<void> => {
+    const { error } = await supabase.rpc('record_library_item_metric', {
+        p_document_id: documentId,
+        p_metric: metric
+    });
+
+    if (error) throw error;
 };
 
 export const getPublicLibraryItem = async (id: string): Promise<PublicLibraryItemDetails | null> => {

@@ -5,7 +5,7 @@
 
             <main class="genres-page nv-page-shell">
                 <header class="page-heading nv-page-heading">
-                    <p class="nv-eyebrow">EXPLORE O ACERVO</p>
+                    <p class="nv-eyebrow nv-badge">EXPLORE O ACERVO</p>
                     <h1 class="nv-page-title">Gêneros e temas</h1>
                     <p class="nv-page-description">
                         Descubra livros e documentos por assunto e encontre sua próxima leitura.

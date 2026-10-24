@@ -44,6 +44,7 @@ const form: UploadForm = {
   language: 'pt',
   description: 'Descrição atualizada',
   cover: null,
+  rightsDeclarationAccepted: false,
 };
 
 describe('document owner CRUD', () => {

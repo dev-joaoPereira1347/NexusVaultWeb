@@ -25,8 +25,9 @@
 
                         <div class="summary-info">
                             <div class="summary-topline">
-                                <p class="nv-eyebrow">{{ item.category }} · {{ item.content_type }}</p>
-                                <ion-button class="report-button" fill="clear" type="button" aria-label="Denunciar livro">
+                                <p class="nv-eyebrow nv-badge">{{ item.category }} · {{ item.content_type }}</p>
+                                <ion-button class="report-button" fill="clear" type="button" aria-label="Denunciar documento"
+                                    @click="openReportModal">
                                     <ion-icon slot="start" :icon="flagOutline" />
                                     Denunciar livro
                                 </ion-button>
@@ -86,6 +87,9 @@
                                 Fechar leitor
                             </ion-button>
                         </div>
+                        <p v-if="readingProgressError" class="reader-progress-error" role="status">
+                            {{ readingProgressError }}
+                        </p>
 
                         <div v-if="isPdf || isEpub" class="reader-toolbar" aria-label="Controles do leitor">
                             <ion-button class="reader-control" fill="outline" type="button"
@@ -130,11 +134,12 @@
                         <div v-else-if="isPdf" class="pdf-stage" aria-label="Página do documento">
                             <canvas ref="pdfCanvas" />
                         </div>
-                        <article v-else-if="isEpub" class="text-reader epub-reader" aria-label="Conteúdo do capítulo">
+                        <article v-else-if="isEpub" ref="textReader" class="text-reader epub-reader"
+                            aria-label="Conteúdo do capítulo" @scroll="onTextReaderScroll">
                             <h3 v-if="readerChapters[currentPage - 1]?.title">{{ readerChapters[currentPage - 1].title }}</h3>
                             <p>{{ readerText }}</p>
                         </article>
-                        <pre v-else class="text-reader">{{ readerText }}</pre>
+                        <pre v-else ref="textReader" class="text-reader" @scroll="onTextReaderScroll">{{ readerText }}</pre>
                     </section>
 
                     <section class="detail-section nv-surface" aria-labelledby="description-title">
@@ -211,13 +216,59 @@
 
             <SiteFooter />
         </IonContent>
+        <IonModal class="report-modal" :is-open="isReportModalOpen" @didDismiss="closeReportModal">
+            <form class="report-form" @submit.prevent="submitReport">
+                <header class="report-form-header">
+                    <div>
+                        <p class="nv-eyebrow nv-badge">AJUDE A MANTER O ACERVO SEGURO</p>
+                        <h2 class="section-title">Denunciar documento</h2>
+                    </div>
+                    <ion-button fill="clear" type="button" aria-label="Fechar denúncia" @click="closeReportModal">
+                        Fechar
+                    </ion-button>
+                </header>
+                <p v-if="item" class="report-document-title">{{ item.title }}</p>
+
+                <label class="report-field">
+                    <span>Motivo da denúncia</span>
+                    <select v-model="reportReason" required>
+                        <option disabled value="">Selecione um motivo</option>
+                        <option value="copyright">Violação de direitos autorais</option>
+                        <option value="inappropriate">Conteúdo impróprio ou ofensivo</option>
+                        <option value="spam">Spam ou conteúdo enganoso</option>
+                        <option value="malware">Arquivo suspeito ou malicioso</option>
+                        <option value="misinformation">Informação potencialmente prejudicial</option>
+                        <option value="other">Outro motivo</option>
+                    </select>
+                </label>
+
+                <label class="report-field">
+                    <span>Detalhes <span class="report-optional">(opcional)</span></span>
+                    <textarea
+                        v-model="reportDetails"
+                        maxlength="2000"
+                        rows="5"
+                        placeholder="Explique o problema para ajudar nossa equipe a analisar a denúncia."
+                    />
+                    <small>{{ reportDetails.length }}/2000</small>
+                </label>
+
+                <p class="report-privacy">
+                    Sua denúncia será enviada à equipe de moderação. Seus dados serão usados apenas para análise.
+                </p>
+                <ion-button class="report-submit" type="submit" expand="block" :disabled="isSubmittingReport || !reportReason">
+                    <ion-spinner v-if="isSubmittingReport" slot="start" name="crescent" />
+                    {{ isSubmittingReport ? 'Enviando denúncia...' : 'Enviar denúncia' }}
+                </ion-button>
+            </form>
+        </IonModal>
     </IonPage>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
-import { IonButton, IonContent, IonIcon, IonPage, IonSpinner, toastController } from '@ionic/vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { IonButton, IonContent, IonIcon, IonModal, IonPage, IonSpinner, toastController } from '@ionic/vue';
 import * as pdfjsLib from 'pdfjs-dist';
 import JSZip from 'jszip';
 import {
@@ -237,10 +288,21 @@ import {
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import SiteHeader from '@/components/SiteHeader.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
-import { getPublicProfile } from '@/services/authService';
-import { downloadLibraryDocument, getPublicLibraryItem, listRelatedPublicLibraryItems } from '@/services/libraryService';
+import { getCurrentSession, getPublicProfile } from '@/services/authService';
+import {
+    getMyReadingProgressPosition,
+    saveReadingProgressAutomatically
+} from '@/services/readingProgressService';
+import type { ReadingProgressPosition } from '@/services/readingProgressService';
+import {
+    downloadLibraryDocument,
+    getPublicLibraryItem,
+    listRelatedPublicLibraryItems,
+    recordLibraryItemMetric
+} from '@/services/libraryService';
 import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import { listPublicDocumentReviews } from '@/services/publicReviewService';
+import { submitDocumentReport, type DocumentReportReason } from '@/services/documentReportService';
 import type { PublicDocumentReview } from '@/services/publicReviewService';
 import type { PublicLibraryItem, PublicLibraryItemDetails } from '@/types/library';
 import { getFileExtension } from '@/utils/getFileExtension';
@@ -248,6 +310,7 @@ import { getFileExtension } from '@/utils/getFileExtension';
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const route = useRoute();
+const router = useRouter();
 const item = ref<PublicLibraryItemDetails | null>(null);
 const reviews = ref<PublicDocumentReview[]>([]);
 const relatedItems = ref<PublicLibraryItem[]>([]);
@@ -257,10 +320,16 @@ const uploaderName = ref('');
 const loading = ref(true);
 const errorMessage = ref('');
 const isDownloading = ref(false);
+const isReportModalOpen = ref(false);
+const isSubmittingReport = ref(false);
+const reportReason = ref<DocumentReportReason | ''>('');
+const reportDetails = ref('');
 const isReaderOpen = ref(false);
 const readerLoading = ref(false);
 const readerError = ref('');
 const readerText = ref('');
+const textReader = ref<HTMLElement | null>(null);
+const readingProgressError = ref('');
 const readerChapters = ref<{ title: string; text: string }[]>([]);
 const currentPage = ref(1);
 const pageCount = ref(0);
@@ -271,6 +340,8 @@ const pdfLoadingTask = shallowRef<pdfjsLib.PDFDocumentLoadingTask | null>(null);
 const activeRenderTask = shallowRef<pdfjsLib.RenderTask | null>(null);
 let readerRequestId = 0;
 let pageRenderId = 0;
+let readingProgressQueue = Promise.resolve();
+let textProgressTimer: number | undefined;
 const averageRating = computed(() => reviews.value.reduce((total, review) => total + review.rating, 0) / reviews.value.length);
 const fileExtension = computed(() => getFileExtension(item.value?.file_name ?? '').toLowerCase());
 const isPdf = computed(() => fileExtension.value === 'pdf');
@@ -409,6 +480,7 @@ const renderPdfPage = async () => {
         activeRenderTask.value = task;
         await task.promise;
         if (activeRenderTask.value === task) activeRenderTask.value = null;
+        if (renderId === pageRenderId) saveCurrentPageProgress();
     } catch (error) {
         if (error instanceof Error && error.name === 'RenderingCancelledException') return;
         if (renderId === pageRenderId) {
@@ -424,6 +496,7 @@ const openReader = async () => {
     isReaderOpen.value = true;
     readerLoading.value = true;
     readerError.value = '';
+    readingProgressError.value = '';
     readerText.value = '';
     readerChapters.value = [];
     currentPage.value = 1;
@@ -431,8 +504,17 @@ const openReader = async () => {
     zoom.value = 1;
     clearReaderDocument();
     const requestId = ++readerRequestId;
+    let savedPosition: ReadingProgressPosition | null = null;
 
     try {
+        try {
+            savedPosition = await getMyReadingProgressPosition(item.value.id);
+        } catch (error) {
+            console.error('Não foi possível carregar o progresso de leitura.', error);
+            readingProgressError.value = 'Não foi possível recuperar seu progresso salvo.';
+        }
+        if (requestId !== readerRequestId) return;
+
         const file = await downloadLibraryDocument(item.value.file_path);
         if (requestId !== readerRequestId) return;
 
@@ -440,7 +522,10 @@ const openReader = async () => {
             readerChapters.value = await loadEpubChapters(file);
             if (requestId !== readerRequestId) return;
             pageCount.value = readerChapters.value.length;
-            readerText.value = readerChapters.value[0].text;
+            currentPage.value = savedPosition
+                ? Math.min(pageCount.value, Math.max(1, savedPosition.page))
+                : 1;
+            readerText.value = readerChapters.value[currentPage.value - 1]?.text ?? '';
         } else if (isPdf.value) {
             const loadingTask = pdfjsLib.getDocument({ data: await file.arrayBuffer() });
             pdfLoadingTask.value = loadingTask;
@@ -451,8 +536,9 @@ const openReader = async () => {
             }
             pdfDocument.value = document;
             pageCount.value = document.numPages;
-            await nextTick();
-            await renderPdfPage();
+            currentPage.value = savedPosition
+                ? Math.min(pageCount.value, Math.max(1, savedPosition.page))
+                : 1;
         } else if (fileExtension.value === 'txt' || fileExtension.value === 'md') {
             readerText.value = await file.text();
         } else {
@@ -464,11 +550,33 @@ const openReader = async () => {
             ? `Não foi possível carregar o documento: ${error.message}`
             : 'Não foi possível carregar o documento.';
     } finally {
-        if (requestId === readerRequestId) readerLoading.value = false;
+        if (requestId === readerRequestId) {
+            readerLoading.value = false;
+            await nextTick();
+            if (requestId === readerRequestId && !readerError.value) {
+                if (isPdf.value) {
+                    await renderPdfPage();
+                } else if (isEpub.value) {
+                    const chapterPercent = savedPosition
+                        ? Math.min(100, Math.max(0, (savedPosition.percent / 100 * pageCount.value - (currentPage.value - 1)) * 100))
+                        : 0;
+                    restoreTextPosition(chapterPercent);
+                    saveCurrentPageProgress();
+                } else if (fileExtension.value === 'txt' || fileExtension.value === 'md') {
+                    restoreTextPosition(savedPosition?.percent ?? 0);
+                    saveTextProgress();
+                }
+            }
+        }
     }
 };
 
 const closeReader = () => {
+    if (textProgressTimer !== undefined) {
+        window.clearTimeout(textProgressTimer);
+        textProgressTimer = undefined;
+        saveTextProgress();
+    }
     isReaderOpen.value = false;
     readerRequestId += 1;
     readerLoading.value = false;
@@ -479,7 +587,67 @@ const closeReader = () => {
 const changePage = (amount: number) => {
     currentPage.value = Math.min(pageCount.value, Math.max(1, currentPage.value + amount));
     if (isPdf.value) void renderPdfPage();
-    if (isEpub.value) readerText.value = readerChapters.value[currentPage.value - 1]?.text ?? '';
+    if (isEpub.value) {
+        readerText.value = readerChapters.value[currentPage.value - 1]?.text ?? '';
+        void nextTick(() => {
+            if (textReader.value) textReader.value.scrollTop = 0;
+            saveCurrentPageProgress();
+        });
+    }
+};
+
+const queueReadingProgress = (page: number, percent: number) => {
+    const documentId = item.value?.id;
+    if (!documentId) return;
+    readingProgressError.value = '';
+    readingProgressQueue = readingProgressQueue
+        .then(() => saveReadingProgressAutomatically(documentId, page, percent))
+        .then(() => undefined)
+        .catch((error: unknown) => {
+            console.error('Não foi possível salvar o progresso de leitura.', error);
+            if (item.value?.id === documentId) {
+                readingProgressError.value = 'Não foi possível salvar seu progresso de leitura.';
+            }
+        });
+};
+
+const saveCurrentPageProgress = () => {
+    if (!pageCount.value || (!isPdf.value && !isEpub.value)) return;
+    const percent = Math.round((currentPage.value / pageCount.value) * 10000) / 100;
+    queueReadingProgress(currentPage.value, percent);
+};
+
+const getTextProgressPercent = () => {
+    const element = textReader.value;
+    if (!element) return 0;
+    const maxScroll = element.scrollHeight - element.clientHeight;
+    if (maxScroll <= 0) return 100;
+    return Math.round((element.scrollTop / maxScroll) * 10000) / 100;
+};
+
+const saveTextProgress = () => {
+    if (isEpub.value && pageCount.value > 0) {
+        const percent = ((currentPage.value - 1 + getTextProgressPercent() / 100) / pageCount.value) * 100;
+        queueReadingProgress(currentPage.value, percent);
+        return;
+    }
+    queueReadingProgress(0, getTextProgressPercent());
+};
+
+const restoreTextPosition = (percent: number) => {
+    if (!textReader.value) return;
+    const maxScroll = textReader.value.scrollHeight - textReader.value.clientHeight;
+    textReader.value.scrollTop = maxScroll > 0
+        ? maxScroll * Math.min(100, Math.max(0, percent)) / 100
+        : 0;
+};
+
+const onTextReaderScroll = () => {
+    if (textProgressTimer !== undefined) window.clearTimeout(textProgressTimer);
+    textProgressTimer = window.setTimeout(() => {
+        textProgressTimer = undefined;
+        saveTextProgress();
+    }, 500);
 };
 
 const changeZoom = (amount: number) => {
@@ -511,17 +679,21 @@ const formatDate = (date: string): string =>
 const downloadDocument = async () => {
     if (!item.value || isDownloading.value) return;
 
+    const itemToDownload = item.value;
     isDownloading.value = true;
     try {
-        const file = await downloadLibraryDocument(item.value.file_path);
+        const file = await downloadLibraryDocument(itemToDownload.file_path);
         const fileUrl = URL.createObjectURL(file);
         const downloadLink = document.createElement('a');
         downloadLink.href = fileUrl;
-        downloadLink.download = item.value.file_name;
+        downloadLink.download = itemToDownload.file_name;
         document.body.append(downloadLink);
         downloadLink.click();
         downloadLink.remove();
         window.setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+        void recordLibraryItemMetric(itemToDownload.id, 'downloads').catch((metricError: unknown) => {
+            console.error('Não foi possível registrar o download do documento.', metricError);
+        });
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro desconhecido.';
         const toast = await toastController.create({
@@ -533,6 +705,57 @@ const downloadDocument = async () => {
         await toast.present();
     } finally {
         isDownloading.value = false;
+    }
+};
+
+const openReportModal = async () => {
+    const { data: { session }, error } = await getCurrentSession();
+    if (error) {
+        await showToast(`Não foi possível verificar sua sessão: ${error.message}`, 'danger');
+        return;
+    }
+    if (!session?.user) {
+        await router.push({ name: 'Auth', query: { redirect: route.fullPath } });
+        return;
+    }
+
+    reportReason.value = '';
+    reportDetails.value = '';
+    isReportModalOpen.value = true;
+};
+
+const closeReportModal = () => {
+    if (isSubmittingReport.value) return;
+    isReportModalOpen.value = false;
+};
+
+const showToast = async (message: string, color: 'success' | 'danger' | 'warning') => {
+    const toast = await toastController.create({
+        message,
+        duration: 3500,
+        color,
+        position: 'bottom'
+    });
+    await toast.present();
+};
+
+const submitReport = async () => {
+    if (!item.value || !reportReason.value || isSubmittingReport.value) return;
+
+    isSubmittingReport.value = true;
+    try {
+        await submitDocumentReport({
+            documentId: item.value.id,
+            reason: reportReason.value,
+            details: reportDetails.value
+        });
+        isReportModalOpen.value = false;
+        await showToast('Denúncia enviada. Obrigado por ajudar a comunidade.', 'success');
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível enviar a denúncia.';
+        await showToast(message, 'danger');
+    } finally {
+        isSubmittingReport.value = false;
     }
 };
 
@@ -558,6 +781,9 @@ watch(
             item.value = await getPublicLibraryItem(id);
             if (!item.value) errorMessage.value = 'O documento solicitado não foi encontrado.';
             if (item.value) {
+                void recordLibraryItemMetric(id, 'accesses').catch((metricError: unknown) => {
+                    console.error('Não foi possível registrar o acesso ao documento.', metricError);
+                });
                 const [reviewResult, relatedResult, uploaderResult] = await Promise.allSettled([
                     listPublicDocumentReviews(id),
                     listRelatedPublicLibraryItems(item.value),
@@ -867,6 +1093,12 @@ useLibraryItemsSync(refreshDocument);
     font-size: var(--font-size-caption);
 }
 
+.reader-progress-error {
+    margin: var(--space-sm) 0 0;
+    color: var(--color-danger);
+    font-size: var(--font-size-caption);
+}
+
 .reader-close {
     --color: var(--color-text-secondary);
     margin: -8px 0 0;
@@ -1152,6 +1384,138 @@ useLibraryItemsSync(refreshDocument);
     color: var(--color-danger);
 }
 
+:global(ion-modal.report-modal) {
+    --width: min(calc(100% - 32px), 560px);
+    --height: auto;
+    --max-height: min(90vh, 720px);
+    --background: var(--color-surface);
+    --ion-background-color: var(--color-surface);
+    --ion-text-color: var(--color-text-primary);
+    --color: var(--color-text-primary);
+    --border-radius: var(--radius-xl);
+    --box-shadow: var(--shadow-soft);
+}
+
+.report-form {
+    display: grid;
+    gap: var(--space-md);
+    padding: clamp(var(--space-md), 5vw, var(--space-xl));
+    overflow-y: auto;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    color-scheme: light;
+}
+
+.report-form-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.report-form-header ion-button {
+    --color: var(--color-brand-primary);
+    flex: 0 0 auto;
+    margin: -4px -8px 0 0;
+    font-weight: 700;
+    text-transform: none;
+}
+
+.report-form-header .nv-eyebrow {
+    margin: 0 0 var(--space-xs);
+}
+
+.report-form-header .section-title {
+    font-size: 1.35rem;
+}
+
+.report-document-title {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+}
+
+.report-field {
+    display: grid;
+    gap: var(--space-xs);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-caption);
+    font-weight: 700;
+}
+
+.report-field select,
+.report-field textarea {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control, var(--radius-sm));
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font: inherit;
+    font-weight: 400;
+    color-scheme: light;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.report-field select:focus-visible,
+.report-field textarea:focus-visible {
+    border-color: var(--color-brand-primary);
+    outline: 0;
+    box-shadow: 0 0 0 3px rgb(83 83 143 / 16%);
+}
+
+.report-field select {
+    min-height: var(--control-height);
+    padding: 0 var(--space-sm);
+}
+
+.report-field textarea {
+    min-height: 120px;
+    padding: var(--space-sm);
+    resize: vertical;
+}
+
+.report-field small {
+    color: var(--color-text-muted);
+    font-weight: 400;
+    text-align: right;
+}
+
+.report-optional {
+    color: var(--color-text-muted);
+    font-weight: 400;
+}
+
+.report-privacy {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-caption);
+    line-height: 1.5;
+}
+
+.report-submit {
+    --background: var(--color-brand-primary);
+    --background-hover: #444477;
+    --background-activated: #393966;
+    --color: var(--color-white);
+    --border-radius: var(--radius-control);
+    --box-shadow: none;
+    margin: 0;
+    font-weight: 700;
+    text-transform: none;
+}
+
+.report-submit::part(native) {
+    min-height: var(--control-height);
+}
+
+.report-submit[disabled] {
+    --background: #77779f;
+    --color: var(--color-white);
+    opacity: 1;
+}
+
 @media (max-width: 700px) {
     .document-summary {
         grid-template-columns: 104px minmax(0, 1fr);
@@ -1199,6 +1563,11 @@ useLibraryItemsSync(refreshDocument);
     .report-button {
         --padding-start: 0;
         --padding-end: 0;
+    }
+
+    :global(ion-modal.report-modal) {
+        --width: min(calc(100% - 20px), 560px);
+        --max-height: 92vh;
     }
 
     .reader-section {

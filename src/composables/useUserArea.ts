@@ -15,10 +15,8 @@ import {
 import { listLibraryCatalog, listMyContributions, listMyUploadRequests } from '@/services/libraryService';
 import { checkLibraryUploadRequest, deleteMyLibraryItem, updateMyLibraryItem } from '@/services/uploadService';
 import {
-    createReadingProgress,
     deleteReadingProgress,
-    listMyReadingProgress,
-    updateReadingProgress
+    listMyReadingProgress
 } from '@/services/readingProgressService';
 import { createReview, deleteReview, listMyReviews, updateReview } from '@/services/reviewService';
 import type {
@@ -26,7 +24,6 @@ import type {
     LibraryCatalogItem,
     LibraryContribution,
     LibraryUploadRequest,
-    ProgressDraft,
     ReadingProgress,
     ReviewDraft,
     UserProfileForm
@@ -40,13 +37,6 @@ const emptyProfile = (): UserProfileForm => ({
     avatarUrl: ''
 });
 
-const emptyProgressDraft = (): ProgressDraft => ({
-    documentId: '',
-    page: 1,
-    percent: 0,
-    status: 'lendo'
-});
-
 const emptyReviewDraft = (): ReviewDraft => ({
     documentId: '',
     rating: 5,
@@ -57,12 +47,13 @@ const emptyUploadForm = (): UploadForm => ({
     title: '',
     author: '',
     category: '',
-    year: String(new Date().getFullYear()),
+    year: '',
     type: '',
     genre: '',
     language: '',
     description: '',
-    cover: null
+    cover: null,
+    rightsDeclarationAccepted: false
 });
 
 export const useUserArea = () => {
@@ -90,7 +81,6 @@ export const useUserArea = () => {
     const catalog = ref<LibraryCatalogItem[]>([]);
     const progressList = ref<ReadingProgress[]>([]);
     const reviews = ref<DocumentReview[]>([]);
-    const progressDraft = reactive<ProgressDraft>(emptyProgressDraft());
     const reviewDraft = reactive<ReviewDraft>(emptyReviewDraft());
 
     const showToast = async (message: string, color: 'success' | 'warning' | 'danger' = 'success') => {
@@ -114,6 +104,9 @@ export const useUserArea = () => {
         }
         if (normalized.includes('reading_progress') || normalized.includes('document_reviews')) {
             return 'Execute supabase/user-area-setup.sql no SQL Editor do Supabase para ativar esta seção.';
+        }
+        if (normalized.includes('library_upload_requests')) {
+            return 'A tabela de status dos envios não existe no Supabase. Execute supabase/migrations/20261014174000_async_virus_total_uploads.sql no SQL Editor.';
         }
         if (normalized.includes('profiles_username_key')) {
             return 'Este nome de usuário já está em uso. Escolha outro.';
@@ -279,28 +272,6 @@ export const useUserArea = () => {
         await showToast('Senha alterada com sucesso!');
     }, 'Erro ao alterar a senha.');
 
-    const handleCreateProgress = () => run(savingProgress, async () => {
-        if (!progressDraft.documentId) throw new Error('Selecione um documento.');
-        await createReadingProgress({
-            documentId: progressDraft.documentId,
-            page: Number(progressDraft.page) || 0,
-            percent: Math.min(100, Math.max(0, Number(progressDraft.percent) || 0)),
-            status: progressDraft.status
-        });
-        progressList.value = await listMyReadingProgress();
-        Object.assign(progressDraft, emptyProgressDraft());
-        await showToast('Progresso de leitura salvo.');
-    }, 'Erro ao salvar o progresso.');
-
-    const handleUpdateProgress = (item: ReadingProgress) => run(savingProgress, async () => {
-        await updateReadingProgress(item.id, {
-            page: Number(item.page) || 0,
-            percent: Math.min(100, Math.max(0, Number(item.percent) || 0)),
-            status: item.status
-        });
-        await showToast('Progresso atualizado.');
-    }, 'Erro ao atualizar o progresso.');
-
     const handleDeleteProgress = async (id: string) => {
         const alert = await alertController.create({
             header: 'Excluir progresso',
@@ -369,7 +340,8 @@ export const useUserArea = () => {
             genre: item.genre ?? '',
             language: item.language ?? '',
             description: item.description ?? '',
-            cover: null
+            cover: null,
+            rightsDeclarationAccepted: false
         });
         replacementFile.value = null;
         removeExistingCover.value = false;
@@ -453,7 +425,7 @@ export const useUserArea = () => {
         );
         const failures: string[] = [];
 
-        const requestToCheck = pendingRequests[pendingRequests.length - 1];
+        const requestToCheck = pendingRequests[0];
         if (requestToCheck) {
             try {
                 await checkLibraryUploadRequest(requestToCheck.id);
@@ -578,13 +550,10 @@ export const useUserArea = () => {
         catalog,
         progressList,
         reviews,
-        progressDraft,
         reviewDraft,
         setAvatar,
         handleSaveProfile,
         handleChangePassword,
-        handleCreateProgress,
-        handleUpdateProgress,
         handleDeleteProgress,
         handleCreateReview,
         handleUpdateReview,

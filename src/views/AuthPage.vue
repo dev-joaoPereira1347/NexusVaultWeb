@@ -1,5 +1,50 @@
 <template>
     <IonPage>
+        <IonModal :is-open="isTermsModalOpen" @didDismiss="closeTermsModal" class="terms-modal">
+            <IonHeader>
+                <IonToolbar>
+                    <IonTitle>Termos de Uso</IonTitle>
+                    <IonButtons slot="end">
+                        <IonButton @click="closeTermsModal">Fechar</IonButton>
+                    </IonButtons>
+                </IonToolbar>
+            </IonHeader>
+
+            <IonContent class="terms-modal-content">
+                <div class="terms-modal-body">
+                    <p>
+                        Ao acessar ou utilizar a NexusVault, você concorda com estes Termos de Uso. A plataforma é
+                        destinada à organização, preservação e descoberta colaborativa de documentos e materiais de
+                        conhecimento.
+                    </p>
+                    <p>
+                        Para utilizar recursos que exigem cadastro, forneça informações corretas e mantenha seus dados
+                        atualizados. Você é responsável por proteger suas credenciais e pelas atividades realizadas em
+                        sua conta.
+                    </p>
+                    <p>
+                        Não use a plataforma para fraude, assédio, discriminação, violação de direitos autorais,
+                        distribuição de malware ou qualquer atividade ilícita. Você deve respeitar estas regras e as
+                        Diretrizes da Comunidade.
+                    </p>
+                    <p>
+                        O conteúdo enviado por você deve ser de sua autoria ou possuir autorização para uso. A
+                        NexusVault pode moderar, remover ou bloquear materiais que violem estes termos ou direitos de
+                        terceiros.
+                    </p>
+                    <p>
+                        A plataforma pode tratar dados pessoais necessários para operar contas, serviços e segurança do
+                        ambiente. Use a plataforma com responsabilidade e mantenha a confidencialidade de suas
+                        credenciais.
+                    </p>
+                    <p>
+                        Estes termos podem ser atualizados, e o uso contínuo da plataforma após alterações indica sua
+                        aceitação das novas condições.
+                    </p>
+                </div>
+            </IonContent>
+        </IonModal>
+
         <IonContent class="auth-content" :scroll-y="true">
             <div class="auth-wrapper">
                 <div class="auth-shell">
@@ -8,7 +53,7 @@
                             class="visual-image" />
                         <div class="visual-content">
                             <div class="visual-copy">
-                                <span class="eyebrow">MUSEU DIGITAL ABERTO</span>
+                                <span class="nv-badge nv-badge--inverse">MUSEU DIGITAL ABERTO</span>
                                 <h1>Conhecimento merece um lugar para permanecer.</h1>
                                 <p>Organize, preserve e encontre as histórias que conectam uma comunidade inteira.</p>
                             </div>
@@ -19,6 +64,10 @@
 
                     <section class="auth-panel">
                         <div class="brand-header">
+                            <ion-button class="back-button" fill="clear" type="button" aria-label="Voltar à página anterior"
+                                @click="goBack">
+                                <ion-icon slot="icon-only" :icon="arrowBackOutline" />
+                            </ion-button>
                             <div class="logo-container">
                                 <router-link to="/home" class="logo-link" aria-label="Ir para a página inicial">
                                     <img src="@/assets/images/NexusVault.svg" alt="NexusVault" class="brand-logo" />
@@ -79,7 +128,15 @@
                                     placeholder="Crie sua senha" class="custom-input" required />
                             </div>
 
-                            <ion-button type="submit" expand="block" class="primary-button" :disabled="loading">
+                            <div class="terms-consent">
+                                <input id="register-terms" v-model="termsAccepted" type="checkbox" required />
+                                <label for="register-terms">Li e aceito os</label>
+                                <button type="button" class="text-link terms-link" @click="openTermsModal">Termos de Uso</button>
+                                <span>da NexusVault.</span>
+                            </div>
+
+                            <ion-button type="submit" expand="block" class="primary-button"
+                                :disabled="loading || !termsAccepted">
                                 <span v-if="!loading">Criar conta</span>
                                 <ion-spinner v-else name="crescent" />
                             </ion-button>
@@ -126,9 +183,45 @@
 </template>
 
 <script setup lang="ts">
-import { IonButton, IonContent, IonInput, IonPage, IonSpinner } from '@ionic/vue';
+import { ref } from 'vue';
+import {
+    IonButton,
+    IonButtons,
+    IonContent,
+    IonHeader,
+    IonIcon,
+    IonInput,
+    IonModal,
+    IonPage,
+    IonSpinner,
+    IonTitle,
+    IonToolbar
+} from '@ionic/vue';
+import { useRouter } from 'vue-router';
+import { arrowBackOutline } from 'ionicons/icons';
 import AuthAvatarPicker from '@/components/AuthAvatarPicker.vue';
 import { useAuth } from '@/composables/useAuth';
+
+const router = useRouter();
+const termsAccepted = ref(false);
+const isTermsModalOpen = ref(false);
+
+const goBack = () => {
+    if (window.history.length > 1) {
+        router.back();
+        return;
+    }
+
+    void router.replace('/home');
+};
+
+const openTermsModal = () => {
+    isTermsModalOpen.value = true;
+};
+
+const closeTermsModal = () => {
+    isTermsModalOpen.value = false;
+};
 
 const {
     mode, loading, loginForm, registerForm, forgotEmail, resetPasswordForm,
@@ -212,13 +305,6 @@ const {
     max-width: 380px;
 }
 
-.eyebrow {
-    color: #A7B7FF;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 1.6px;
-}
-
 .visual-copy h1 {
     margin: 18px 0 16px;
     color: #FFFFFF;
@@ -259,7 +345,16 @@ const {
 }
 
 .brand-header {
+    position: relative;
     margin-bottom: 38px;
+}
+
+.back-button {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    --color: var(--color-text-secondary, #4A4E69);
+    transform: translateY(-50%);
 }
 
 .logo-container {
@@ -335,6 +430,35 @@ const {
     text-decoration: underline;
 }
 
+.terms-link {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font: inherit;
+}
+
+.terms-consent {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    color: var(--color-text-secondary, #4A4E69);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.terms-consent input {
+    width: 16px;
+    height: 16px;
+    margin: 0 5px 0 0;
+    accent-color: var(--color-brand-primary, #3B52F6);
+    cursor: pointer;
+}
+
+.terms-consent label {
+    cursor: pointer;
+}
+
 .switch-mode-text {
     text-align: center;
     color: var(--color-text-secondary, #4A4E69);
@@ -377,6 +501,26 @@ const {
     height: 48px;
     margin-top: -4px;
     text-transform: none;
+}
+
+.terms-modal {
+    --height: min(80vh, 760px);
+    --width: min(760px, 92vw);
+}
+
+.terms-modal-content {
+    --background: var(--color-surface);
+}
+
+.terms-modal-body {
+    padding: 20px 20px 32px;
+    color: var(--color-text-primary, #22223B);
+    line-height: 1.7;
+}
+
+.terms-modal-body p {
+    margin: 0 0 12px;
+    color: var(--color-text-secondary, #4A4E69);
 }
 
 @media (max-width: 780px) {

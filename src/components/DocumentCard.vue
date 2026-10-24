@@ -23,7 +23,7 @@
 
                 <!-- Chips / Tags de Categoria -->
                 <div v-if="tags && tags.length > 0" class="tags-row">
-                    <ion-chip v-for="(tag, index) in tags" :key="index" class="tag-chip">
+                    <ion-chip v-for="(tag, index) in tags" :key="index" class="tag-chip nv-badge nv-badge--compact">
                         <ion-label>{{ tag }}</ion-label>
                     </ion-chip>
                 </div>
@@ -190,15 +190,9 @@ defineEmits<{
 }
 
 .tag-chip {
-    --background: #D9D9D9;
-    --color: #111111;
-    border: 1px solid #555555;
-    border-radius: 16px;
-    height: 26px;
-    font-size: 0.82rem;
-    font-weight: 500;
+    --background: var(--color-surface);
+    --color: var(--color-text-secondary);
     margin: 0;
-    padding: 0 10px;
 }
 
 /* Botões e Ações */

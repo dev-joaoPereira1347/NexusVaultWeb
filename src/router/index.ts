@@ -10,6 +10,8 @@ import UserAreaPage from '@/views/UserAreaPage.vue';
 import DocumentDetailsPage from '@/views/DocumentDetailsPage.vue';
 import PublicProfilePage from '@/views/PublicProfilePage.vue';
 import GenresPage from '@/views/GenresPage.vue';
+import AdminReportsPage from '@/views/AdminReportsPage.vue';
+import TermsOfUsePage from '@/views/TermsOfUsePage.vue';
 import { supabase } from '@/services/supabase';
 
 const routes: Array<RouteRecordRaw> = [
@@ -76,7 +78,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/terms',
     name: 'Terms',
-    component: AboutUsPage
+    component: TermsOfUsePage
   },
   {
     path: '/privacy',
@@ -95,6 +97,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/admin/denuncias',
+    name: 'AdminReports',
+    component: AdminReportsPage,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
     path: "/reset-password",
     name: "ResetPassword",
     component: AuthPage
@@ -111,15 +119,18 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  if (!to.meta.requiresAuth) return true;
+  if (!to.meta.requiresAuth && !to.meta.requiresAdmin) return true;
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.user) return true;
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    return {
+      name: 'Auth',
+      query: { redirect: to.fullPath }
+    };
+  }
 
-  return {
-    name: 'Auth',
-    query: { redirect: to.fullPath }
-  };
+  if (to.meta.requiresAdmin && user.app_metadata.role !== 'admin') return { name: 'Home' };
+  return true;
 });
 
 export default router

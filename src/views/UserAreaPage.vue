@@ -7,7 +7,7 @@
                 <!-- Hero / SiteHeader da Área do Usuário -->
                 <section class="identity-card">
                     <div class="identity-info">
-                        <span class="eyebrow">ÁREA DO USUÁRIO</span>
+                        <span class="nv-badge">ÁREA DO USUÁRIO</span>
                         <h1>{{ profileForm.fullName || profileForm.username || 'Minha Conta' }}</h1>
                         <p>Gerencie seu perfil, acompanhe o progresso de leitura, suas avaliações e contribuições para o
                             acervo.</p>
@@ -206,9 +206,9 @@
                                         <h3>{{ item.title }}</h3>
                                         <p class="meta">{{ item.author }}</p>
                                         <div class="badge-group">
-                                            <span class="badge">{{ item.category }}</span>
-                                            <span class="badge badge-alt">{{ item.content_type }}</span>
-                                            <span v-if="getFileExtension(item.file_name)" class="badge">{{
+                                            <span class="nv-badge nv-badge--compact">{{ item.category }}</span>
+                                            <span class="nv-badge nv-badge--compact">{{ item.content_type }}</span>
+                                            <span v-if="getFileExtension(item.file_name)" class="nv-badge nv-badge--compact">{{
                                                 getFileExtension(item.file_name) }}</span>
                                         </div>
                                         <div class="media-actions">
@@ -240,54 +240,12 @@
                         <section class="panel" aria-labelledby="progress-title">
                             <div class="panel-header-simple">
                                 <h2 id="progress-title">Progresso de leitura</h2>
-                                <p class="panel-subtitle">Acompanhe a sua evolução e atualize a página atual de cada
-                                    obra.</p>
+                                <p class="panel-subtitle">O progresso é atualizado automaticamente enquanto você lê no
+                                    navegador. Você pode remover um registro quando quiser.</p>
                             </div>
 
-                            <form class="grid-form" @submit.prevent="handleCreateProgress">
-                                <div class="form-group span-2">
-                                    <label>Documento / Obra</label>
-                                    <select v-model="progressDraft.documentId" class="native-select" required>
-                                        <option value="" disabled selected>Selecione um documento do acervo...</option>
-                                        <option v-for="item in catalog" :key="item.id" :value="item.id">
-                                            {{ item.title }} — {{ item.author }}
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Página atual</label>
-                                    <ion-input v-model.number="progressDraft.page" type="number" inputmode="numeric"
-                                        min="0" class="field" placeholder="0" required />
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Percentual (%)</label>
-                                    <ion-input v-model.number="progressDraft.percent" type="number" inputmode="numeric"
-                                        min="0" max="100" class="field" placeholder="0" required />
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Status</label>
-                                    <select v-model="progressDraft.status" class="native-select">
-                                        <option value="lendo">Lendo</option>
-                                        <option value="lido">Lido</option>
-                                        <option value="pausado">Pausado</option>
-                                    </select>
-                                </div>
-
-                                <ion-button type="submit" class="primary-button btn-align-end"
-                                    :disabled="savingProgress || catalog.length === 0">
-                                    <ion-icon slot="start" :icon="addOutline" />
-                                    Adicionar
-                                </ion-button>
-                            </form>
-
-                            <div v-if="catalog.length === 0" class="empty-state">
-                                <p>Não há documentos disponíveis no acervo para registrar progresso.</p>
-                            </div>
-                            <div v-else-if="progressList.length === 0" class="empty-state">
-                                <p>Nenhum progresso de leitura registrado até o momento.</p>
+                            <div v-if="progressList.length === 0" class="empty-state">
+                                <p>Seu progresso será registrado automaticamente quando você ler um documento no navegador.</p>
                             </div>
 
                             <div v-else class="interactive-list">
@@ -298,33 +256,14 @@
                                     </div>
 
                                     <div class="item-controls">
-                                        <div class="input-inline">
-                                            <label>Pág.</label>
-                                            <ion-input v-model.number="item.page" type="number" inputmode="numeric"
-                                                min="0" class="field compact" aria-label="Página atual" />
-                                        </div>
-
-                                        <div class="input-inline">
-                                            <label>%</label>
-                                            <ion-input v-model.number="item.percent" type="number" inputmode="numeric"
-                                                min="0" max="100" class="field compact"
-                                                aria-label="Percentual concluído" />
-                                        </div>
-
-                                        <div class="input-inline">
-                                            <select v-model="item.status" class="native-select compact"
-                                                aria-label="Status de leitura">
-                                                <option value="lendo">Lendo</option>
-                                                <option value="lido">Lido</option>
-                                                <option value="pausado">Pausado</option>
-                                            </select>
-                                        </div>
+                                        <p class="progress-summary">
+                                            <span v-if="item.page > 0">Página {{ item.page }} · </span>
+                                            <span v-else>Progresso por rolagem · </span>
+                                            {{ item.percent }}% ·
+                                            {{ item.status === 'lido' ? 'Concluído' : item.status === 'pausado' ? 'Pausado' : 'Em andamento' }}
+                                        </p>
 
                                         <div class="button-group">
-                                            <ion-button size="small" class="primary-button compact-btn"
-                                                :disabled="savingProgress" @click="handleUpdateProgress(item)">
-                                                Salvar
-                                            </ion-button>
                                             <ion-button size="small" fill="clear" color="danger"
                                                 :disabled="savingProgress" @click="handleDeleteProgress(item.id)">
                                                 <ion-icon :icon="trashOutline" slot="icon-only" />
@@ -498,6 +437,7 @@ import UploadDropzone from '@/components/UploadDropzone.vue';
 import UploadMetadataForm from '@/components/UploadMetadataForm.vue';
 import { useUserArea } from '@/composables/useUserArea';
 import { getFileExtension } from '@/utils/getFileExtension';
+import { parsePublicationYear } from '@/utils/publicationYear';
 import type { UploadScanStatus } from '@/types/userArea';
 
 const route = useRoute();
@@ -523,13 +463,10 @@ const {
     catalog,
     progressList,
     reviews,
-    progressDraft,
     reviewDraft,
     setAvatar,
     handleSaveProfile,
     handleChangePassword,
-    handleCreateProgress,
-    handleUpdateProgress,
     handleDeleteProgress,
     handleCreateReview,
     handleUpdateReview,
@@ -545,7 +482,8 @@ const {
 
 const isContributionFormValid = computed(() =>
     Boolean(contributionDraft.title.trim() && contributionDraft.author.trim()
-        && contributionDraft.category && contributionDraft.type)
+        && contributionDraft.category && contributionDraft.type
+        && parsePublicationYear(contributionDraft.year) !== null)
 );
 
 const getUploadStatusLabel = (status: UploadScanStatus) => {
@@ -594,20 +532,6 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     flex-direction: column;
     gap: 8px;
     min-width: 0;
-}
-
-.eyebrow {
-    display: inline-flex;
-    align-items: center;
-    align-self: flex-start;
-    padding: 4px 12px;
-    border: 1px solid var(--color-border-soft);
-    border-radius: 999px;
-    background: var(--color-surface);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-eyebrow);
-    font-weight: 700;
-    letter-spacing: 0.12em;
 }
 
 .identity-info h1 {
@@ -1008,22 +932,6 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     gap: 6px;
 }
 
-.badge {
-    display: inline-flex;
-    align-items: center;
-    background: var(--color-surface-alt, #EEE5DE);
-    color: var(--color-text-primary, #22223B);
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 700;
-}
-
-.badge-alt {
-    background: rgba(59, 82, 246, 0.1);
-    color: var(--color-brand-primary, #3B52F6);
-}
-
 /* Interactive List */
 .interactive-list {
     display: flex;
@@ -1064,6 +972,12 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     gap: 12px;
     flex-wrap: wrap;
     justify-content: flex-end;
+}
+
+.progress-summary {
+    margin: 0;
+    color: var(--color-text-secondary, #4A4E69);
+    font-size: 0.82rem;
 }
 
 .width-full {

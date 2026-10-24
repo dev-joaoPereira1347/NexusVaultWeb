@@ -1,11 +1,14 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import {
+  ALLOWED_DOCUMENT_EXTENSIONS,
+  MAX_DOCUMENT_FILE_SIZE_BYTES,
+} from '../../../src/constants/uploadConfig.ts';
 
 const DOCUMENT_BUCKET = 'library-documents';
 const COVER_BUCKET = 'library-covers';
 const QUARANTINE_BUCKET = 'library-quarantine';
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const VIRUSTOTAL_API_URL = 'https://www.virustotal.com/api/v3';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -288,6 +291,12 @@ Deno.serve(async (request: Request) => {
     if (!upload.is_update && !upload.document_quarantine_path) {
       throw new ScanError('O envio precisa conter um documento para publicação.', 400);
     }
+    if (upload.document_quarantine_path) {
+      const extension = upload.file_name.split('.').pop()?.toLowerCase();
+      if (!extension || !ALLOWED_DOCUMENT_EXTENSIONS.has(extension)) {
+        throw new ScanError('Formato não suportado. Utilize PDF, TXT, EPUB ou MD.', 415);
+      }
+    }
     if (upload.is_update && currentItem) {
       if (
         (!upload.document_quarantine_path && (
@@ -330,7 +339,7 @@ Deno.serve(async (request: Request) => {
         .from(QUARANTINE_BUCKET)
         .download(file.path);
       if (downloadError || !blob) throw new ScanError('Não foi possível recuperar o arquivo em quarentena.', 400);
-      if (blob.size > MAX_FILE_SIZE_BYTES) throw new ScanError('O arquivo excede o limite de 50MB.', 413);
+      if (blob.size > MAX_DOCUMENT_FILE_SIZE_BYTES) throw new ScanError('O arquivo excede o limite de 50MB.', 413);
 
       if (body.action === 'start' || !file.sha256) {
         file.sha256 = await getFileHash(blob);

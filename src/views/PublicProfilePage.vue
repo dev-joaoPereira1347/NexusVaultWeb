@@ -23,7 +23,7 @@
                             <ion-icon :icon="personCircleOutline" />
                         </div>
                         <div>
-                            <p class="nv-eyebrow">COLABORADOR DO ACERVO</p>
+                            <p class="nv-eyebrow nv-badge">COLABORADOR DO ACERVO</p>
                             <h1 class="nv-page-title">{{ profile.username || 'Colaborador do NexusVault' }}</h1>
                         </div>
                     </section>

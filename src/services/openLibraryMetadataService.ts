@@ -237,11 +237,14 @@ const extractFileClues = async (file: File): Promise<FileClues> => {
     };
 };
 
-const searchOpenLibrary = async (params: URLSearchParams): Promise<OpenLibraryDocument[]> => {
+const searchOpenLibrary = async (
+    params: URLSearchParams,
+    signal?: AbortSignal
+): Promise<OpenLibraryDocument[]> => {
     params.set('fields', 'key,title,author_name,cover_i,first_publish_year,subject,language,first_sentence');
     params.set('limit', '5');
 
-    const response = await fetch(`${OPEN_LIBRARY_SEARCH_URL}?${params.toString()}`);
+    const response = await fetch(`${OPEN_LIBRARY_SEARCH_URL}?${params.toString()}`, signal ? { signal } : undefined);
     if (!response.ok) {
         throw new Error(`Open Library respondeu com erro (${response.status}).`);
     }
@@ -250,8 +253,11 @@ const searchOpenLibrary = async (params: URLSearchParams): Promise<OpenLibraryDo
     return result.docs ?? [];
 };
 
-const fetchOpenLibraryCover = async (coverId: number): Promise<File> => {
-    const response = await fetch(`https://covers.openlibrary.org/b/id/${coverId}-M.jpg?default=false`);
+const fetchOpenLibraryCover = async (coverId: number, signal?: AbortSignal): Promise<File> => {
+    const response = await fetch(
+        `https://covers.openlibrary.org/b/id/${coverId}-M.jpg?default=false`,
+        signal ? { signal } : undefined
+    );
     if (!response.ok) {
         throw new Error(`Open Library respondeu com erro (${response.status}).`);
     }
@@ -294,7 +300,7 @@ const mapLanguage = (languages: string[] = []): string => {
         french: 'fr'
     };
 
-    return language ? languageMap[language] ?? 'other' : '';
+    return language ? languageMap[language] ?? '' : '';
 };
 
 const inferLanguageFromText = (text: string): string => {
@@ -353,12 +359,17 @@ const excerptFromText = (text: string): string => {
     return `${excerpt.slice(0, boundary > 180 ? boundary : 277).trim()}...`;
 };
 
-export const findOpenLibraryMetadata = async (file: File): Promise<OpenLibraryLookupResult | null> => {
+export const findOpenLibraryMetadata = async (
+    file: File,
+    signal?: AbortSignal,
+    onFileRead?: () => void
+): Promise<OpenLibraryLookupResult | null> => {
     const clues = await extractFileClues(file);
+    onFileRead?.();
     let documents: OpenLibraryDocument[] = [];
 
     if (clues.isbn) {
-        documents = await searchOpenLibrary(new URLSearchParams({ isbn: clues.isbn }));
+        documents = await searchOpenLibrary(new URLSearchParams({ isbn: clues.isbn }), signal);
     }
 
     let matchedBy: OpenLibraryLookupResult['matchedBy'] = clues.isbn && documents.length > 0
@@ -370,10 +381,10 @@ export const findOpenLibraryMetadata = async (file: File): Promise<OpenLibraryLo
 
         const params = new URLSearchParams({ title });
         if (clues.author) params.set('author', clues.author);
-        documents = await searchOpenLibrary(params);
+        documents = await searchOpenLibrary(params, signal);
 
         if (documents.length === 0 && clues.author) {
-            documents = await searchOpenLibrary(new URLSearchParams({ title }));
+            documents = await searchOpenLibrary(new URLSearchParams({ title }), signal);
         }
 
         if (documents.length > 0) matchedBy = 'title';
@@ -392,8 +403,9 @@ export const findOpenLibraryMetadata = async (file: File): Promise<OpenLibraryLo
     let coverWarning: string | undefined;
     if (result.cover_i) {
         try {
-            cover = await fetchOpenLibraryCover(result.cover_i);
+            cover = await fetchOpenLibraryCover(result.cover_i, signal);
         } catch (error) {
+            if (signal?.aborted) throw error;
             coverWarning = error instanceof Error
                 ? error.message
                 : 'Não foi possível carregar a capa encontrada.';

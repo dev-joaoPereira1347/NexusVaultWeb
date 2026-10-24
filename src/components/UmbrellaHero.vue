@@ -1,7 +1,7 @@
 <template>
   <section class="nv-hero">
     <div class="nv-hero__content">
-      <div class="nv-hero__badge">
+      <div class="nv-hero__badge nv-badge">
         {{ badge }}
       </div>
 

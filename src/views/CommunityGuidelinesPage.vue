@@ -5,7 +5,7 @@
             <!-- HERO SECTION -->
             <section class="nv-hero">
                 <div class="nv-hero__content">
-                    <span class="nv-hero__badge">SEGURANÇA E CONVÍVIO</span>
+                    <span class="nv-hero__badge nv-badge">SEGURANÇA E CONVÍVIO</span>
                     <h1 class="nv-hero__title">Diretrizes da Comunidade</h1>
                     <p class="nv-hero__description">
                         Bem-vindo ao NexusVault. Para garantir a preservação do conhecimento em um ambiente seguro,

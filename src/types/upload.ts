@@ -8,4 +8,5 @@ export interface UploadForm {
     language: string;
     description: string;
     cover: File | null;
+    rightsDeclarationAccepted: boolean;
 }

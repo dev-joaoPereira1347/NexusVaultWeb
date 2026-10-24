@@ -10,7 +10,7 @@
             <main class="about-main nv-page-shell">
                 <section class="section-block nv-section">
                     <div class="section-header">
-                        <span class="nv-eyebrow">NOSSA MISSÃO</span>
+                        <span class="nv-eyebrow nv-badge">NOSSA MISSÃO</span>
                         <h2 class="nv-heading-h2">O que movemos</h2>
                     </div>
 
@@ -71,7 +71,7 @@
 
                 <section class="section-block team-section nv-section">
                     <div class="section-header team-header">
-                        <span class="nv-eyebrow">EQUIPE</span>
+                        <span class="nv-eyebrow nv-badge">EQUIPE</span>
                         <h2 class="nv-heading-h2">Quem constrói a experiência</h2>
                     </div>
 

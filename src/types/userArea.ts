@@ -64,13 +64,6 @@ export interface UserProfileForm {
     avatarUrl: string;
 }
 
-export interface ProgressDraft {
-    documentId: string;
-    page: number;
-    percent: number;
-    status: ReadingStatus;
-}
-
 export interface ReviewDraft {
     documentId: string;
     rating: number;

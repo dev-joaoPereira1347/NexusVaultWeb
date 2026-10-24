@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/services/authService';
 import { convertImageToWebp } from '@/utils/convertImageToWebp';
 import type { UploadForm } from '@/types/upload';
 import type { LibraryUploadRequest } from '@/types/userArea';
+import { parsePublicationYear } from '@/utils/publicationYear';
+import { ALLOWED_DOCUMENT_EXTENSIONS, MAX_DOCUMENT_FILE_SIZE_BYTES } from '@/constants/uploadConfig';
 
 /** Bucket público para arquivos (PDF, EPUB, TXT, MD). */
 export const LIBRARY_DOCUMENTS_BUCKET = 'library-documents';
@@ -11,8 +13,7 @@ export const LIBRARY_DOCUMENTS_BUCKET = 'library-documents';
 export const LIBRARY_COVERS_BUCKET = 'library-covers';
 
 const LIBRARY_QUARANTINE_BUCKET = 'library-quarantine';
-const ALLOWED_EXTENSIONS = new Set(['pdf', 'txt', 'epub', 'md']);
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+type UploadProgressCallback = (progress: number) => void;
 
 const extensionFromFileName = (fileName: string): string | null => {
     const extension = fileName.split('.').pop()?.toLowerCase();
@@ -34,7 +35,42 @@ const mimeFromExtension = (extension: string): string => {
     }
 };
 
-const uploadToBucket = async (bucket: string, path: string, file: File, contentType: string) => {
+const uploadToBucket = async (
+    bucket: string,
+    path: string,
+    file: File,
+    contentType: string,
+    onProgress?: UploadProgressCallback
+) => {
+    if (onProgress) {
+        const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path, { upsert: false });
+        if (error) throw error;
+
+        await new Promise<void>((resolve, reject) => {
+            const request = new XMLHttpRequest();
+            request.open('PUT', data.signedUrl);
+            request.setRequestHeader('cache-control', 'max-age=3600');
+            request.setRequestHeader('content-type', contentType);
+            request.setRequestHeader('x-upsert', 'false');
+            request.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                    onProgress(Math.round((event.loaded / event.total) * 100));
+                }
+            });
+            request.addEventListener('load', () => {
+                if (request.status >= 200 && request.status < 300) {
+                    resolve();
+                } else {
+                    reject(new Error('Não foi possível enviar o arquivo.'));
+                }
+            });
+            request.addEventListener('error', () => reject(new Error('Não foi possível enviar o arquivo.')));
+            request.addEventListener('abort', () => reject(new Error('O envio do arquivo foi interrompido.')));
+            request.send(file);
+        });
+        return;
+    }
+
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
         upsert: false,
         contentType
@@ -50,15 +86,31 @@ const removeFromBucket = async (bucket: string, path: string) => {
 
 const validateDocumentFile = (file: File) => {
     const extension = extensionFromFileName(file.name);
-    if (!extension || !ALLOWED_EXTENSIONS.has(extension)) {
+    if (!extension || !ALLOWED_DOCUMENT_EXTENSIONS.has(extension)) {
         throw new Error('Formato não suportado. Utilize PDF, TXT, EPUB ou MD.');
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    if (file.size > MAX_DOCUMENT_FILE_SIZE_BYTES) {
         throw new Error('O arquivo não pode ser maior que 50MB.');
     }
 
     return { extension, mimeType: mimeFromExtension(extension) };
+};
+
+const validateUploadMetadata = (form: UploadForm, requireRightsDeclaration: boolean) => {
+    if (!form.title.trim() || !form.author.trim() || !form.category || !form.type) {
+        throw new Error('Preencha título, autor, categoria e tipo.');
+    }
+
+    const year = parsePublicationYear(form.year);
+    if (year === null) {
+        throw new Error(`Informe um ano válido entre 1 e ${new Date().getFullYear()}.`);
+    }
+    if (requireRightsDeclaration && !form.rightsDeclarationAccepted) {
+        throw new Error('Confirme a declaração de direitos autorais antes de enviar o documento.');
+    }
+
+    return year;
 };
 
 const prepareCoverFile = async (file: File | null): Promise<File | null> => {
@@ -118,6 +170,7 @@ type QueueUploadDetails = {
     targetItemId: string | null;
     isUpdate: boolean;
     files: ScannableFile[];
+    onProgress?: UploadProgressCallback;
 };
 
 const startBackgroundScan = async (requestId: string) => {
@@ -152,15 +205,34 @@ export const checkLibraryUploadRequest = async (requestId: string): Promise<void
 
 const createUploadRequest = async (details: QueueUploadDetails): Promise<LibraryUploadRequest> => {
     const { userId, form, files } = details;
+    const parsedYear = validateUploadMetadata(form, !details.isUpdate);
     const uploadedFiles: Array<{ bucket: string; path: string }> = [];
+    const totalFileSize = files.reduce((total, { file }) => total + file.size, 0);
+    let completedFileSize = 0;
 
     try {
         for (const { file, mimeType, path } of files) {
-            await uploadToBucket(LIBRARY_QUARANTINE_BUCKET, path, file, mimeType);
+            await uploadToBucket(
+                LIBRARY_QUARANTINE_BUCKET,
+                path,
+                file,
+                mimeType,
+                details.onProgress
+                    ? (fileProgress) => {
+                        const completed = completedFileSize + (file.size * fileProgress) / 100;
+                        details.onProgress?.(totalFileSize > 0
+                            ? Math.round((completed / totalFileSize) * 95)
+                            : 0);
+                    }
+                    : undefined
+            );
             uploadedFiles.push({ bucket: LIBRARY_QUARANTINE_BUCKET, path });
+            completedFileSize += file.size;
+            if (totalFileSize > 0) {
+                details.onProgress?.(Math.round((completedFileSize / totalFileSize) * 95));
+            }
         }
 
-        const parsedYear = Number.parseInt(form.year, 10);
         const requestId = crypto.randomUUID();
         const { data, error } = await supabase
             .from('library_upload_requests')
@@ -174,7 +246,11 @@ const createUploadRequest = async (details: QueueUploadDetails): Promise<Library
                 author: form.author.trim(),
                 category: form.category,
                 content_type: form.type,
-                year: Number.isFinite(parsedYear) && parsedYear > 0 ? parsedYear : null,
+                year: parsedYear,
+                rights_declaration_accepted: !details.isUpdate && form.rightsDeclarationAccepted,
+                rights_declaration_accepted_at: !details.isUpdate && form.rightsDeclarationAccepted
+                    ? new Date().toISOString()
+                    : null,
                 genre: form.genre.trim() || null,
                 language: form.language || null,
                 description: form.description.trim() || null,
@@ -190,6 +266,7 @@ const createUploadRequest = async (details: QueueUploadDetails): Promise<Library
             .single();
         if (error) throw error;
 
+        details.onProgress?.(100);
         const statusMessage = await startBackgroundScan(requestId);
         return {
             ...data,
@@ -201,8 +278,13 @@ const createUploadRequest = async (details: QueueUploadDetails): Promise<Library
     }
 };
 
-export const uploadLibraryItem = async (file: File, form: UploadForm): Promise<LibraryUploadRequest> => {
+export const uploadLibraryItem = async (
+    file: File,
+    form: UploadForm,
+    onProgress?: UploadProgressCallback
+): Promise<LibraryUploadRequest> => {
     const { extension, mimeType } = validateDocumentFile(file);
+    validateUploadMetadata(form, true);
     const coverFile = await prepareCoverFile(form.cover);
 
     const { data: { user }, error: userError } = await getCurrentUser();
@@ -223,6 +305,7 @@ export const uploadLibraryItem = async (file: File, form: UploadForm): Promise<L
         coverQuarantinePath: coverPath,
         targetItemId: null,
         isUpdate: false,
+        onProgress,
         files: [
         { file, kind: 'document', mimeType, path: documentPath },
         ...(coverFile && coverPath
@@ -239,9 +322,7 @@ export const updateMyLibraryItem = async (
     replacementFile: File | null,
     removeCover: boolean
 ): Promise<{ cleanupErrors: string[]; uploadRequest: LibraryUploadRequest | null }> => {
-    if (!form.title.trim() || !form.author.trim() || !form.category || !form.type) {
-        throw new Error('Preencha título, autor, categoria e tipo.');
-    }
+    validateUploadMetadata(form, false);
 
     const fileDetails = replacementFile ? validateDocumentFile(replacementFile) : null;
     const coverFile = await prepareCoverFile(form.cover);
@@ -300,13 +381,13 @@ export const updateMyLibraryItem = async (
         return { cleanupErrors: [], uploadRequest };
     }
 
-    const parsedYear = Number.parseInt(form.year, 10);
+    const parsedYear = validateUploadMetadata(form, false);
     const updates = {
         title: form.title.trim(),
         author: form.author.trim(),
         category: form.category,
         content_type: form.type,
-        year: Number.isFinite(parsedYear) && parsedYear > 0 ? parsedYear : null,
+        year: parsedYear,
         genre: form.genre.trim() || null,
         language: form.language || null,
         description: form.description.trim() || null,

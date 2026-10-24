@@ -57,3 +57,10 @@ export interface PublicLibraryItemDetails extends PublicLibraryItem {
     file_size: number;
     created_at: string;
 }
+
+export interface RankedPublicLibraryItem extends PublicLibraryItem {
+    access_count: number;
+    download_count: number;
+}
+
+export type LibraryRankingMetric = 'accesses' | 'downloads';

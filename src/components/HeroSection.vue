@@ -1,7 +1,7 @@
 <template>
   <section class="nv-hero">
     <div class="nv-hero__content">
-      <div class="nv-hero__badge">
+      <div class="nv-hero__badge nv-badge">
         {{ badge }}
       </div>
 
@@ -71,20 +71,6 @@ withDefaults(
 
 .text-container {
   padding-right: 20px;
-}
-
-.tagline-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 7px 16px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(154, 140, 152, 0.28);
-  color: var(--color-text-secondary, #4A4E69);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  margin-bottom: 24px;
 }
 
 .hero-title {

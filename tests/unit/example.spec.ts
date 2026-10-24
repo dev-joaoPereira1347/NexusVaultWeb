@@ -63,12 +63,17 @@ describe('UploadMetadataForm.vue', () => {
           language: 'pt',
           description: 'Descrição',
           cover: null,
+          rightsDeclarationAccepted: false,
         },
+        showRightsDeclaration: true,
       },
     })
 
     expect(wrapper.text()).toContain('Capa')
     expect(wrapper.text()).toContain('opcional')
+    expect(wrapper.text()).toContain('domínio público')
+    expect(wrapper.get('#year').attributes('required')).toBeDefined()
+    expect(wrapper.get('#rights-declaration').attributes('required')).toBeDefined()
   })
 })
 

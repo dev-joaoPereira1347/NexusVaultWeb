@@ -27,6 +27,14 @@
         <p v-if="statisticsError" class="statistics-error" role="alert">{{ statisticsError }}</p>
       </section>
 
+      <FeaturedLibraryCarousel
+        :items="featuredItems"
+        :loading="featuredLoading"
+        :error="featuredError"
+      />
+
+      <LibraryRankingsSection />
+
       <SiteFooter />
     </IonContent>
   </IonPage>
@@ -39,8 +47,12 @@ import SiteHeader from '../components/SiteHeader.vue';
 import SiteFooter from '../components/SiteFooter.vue';
 import HeroSection from '../components/HeroSection.vue';
 import StatCard from '../components/StatCard.vue';
+import FeaturedLibraryCarousel from '@/components/FeaturedLibraryCarousel.vue';
+import LibraryRankingsSection from '@/components/LibraryRankingsSection.vue';
 import { getPublicLibraryStatistics } from '../services/statisticsService';
+import { listFeaturedPublicLibraryItems } from '@/services/libraryService';
 import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
+import type { PublicLibraryItem } from '@/types/library';
 import libraryImage from '../assets/images/library.webp';
 
 import {
@@ -52,27 +64,41 @@ import {
 const documentCount = ref('—');
 const contributorCount = ref('—');
 const statisticsError = ref('');
+const featuredItems = ref<PublicLibraryItem[]>([]);
+const featuredLoading = ref(true);
+const featuredError = ref('');
 
-const refreshStatistics = async () => {
-  try {
-    const statistics = await getPublicLibraryStatistics();
-    documentCount.value = statistics.documentCount.toLocaleString('pt-BR');
-    contributorCount.value = statistics.contributorCount.toLocaleString('pt-BR');
+const refreshHomeContent = async () => {
+  const [statisticsResult, featuredResult] = await Promise.allSettled([
+    getPublicLibraryStatistics(),
+    listFeaturedPublicLibraryItems()
+  ]);
+
+  if (statisticsResult.status === 'fulfilled') {
+    documentCount.value = statisticsResult.value.documentCount.toLocaleString('pt-BR');
+    contributorCount.value = statisticsResult.value.contributorCount.toLocaleString('pt-BR');
     statisticsError.value = '';
-  } catch (error) {
-    const message = error instanceof Error
-      ? error.message
-      : typeof error === 'object' && error !== null && 'message' in error
-        && typeof error.message === 'string'
-        ? error.message
-        : '';
+  } else {
+    const message = statisticsResult.reason instanceof Error
+      ? statisticsResult.reason.message
+      : '';
     statisticsError.value = message
       ? `Não foi possível carregar as estatísticas: ${message}`
       : 'Não foi possível carregar as estatísticas.';
   }
+
+  if (featuredResult.status === 'fulfilled') {
+    featuredItems.value = featuredResult.value;
+    featuredError.value = '';
+  } else {
+    featuredError.value = featuredResult.reason instanceof Error
+      ? `Não foi possível carregar os destaques: ${featuredResult.reason.message}`
+      : 'Não foi possível carregar os destaques.';
+  }
+  featuredLoading.value = false;
 };
 
-useLibraryItemsSync(refreshStatistics);
+useLibraryItemsSync(refreshHomeContent);
 </script>
 
 <style scoped>

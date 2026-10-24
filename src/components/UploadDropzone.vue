@@ -1,12 +1,17 @@
 <template>
-    <section class="upload-zone-wrapper" aria-labelledby="file-upload-title">
+    <section
+        class="upload-zone-wrapper"
+        :aria-labelledby="file ? undefined : 'file-upload-title'"
+        :aria-label="file ? 'Arquivo selecionado' : undefined"
+    >
         <div
             class="dropzone"
-            role="button"
-            tabindex="0"
-            @click="openFilePicker"
-            @keydown.enter.prevent="openFilePicker"
-            @keydown.space.prevent="openFilePicker"
+            :class="{ 'dropzone-compact': file }"
+            :role="file ? undefined : 'button'"
+            :tabindex="file ? undefined : 0"
+            @click="!file && openFilePicker()"
+            @keydown.enter.prevent="!file && openFilePicker()"
+            @keydown.space.prevent="!file && openFilePicker()"
             @dragover.prevent
             @drop.prevent="handleDrop"
         >
@@ -16,6 +21,7 @@
                 class="hidden-file-input"
                 accept=".pdf,.txt,.epub,.md"
                 aria-label="Selecionar arquivo"
+                :disabled="disabled"
                 @change="handleFileSelect"
             />
 
@@ -32,7 +38,7 @@
                     {{ isTouchscreen ? 'Escolha um arquivo do seu celular' : 'ou procure um arquivo no seu computador' }}
                 </p>
 
-                <button type="button" class="btn-select-file" @click.stop="openFilePicker">
+                <button type="button" class="btn-select-file" :disabled="disabled" @click.stop="openFilePicker">
                     {{ isTouchscreen ? 'SELECIONAR ARQUIVO' : 'SELECIONAR ARQUIVO' }}
                 </button>
 
@@ -44,13 +50,20 @@
             <template v-else>
                 <ion-icon :icon="getFileIcon(file.name)" class="file-loaded-icon" aria-hidden="true" />
 
-                <p class="file-loaded-name">{{ file.name }}</p>
-                <span class="file-loaded-size">{{ formatFileSize(file.size) }}</span>
-                <span class="file-loaded-format">{{ getFileExtension(file.name) }}</span>
+                <div class="file-loaded-details">
+                    <p class="file-loaded-name">{{ file.name }}</p>
+                    <span class="file-loaded-size">{{ formatFileSize(file.size) }}</span>
+                    <span class="file-loaded-format">{{ getFileExtension(file.name) }}</span>
+                </div>
 
-                <button type="button" class="btn-remove-file" @click.stop="clearFile">
-                    Trocar arquivo
-                </button>
+                <div class="file-loaded-actions">
+                    <button type="button" class="btn-remove-file" :disabled="disabled" @click.stop="openFilePicker">
+                        Trocar
+                    </button>
+                    <button type="button" class="btn-clear-file" :disabled="disabled" @click.stop="clearFile">
+                        Remover
+                    </button>
+                </div>
             </template>
         </div>
     </section>
@@ -67,9 +80,12 @@ import {
     readerOutline
 } from 'ionicons/icons';
 
-defineProps<{
+withDefaults(defineProps<{
     file: File | null;
-}>();
+    disabled?: boolean;
+}>(), {
+    disabled: false
+});
 
 const isTouchscreen = ref(false);
 
@@ -100,7 +116,9 @@ const emitFirstFile = (files: FileList | null) => {
 };
 
 const handleFileSelect = (event: Event) => {
-    emitFirstFile((event.target as HTMLInputElement).files);
+    const input = event.target as HTMLInputElement;
+    emitFirstFile(input.files);
+    input.value = '';
 };
 
 const handleDrop = (event: DragEvent) => {
@@ -162,6 +180,18 @@ const formatFileSize = (bytes: number): string => {
     text-align: center;
     cursor: pointer;
     transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.dropzone-compact {
+    min-height: 0;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+    border-width: 1px;
+    border-style: solid;
+    text-align: left;
+    cursor: default;
 }
 
 .dropzone:hover,
@@ -229,34 +259,68 @@ const formatFileSize = (bytes: number): string => {
 }
 
 .file-loaded-icon {
-    margin-bottom: 12px;
+    flex: 0 0 auto;
     color: var(--color-brand-primary);
-    font-size: 54px;
+    font-size: 32px;
+}
+
+.file-loaded-details {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .file-loaded-name {
     max-width: 100%;
-    margin: 0 0 4px;
+    margin: 0 0 3px;
     overflow-wrap: anywhere;
     color: var(--color-text-primary);
     font-weight: 700;
 }
 
 .file-loaded-size {
-    margin-bottom: 4px;
+    margin-right: 8px;
 }
 
 .file-loaded-format {
-    margin-bottom: 16px;
     font-weight: 700;
 }
 
-.btn-remove-file {
-    padding: 8px 16px;
+.file-loaded-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+}
+
+.btn-remove-file,
+.btn-clear-file {
+    min-height: 36px;
+    padding: 7px 12px;
     border: 1px solid var(--color-brand-primary);
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--color-brand-primary);
+    cursor: pointer;
     font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.btn-clear-file {
+    border-color: var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+@media (max-width: 540px) {
+    .dropzone-compact {
+        flex-wrap: wrap;
+        gap: 8px 12px;
+    }
+
+    .file-loaded-details {
+        flex-basis: calc(100% - 48px);
+    }
+
+    .file-loaded-actions {
+        margin-left: 44px;
+    }
 }
 </style>

@@ -36,7 +36,17 @@ npm-debug.log*
 /plugins
 /www
 /context files
-/migrations
+supabase/migrations
+!supabase/migrations/
+supabase/migrations/*
+!supabase/migrations/20261020200000_document_report_removal.sql
+!supabase/migrations/20261022183000_library_item_metrics.sql
+!supabase/migrations/20261022193000_upload_rights_declaration.sql
 
 supabase/*.sql
 supabase/templates/confirmation.html
+
+MANUAL_DO_USUARIO.md
+supabase/migrations/20261014174000_async_virus_total_uploads.sql
+
+Diagrama de Classes.txt

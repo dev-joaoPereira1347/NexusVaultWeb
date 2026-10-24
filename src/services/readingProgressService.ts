@@ -1,6 +1,11 @@
 import { supabase } from '@/services/supabase';
-import { getCurrentUser } from '@/services/authService';
-import type { ProgressDraft, ReadingProgress } from '@/types/userArea';
+import { getCurrentSession, getCurrentUser } from '@/services/authService';
+import type { ReadingProgress } from '@/types/userArea';
+
+export interface ReadingProgressPosition {
+    page: number;
+    percent: number;
+}
 
 type ProgressRow = {
     id: string;
@@ -44,33 +49,48 @@ export const listMyReadingProgress = async (): Promise<ReadingProgress[]> => {
     return ((data ?? []) as ProgressRow[]).map(mapProgress);
 };
 
-export const createReadingProgress = async (draft: ProgressDraft): Promise<void> => {
-    const userId = await requireUserId();
-    const { error } = await supabase.from('reading_progress').insert({
-        user_id: userId,
-        document_id: draft.documentId,
-        page: draft.page,
-        percent: draft.percent,
-        status: draft.status
-    });
+export const getMyReadingProgressPosition = async (documentId: string): Promise<ReadingProgressPosition | null> => {
+    const { data: { session }, error: userError } = await getCurrentSession();
+    if (userError) throw userError;
+    const user = session?.user;
+    if (!user) return null;
+
+    const { data, error } = await supabase
+        .from('reading_progress')
+        .select('page, percent')
+        .eq('user_id', user.id)
+        .eq('document_id', documentId)
+        .maybeSingle();
 
     if (error) throw error;
+    return data
+        ? { page: Number(data.page), percent: Number(data.percent) }
+        : null;
 };
 
-export const updateReadingProgress = async (id: string, draft: Omit<ProgressDraft, 'documentId'>): Promise<void> => {
-    const userId = await requireUserId();
+export const saveReadingProgressAutomatically = async (
+    documentId: string,
+    page: number,
+    percent: number
+): Promise<boolean> => {
+    const { data: { session }, error: userError } = await getCurrentSession();
+    if (userError) throw userError;
+    const user = session?.user;
+    if (!user) return false;
+
     const { error } = await supabase
         .from('reading_progress')
-        .update({
-            page: draft.page,
-            percent: draft.percent,
-            status: draft.status,
+        .upsert({
+            user_id: user.id,
+            document_id: documentId,
+            page: Math.max(0, Math.floor(page)),
+            percent: Math.min(100, Math.max(0, percent)),
+            status: percent >= 100 ? 'lido' : 'lendo',
             updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .eq('user_id', userId);
+        }, { onConflict: 'user_id,document_id' });
 
     if (error) throw error;
+    return true;
 };
 
 export const deleteReadingProgress = async (id: string): Promise<void> => {

@@ -6,6 +6,8 @@
             <MainNav />
 
             <div class="header-actions">
+                <SearchBar />
+
                 <router-link v-if="!currentUser" to="/auth" class="register-button">
                     REGISTRAR
                 </router-link>
@@ -26,12 +28,13 @@
                     <div v-if="isUserMenuOpen" class="user-dropdown">
                         <span class="user-name">{{ username || 'Minha conta' }}</span>
                         <router-link to="/profile" @click="closeUserMenu">Página do usuário</router-link>
+                        <router-link v-if="isAdmin" to="/admin/denuncias" @click="closeUserMenu">
+                            Painel de moderação
+                        </router-link>
                         <button type="button" @click="handleSignOut">Sair</button>
                         <button type="button" class="delete-account-button" @click="handleDeleteAccount">Excluir conta</button>
                     </div>
                 </div>
-
-                <SearchBar />
 
                 <button class="mobile-menu-button" type="button" :aria-expanded="isMobileMenuOpen"
                     :aria-label="isMobileMenuOpen ? 'Fechar menu' : 'Abrir menu'" @click="toggleMobileMenu">
@@ -55,6 +58,9 @@
                     <span>Área do usuário</span>
                 </span>
             </router-link>
+            <router-link v-if="isAdmin" to="/admin/denuncias" @click="closeMobileMenu">
+                Painel de moderação
+            </router-link>
 
             <router-link v-else to="/auth" @click="closeMobileMenu">Registrar</router-link>
         </nav>
@@ -76,6 +82,7 @@ const router = useRouter();
 const isMobileMenuOpen = ref(false);
 const isUserMenuOpen = ref(false);
 const currentUser = ref(false);
+const isAdmin = ref(false);
 const avatarUrl = ref('');
 const username = ref('');
 let removeAuthListener: (() => void) | undefined;
@@ -133,6 +140,7 @@ const updateUserMenu = async (userId?: string) => {
 
     if (!activeUserId) {
         currentUser.value = false;
+        isAdmin.value = false;
         avatarUrl.value = '';
         username.value = '';
         closeUserMenu();
@@ -141,11 +149,14 @@ const updateUserMenu = async (userId?: string) => {
 
     try {
         currentUser.value = true;
+        const { data: { session } } = await getCurrentSession();
+        isAdmin.value = session?.user.id === activeUserId && session.user.app_metadata.role === 'admin';
         const profile = await getProfile(activeUserId);
         avatarUrl.value = profile?.avatar_url || '';
         username.value = profile?.username || '';
     } catch {
         currentUser.value = false;
+        isAdmin.value = false;
         avatarUrl.value = '';
         username.value = '';
         closeUserMenu();
@@ -160,6 +171,7 @@ const handleSignOut = async () => {
     }
 
     currentUser.value = false;
+    isAdmin.value = false;
     avatarUrl.value = '';
     username.value = '';
     closeUserMenu();
