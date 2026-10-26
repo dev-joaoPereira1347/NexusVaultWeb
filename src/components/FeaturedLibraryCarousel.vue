@@ -7,25 +7,6 @@
                 <p class="nv-page-description">Explore os documentos mais recentes compartilhados pela comunidade.</p>
             </div>
 
-            <div v-if="items.length > 1" class="carousel-controls" aria-label="Controles dos destaques">
-                <ion-button
-                    fill="outline"
-                    class="carousel-arrow"
-                    aria-label="Destaque anterior"
-                    @click="showPrevious"
-                >
-                    <ion-icon slot="icon-only" :icon="chevronBackOutline" />
-                </ion-button>
-                <span class="slide-count" aria-live="polite">{{ currentIndex + 1 }} / {{ items.length }}</span>
-                <ion-button
-                    fill="outline"
-                    class="carousel-arrow"
-                    aria-label="Próximo destaque"
-                    @click="showNext"
-                >
-                    <ion-icon slot="icon-only" :icon="chevronForwardOutline" />
-                </ion-button>
-            </div>
         </header>
 
         <div v-if="loading" class="featured-feedback nv-surface" role="status">
@@ -37,39 +18,43 @@
             Os destaques aparecerão aqui quando novos documentos forem adicionados ao acervo.
         </p>
 
-        <div v-else class="featured-card nv-surface" role="region" aria-label="Carrossel de documentos recentes">
-            <Transition name="featured-slide" mode="out-in">
-                <article :key="activeItem.id" class="featured-item" aria-live="polite">
-                    <RouterLink
-                        class="featured-cover"
-                        :to="{ name: 'DocumentDetails', params: { id: activeItem.id } }"
-                        :aria-label="`Ver detalhes de ${activeItem.title}`"
-                    >
-                        <img v-if="activeItem.cover_url" :src="activeItem.cover_url" :alt="`Capa de ${activeItem.title}`" />
-                        <ion-icon v-else :icon="documentTextOutline" aria-hidden="true" />
-                    </RouterLink>
-
-                    <div class="featured-copy">
-                        <p class="featured-category">{{ activeItem.category }} · {{ activeItem.content_type }}</p>
-                        <h3>
-                            <RouterLink :to="{ name: 'DocumentDetails', params: { id: activeItem.id } }">
-                                {{ activeItem.title }}
-                            </RouterLink>
-                        </h3>
-                        <p class="featured-author">Por {{ activeItem.author }}</p>
-                        <p v-if="activeItem.description" class="featured-description">{{ activeItem.description }}</p>
+        <div v-else class="featured-carousel" role="region" aria-label="Carrossel de documentos recentes">
+            <div ref="carouselViewport" class="carousel-viewport" @scroll.passive="updateCurrentIndex">
+                <div class="carousel-track">
+                    <article v-for="(item, index) in items" :key="item.id"
+                        :ref="(element) => setSlideElement(element, index)"
+                        class="featured-item nv-surface" :aria-label="`${item.title}, destaque ${index + 1} de ${items.length}`">
                         <RouterLink
-                            class="featured-link"
-                            :to="{ name: 'DocumentDetails', params: { id: activeItem.id } }"
+                            class="featured-cover"
+                            :to="{ name: 'DocumentDetails', params: { id: item.id } }"
+                            :aria-label="`Ver detalhes de ${item.title}`"
                         >
-                            Explorar documento
-                            <ion-icon :icon="arrowForwardOutline" aria-hidden="true" />
+                            <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`" />
+                            <ion-icon v-else :icon="documentTextOutline" aria-hidden="true" />
                         </RouterLink>
-                    </div>
-                </article>
-            </Transition>
 
-            <div v-if="items.length > 1" class="carousel-pagination" aria-label="Selecionar destaque">
+                        <div class="featured-copy">
+                            <p class="featured-category">{{ item.category }} · {{ item.content_type }}</p>
+                            <h3>
+                                <RouterLink :to="{ name: 'DocumentDetails', params: { id: item.id } }">
+                                    {{ item.title }}
+                                </RouterLink>
+                            </h3>
+                            <p class="featured-author">Por {{ item.author }}</p>
+                            <p v-if="item.description" class="featured-description">{{ item.description }}</p>
+                            <RouterLink
+                                class="featured-link"
+                                :to="{ name: 'DocumentDetails', params: { id: item.id } }"
+                            >
+                                Explorar documento
+                                <ion-icon :icon="arrowForwardOutline" aria-hidden="true" />
+                            </RouterLink>
+                        </div>
+                    </article>
+                </div>
+            </div>
+
+            <div v-if="items.length > 1" class="carousel-pagination" role="group" aria-label="Selecionar destaque">
                 <button
                     v-for="(item, index) in items"
                     :key="item.id"
@@ -77,8 +62,8 @@
                     class="pagination-dot"
                     :class="{ 'is-active': index === currentIndex }"
                     :aria-label="`Mostrar destaque ${index + 1}: ${item.title}`"
-                    :aria-current="index === currentIndex ? 'true' : undefined"
-                    @click="currentIndex = index"
+                    :aria-pressed="index === currentIndex"
+                    @click="goToSlide(index)"
                 />
             </div>
         </div>
@@ -86,13 +71,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
-import { IonButton, IonIcon, IonSpinner } from '@ionic/vue';
+import { IonIcon, IonSpinner } from '@ionic/vue';
 import {
     arrowForwardOutline,
-    chevronBackOutline,
-    chevronForwardOutline,
     documentTextOutline
 } from 'ionicons/icons';
 import type { PublicLibraryItem } from '@/types/library';
@@ -104,20 +87,48 @@ const props = defineProps<{
 }>();
 
 const currentIndex = ref(0);
-const activeItem = computed(() => props.items[currentIndex.value] ?? props.items[0]);
+const carouselViewport = ref<HTMLElement | null>(null);
+const slideElements: (HTMLElement | null)[] = [];
 
-const showPrevious = () => {
-    currentIndex.value = (currentIndex.value - 1 + props.items.length) % props.items.length;
+const setSlideElement = (element: unknown, index: number) => {
+    slideElements[index] = element instanceof HTMLElement ? element : null;
 };
 
-const showNext = () => {
-    currentIndex.value = (currentIndex.value + 1) % props.items.length;
+const updateCurrentIndex = () => {
+    const viewport = carouselViewport.value;
+    if (!viewport) return;
+    const center = viewport.getBoundingClientRect().left + viewport.clientWidth / 2;
+    let closestIndex = 0;
+    let closestDistance = Number.POSITIVE_INFINITY;
+    slideElements.forEach((slide, index) => {
+        if (!slide) return;
+        const bounds = slide.getBoundingClientRect();
+        const distance = Math.abs(bounds.left + bounds.width / 2 - center);
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestIndex = index;
+        }
+    });
+    currentIndex.value = closestIndex;
+};
+
+const goToSlide = (index: number) => {
+    const viewport = carouselViewport.value;
+    const slide = slideElements[index];
+    if (viewport && slide) {
+        const left = viewport.scrollLeft + slide.getBoundingClientRect().left - viewport.getBoundingClientRect().left;
+        viewport.scrollTo({ left, behavior: 'smooth' });
+    }
+    currentIndex.value = index;
 };
 
 watch(
     () => props.items.map(({ id }) => id).join(','),
-    () => {
-        if (currentIndex.value >= props.items.length) currentIndex.value = 0;
+    async () => {
+        currentIndex.value = 0;
+        slideElements.length = props.items.length;
+        await nextTick();
+        carouselViewport.value?.scrollTo({ left: 0 });
     }
 );
 </script>
@@ -144,40 +155,38 @@ watch(
     margin-bottom: 0;
 }
 
-.carousel-controls {
+.featured-carousel {
+    min-width: 0;
+}
+
+.carousel-viewport {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+}
+
+.carousel-viewport::-webkit-scrollbar {
+    display: none;
+}
+
+.carousel-track {
     display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-}
-
-.carousel-arrow {
-    --color: var(--color-text-primary);
-    --border-color: var(--color-border-soft);
-    --border-radius: 999px;
-    width: 42px;
-    height: 42px;
-    margin: 0;
-}
-
-.slide-count {
-    min-width: 48px;
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-caption);
-    text-align: center;
-}
-
-.featured-card {
-    position: relative;
-    overflow: hidden;
-    padding: clamp(18px, 4vw, 40px);
+    gap: var(--space-md);
 }
 
 .featured-item {
     display: grid;
+    width: 100%;
+    flex: 0 0 100%;
     grid-template-columns: minmax(150px, 240px) minmax(0, 1fr);
     align-items: center;
     gap: clamp(24px, 5vw, 64px);
     min-height: 260px;
+    padding: clamp(18px, 4vw, 40px);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
 }
 
 .featured-cover {
@@ -300,25 +309,9 @@ watch(
     color: var(--color-danger);
 }
 
-.featured-slide-enter-active,
-.featured-slide-leave-active {
-    transition: opacity 160ms ease, transform 160ms ease;
-}
-
-.featured-slide-enter-from {
-    opacity: 0;
-    transform: translateX(12px);
-}
-
-.featured-slide-leave-to {
-    opacity: 0;
-    transform: translateX(-12px);
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .featured-slide-enter-active,
-    .featured-slide-leave-active {
-        transition: none;
+    .carousel-viewport {
+        scroll-behavior: auto;
     }
 }
 
@@ -329,6 +322,8 @@ watch(
     }
 
     .featured-item {
+        width: 85%;
+        flex-basis: 85%;
         grid-template-columns: minmax(0, 1fr);
         gap: var(--space-md);
     }

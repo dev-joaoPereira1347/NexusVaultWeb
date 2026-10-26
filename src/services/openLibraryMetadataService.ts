@@ -15,6 +15,7 @@ type FileClues = {
     genre: string;
     description: string;
     subjects: string[];
+    embeddedCover: File | null;
     extractionWarning?: string;
 };
 
@@ -41,8 +42,10 @@ type OpenLibraryMetadata = Pick<
 export type OpenLibraryLookupResult = {
     metadata: OpenLibraryMetadata | null;
     cover: File | null;
+    embeddedCover: File | null;
     matchedBy?: 'isbn' | 'title';
     extractionWarning?: string;
+    lookupWarning?: string;
     coverWarning?: string;
 };
 
@@ -112,6 +115,7 @@ const readPdf = async (file: File): Promise<{
     text: string;
     language: string;
     genre: string;
+    embeddedCover: File | null;
 }> => {
     const loadingTask = pdfjsLib.getDocument({ data: await file.arrayBuffer() });
     const pdf = await loadingTask.promise;
@@ -126,12 +130,34 @@ const readPdf = async (file: File): Promise<{
             textParts.push(content.items.map((item) => ('str' in item ? item.str : '')).join(' '));
         }
 
+        let embeddedCover: File | null = null;
+        try {
+            const firstPage = await pdf.getPage(1);
+            const baseViewport = firstPage.getViewport({ scale: 1 });
+            const scale = Math.min(2, 700 / baseViewport.height, 700 / baseViewport.width);
+            const viewport = firstPage.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            const context = canvas.getContext('2d');
+            if (context) {
+                await firstPage.render({ canvas, canvasContext: context, viewport }).promise;
+                const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+                if (blob?.size) embeddedCover = new File([blob], 'capa-extraida-do-pdf.png', { type: 'image/png' });
+            }
+            canvas.width = 0;
+            canvas.height = 0;
+        } catch {
+            embeddedCover = null;
+        }
+
         return {
             title: 'Title' in info && typeof info.Title === 'string' ? info.Title.trim() : '',
             author: 'Author' in info && typeof info.Author === 'string' ? info.Author.trim() : '',
             text: textParts.join('\n'),
             language: 'Language' in info && typeof info.Language === 'string' ? info.Language.trim() : '',
-            genre: 'Subject' in info && typeof info.Subject === 'string' ? info.Subject.trim() : ''
+            genre: 'Subject' in info && typeof info.Subject === 'string' ? info.Subject.trim() : '',
+            embeddedCover
         };
     } finally {
         await loadingTask.destroy();
@@ -146,6 +172,7 @@ const readEpub = async (file: File): Promise<{
     genre: string;
     description: string;
     subjects: string[];
+    embeddedCover: File | null;
 }> => {
     const zip = await JSZip.loadAsync(file);
     const containerFile = zip.file('META-INF/container.xml');
@@ -173,6 +200,36 @@ const readEpub = async (file: File): Promise<{
     const subjects = Array.from(metadata.getElementsByTagNameNS('*', 'subject'))
         .map((item) => item.textContent?.trim() ?? '')
         .filter(Boolean);
+    const manifestItems = Array.from(packageXml.getElementsByTagNameNS('*', 'item'));
+    const coverId = Array.from(metadata.getElementsByTagNameNS('*', 'meta'))
+        .find((item) => item.getAttribute('name')?.toLowerCase() === 'cover')
+        ?.getAttribute('content');
+    const coverItem = manifestItems.find((item) =>
+        item.getAttribute('properties')?.split(/\s+/).includes('cover-image')
+    ) ?? manifestItems.find((item) => item.getAttribute('id') === coverId);
+    let embeddedCover: File | null = null;
+    const coverHref = coverItem?.getAttribute('href');
+    if (coverHref) {
+        try {
+            const resolvedUrl = new URL(coverHref, `https://epub-reader.invalid/${packagePath}`);
+            const coverPath = decodeURIComponent(resolvedUrl.pathname.replace(/^\/+/, ''));
+            const coverEntry = zip.file(coverPath);
+            if (coverEntry) {
+                const blob = await coverEntry.async('blob');
+                const extension = coverPath.split('.').pop()?.toLowerCase() || 'jpg';
+                const inferredMimeType = extension === 'png' ? 'image/png'
+                    : extension === 'gif' ? 'image/gif'
+                        : extension === 'webp' ? 'image/webp'
+                            : 'image/jpeg';
+                const mimeType = blob.type.startsWith('image/') ? blob.type : inferredMimeType;
+                if (blob.size) {
+                    embeddedCover = new File([blob], `capa-extraida-do-epub.${extension}`, { type: mimeType });
+                }
+            }
+        } catch {
+            embeddedCover = null;
+        }
+    }
 
     return {
         title,
@@ -180,6 +237,7 @@ const readEpub = async (file: File): Promise<{
         language,
         description,
         subjects,
+        embeddedCover,
         genre: subjects.join(', '),
         text: [identifier, ...Array.from(metadata.getElementsByTagNameNS('*', 'meta')).map((item) => item.textContent ?? '')]
             .join('\n')
@@ -197,13 +255,14 @@ const extractFileClues = async (file: File): Promise<FileClues> => {
     let genre = '';
     let description = '';
     let subjects: string[] = [];
+    let embeddedCover: File | null = null;
     let extractionWarning: string | undefined;
 
     try {
         if (extension === 'pdf') {
-            ({ title, author, text, language, genre } = await readPdf(file));
+            ({ title, author, text, language, genre, embeddedCover } = await readPdf(file));
         } else if (extension === 'epub') {
-            ({ title, author, text, language, genre, description, subjects } = await readEpub(file));
+            ({ title, author, text, language, genre, description, subjects, embeddedCover } = await readEpub(file));
         } else {
             text = await readTextFile(file);
             title = text.match(/^\s*title\s*[:=]\s*(.+)$/im)?.[1]?.trim()
@@ -233,6 +292,7 @@ const extractFileClues = async (file: File): Promise<FileClues> => {
         genre,
         description,
         subjects,
+        embeddedCover,
         extractionWarning
     };
 };
@@ -367,27 +427,34 @@ export const findOpenLibraryMetadata = async (
     const clues = await extractFileClues(file);
     onFileRead?.();
     let documents: OpenLibraryDocument[] = [];
+    let matchedBy: OpenLibraryLookupResult['matchedBy'];
+    let lookupWarning: string | undefined;
 
-    if (clues.isbn) {
-        documents = await searchOpenLibrary(new URLSearchParams({ isbn: clues.isbn }), signal);
-    }
-
-    let matchedBy: OpenLibraryLookupResult['matchedBy'] = clues.isbn && documents.length > 0
-        ? 'isbn'
-        : undefined;
-
-    for (const title of clues.titles) {
-        if (documents.length > 0) break;
-
-        const params = new URLSearchParams({ title });
-        if (clues.author) params.set('author', clues.author);
-        documents = await searchOpenLibrary(params, signal);
-
-        if (documents.length === 0 && clues.author) {
-            documents = await searchOpenLibrary(new URLSearchParams({ title }), signal);
+    try {
+        if (clues.isbn) {
+            documents = await searchOpenLibrary(new URLSearchParams({ isbn: clues.isbn }), signal);
         }
 
-        if (documents.length > 0) matchedBy = 'title';
+        matchedBy = clues.isbn && documents.length > 0 ? 'isbn' : undefined;
+
+        for (const title of clues.titles) {
+            if (documents.length > 0) break;
+
+            const params = new URLSearchParams({ title });
+            if (clues.author) params.set('author', clues.author);
+            documents = await searchOpenLibrary(params, signal);
+
+            if (documents.length === 0 && clues.author) {
+                documents = await searchOpenLibrary(new URLSearchParams({ title }), signal);
+            }
+
+            if (documents.length > 0) matchedBy = 'title';
+        }
+    } catch (error) {
+        if (signal?.aborted) throw error;
+        lookupWarning = error instanceof Error
+            ? error.message
+            : 'Não foi possível consultar os metadados externos.';
     }
 
     const result = documents[0];
@@ -395,7 +462,9 @@ export const findOpenLibraryMetadata = async (
         return {
             metadata: null,
             cover: null,
-            extractionWarning: clues.extractionWarning
+            embeddedCover: clues.embeddedCover,
+            extractionWarning: clues.extractionWarning,
+            lookupWarning
         };
     }
 
@@ -435,8 +504,10 @@ export const findOpenLibraryMetadata = async (
             description: firstSentence || clues.description || excerptFromText(clues.text)
         },
         cover,
+        embeddedCover: clues.embeddedCover,
         matchedBy,
         extractionWarning: clues.extractionWarning,
+        lookupWarning,
         coverWarning
     };
 };

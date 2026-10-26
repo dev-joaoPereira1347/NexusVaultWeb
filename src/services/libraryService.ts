@@ -76,7 +76,7 @@ export const listPublicLibraryItems = async (): Promise<PublicLibraryItem[]> => 
         const { data, error, count } = await supabase
             .from('library_items')
             .select(
-                'id, title, author, category, genre, content_type, year, description, file_name, file_path, cover_path',
+                'id, title, author, category, genre, content_type, year, language, description, file_name, file_path, cover_path',
                 { count: 'exact' }
             )
             .order('title', { ascending: true })
@@ -100,6 +100,7 @@ export const listPublicLibraryItems = async (): Promise<PublicLibraryItem[]> => 
             genre: item.genre,
             content_type: item.content_type,
             year: item.year,
+            language: item.language,
             description: item.description,
             file_name: item.file_name,
             cover_url: getCoverUrl(item.cover_path),

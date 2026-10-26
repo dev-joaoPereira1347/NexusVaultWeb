@@ -3,8 +3,18 @@ import HomePage from '@/views/HomePage.vue'
 import UploadMetadataForm from '@/components/UploadMetadataForm.vue'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-const { signInWithOtpMock, resetPasswordForEmailMock, updateUserMock, profilesUpsertMock, getSessionMock } = vi.hoisted(() => ({
+const {
+  signUpMock,
+  signInWithOtpMock,
+  resendMock,
+  resetPasswordForEmailMock,
+  updateUserMock,
+  profilesUpsertMock,
+  getSessionMock,
+} = vi.hoisted(() => ({
+  signUpMock: vi.fn(),
   signInWithOtpMock: vi.fn(),
+  resendMock: vi.fn(),
   resetPasswordForEmailMock: vi.fn(),
   updateUserMock: vi.fn(),
   profilesUpsertMock: vi.fn(),
@@ -13,10 +23,16 @@ const { signInWithOtpMock, resetPasswordForEmailMock, updateUserMock, profilesUp
 
 vi.mock('@/services/supabase', () => ({
   supabase: {
+    channel: vi.fn(() => ({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+    })),
+    removeChannel: vi.fn(),
     auth: {
       signInWithPassword: vi.fn(),
-      signUp: vi.fn(),
+      signUp: signUpMock,
       signInWithOtp: signInWithOtpMock,
+      resend: resendMock,
       verifyOtp: vi.fn(),
       getSession: getSessionMock.mockResolvedValue({ data: { session: null }, error: null }),
       getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
@@ -25,13 +41,30 @@ vi.mock('@/services/supabase', () => ({
       updateUser: updateUserMock,
       signOut: vi.fn(),
     },
+    storage: {
+      from: vi.fn(() => ({
+        upload: vi.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/avatar.webp' } }),
+      })),
+    },
     from: vi.fn(() => ({
       upsert: profilesUpsertMock,
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { username: 'test_user', avatar_url: null }, error: null }),
     })),
   },
 }))
 
-const { saveProfile, sendMagicLink, requestPasswordReset } = await import('@/services/authService')
+const {
+  saveProfile,
+  signUp,
+  sendMagicLink,
+  resendSignupConfirmation,
+  requestPasswordReset,
+  savePendingAvatar,
+  checkAndSyncPendingAvatar,
+} = await import('@/services/authService')
 
 describe('HomePage.vue', () => {
   test('renders the app landing page content', () => {
@@ -79,7 +112,9 @@ describe('UploadMetadataForm.vue', () => {
 
 describe('authService email redirects', () => {
   beforeEach(() => {
+    signUpMock.mockReset()
     signInWithOtpMock.mockReset()
+    resendMock.mockReset()
     resetPasswordForEmailMock.mockReset()
     updateUserMock.mockReset()
     profilesUpsertMock.mockReset()
@@ -122,11 +157,69 @@ describe('authService email redirects', () => {
     })
   })
 
+  test('sends signup confirmation with the auth page as redirect', async () => {
+    await signUp({
+      email: 'user@example.com',
+      password: 'example-password',
+      fullName: 'User Example',
+      username: 'user_example',
+    })
+
+    expect(signUpMock).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      password: 'example-password',
+      options: {
+        emailRedirectTo: expect.stringContaining('/auth'),
+        data: {
+          full_name: 'User Example',
+          username: 'user_example',
+        },
+      },
+    })
+  })
+
+  test('resends signup confirmation with a valid redirect URL', async () => {
+    await resendSignupConfirmation('user@example.com')
+
+    expect(resendMock).toHaveBeenCalledWith({
+      type: 'signup',
+      email: 'user@example.com',
+      options: {
+        emailRedirectTo: expect.stringContaining('/auth'),
+      },
+    })
+  })
+
   test('sends password reset email with a valid redirect URL', async () => {
     await requestPasswordReset('user@example.com')
 
     expect(resetPasswordForEmailMock).toHaveBeenCalledWith('user@example.com', {
       redirectTo: expect.stringContaining('/reset-password'),
     })
+  })
+
+  test('saves and syncs pending avatar after signup when session is established', async () => {
+    const file = new File(['fake webp data'], 'avatar.webp', { type: 'image/webp' })
+    await savePendingAvatar('user@example.com', 'user-123', 'User Example', 'user_example', file)
+
+    getSessionMock.mockResolvedValue({
+      data: {
+        session: {
+          user: { id: 'user-123', email: 'user@example.com', user_metadata: {} },
+        },
+      },
+      error: null,
+    })
+
+    const syncedUrl = await checkAndSyncPendingAvatar({ id: 'user-123', email: 'user@example.com' })
+    expect(syncedUrl).toBe('https://example.com/avatar.webp')
+    expect(profilesUpsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'user-123',
+        username: 'user_example',
+        avatar_url: 'https://example.com/avatar.webp',
+      }),
+      { onConflict: 'id' }
+    )
   })
 })

@@ -55,6 +55,7 @@
                         :metadata-missing-fields="metadataMissingFields"
                         :auto-filled-fields="autoFilledFields"
                         :cover-metadata-warning="metadataCoverWarning"
+                        :embedded-cover="embeddedCoverFile"
                         show-rights-declaration
                         @submit="submitForm"
                     />
@@ -90,6 +91,7 @@ const metadataMessage = ref('');
 const fileReadCompleted = ref(false);
 const metadataLookupCompleted = ref(false);
 const metadataCoverWarning = ref(false);
+const embeddedCoverFile = ref<File | null>(null);
 const autoFilledFields = ref<AutoFilledField[]>([]);
 let metadataRequestId = 0;
 let metadataController: AbortController | null = null;
@@ -149,6 +151,8 @@ const processFile = (file: File) => {
     fileReadCompleted.value = false;
     metadataLookupCompleted.value = false;
     metadataCoverWarning.value = false;
+    embeddedCoverFile.value = null;
+    form.cover = null;
     autoFilledFields.value = [];
     metadataMessage.value = 'Lendo o arquivo e buscando metadados na Open Library...';
     void lookupMetadata(file, requestId, metadataController.signal);
@@ -164,6 +168,7 @@ const clearSelectedFile = (force = false) => {
     metadataMessage.value = '';
     metadataLookupCompleted.value = false;
     metadataCoverWarning.value = false;
+    embeddedCoverFile.value = null;
     autoFilledFields.value = [];
 };
 
@@ -187,9 +192,12 @@ const lookupMetadata = async (file: File, requestId: number, signal: AbortSignal
         });
         if (requestId !== metadataRequestId) return;
 
+        embeddedCoverFile.value = result?.embeddedCover ?? null;
         if (!result?.metadata) {
             metadataLookupCompleted.value = true;
-            metadataMessage.value = result?.extractionWarning
+            metadataMessage.value = result?.lookupWarning
+                ? 'Não foi possível consultar a Open Library. Preencha os dados manualmente.'
+                : result?.extractionWarning
                 ? 'Não foi possível ler o arquivo. Preencha os dados manualmente.'
                 : 'Nenhuma correspondência encontrada. Preencha os dados manualmente.';
             return;
@@ -267,6 +275,7 @@ const resetForm = () => {
     form.language = '';
     form.description = '';
     form.cover = null;
+    embeddedCoverFile.value = null;
     form.rightsDeclarationAccepted = false;
 };
 

@@ -1,17 +1,24 @@
 <template>
     <IonPage>
         <IonModal :is-open="isTermsModalOpen" @didDismiss="closeTermsModal" class="terms-modal">
-            <IonHeader>
+            <IonHeader class="terms-modal-header">
                 <IonToolbar>
                     <IonTitle>Termos de Uso</IonTitle>
                     <IonButtons slot="end">
-                        <IonButton @click="closeTermsModal">Fechar</IonButton>
+                        <IonButton
+                            class="terms-close-button"
+                            type="button"
+                            aria-label="Fechar termos de uso"
+                            @click="closeTermsModal"
+                        >
+                            <IonIcon slot="icon-only" :icon="closeOutline" />
+                        </IonButton>
                     </IonButtons>
                 </IonToolbar>
             </IonHeader>
 
             <IonContent class="terms-modal-content">
-                <div class="terms-modal-body">
+                <div class="terms-modal-body nv-surface">
                     <p>
                         Ao acessar ou utilizar a NexusVault, você concorda com estes Termos de Uso. A plataforma é
                         destinada à organização, preservação e descoberta colaborativa de documentos e materiais de
@@ -43,6 +50,28 @@
                     </p>
                 </div>
             </IonContent>
+            <IonFooter class="terms-modal-footer">
+                <IonToolbar>
+                    <div class="terms-footer-actions">
+                        <IonButton
+                            class="terms-decline-button"
+                            expand="block"
+                            type="button"
+                            @click="declineTermsModal"
+                        >
+                            Recusar termos
+                        </IonButton>
+                        <IonButton
+                            class="terms-accept-button"
+                            expand="block"
+                            type="button"
+                            @click="acceptTermsModal"
+                        >
+                            Aceitar termos
+                        </IonButton>
+                    </div>
+                </IonToolbar>
+            </IonFooter>
         </IonModal>
 
         <IonContent class="auth-content" :scroll-y="true">
@@ -63,7 +92,7 @@
                     </aside>
 
                     <section class="auth-panel">
-                        <div class="brand-header">
+                        <div class="brand-header" :class="{ 'brand-header--compact': mode === 'forgot-password' }">
                             <ion-button class="back-button" fill="clear" type="button" aria-label="Voltar à página anterior"
                                 @click="goBack">
                                 <ion-icon slot="icon-only" :icon="arrowBackOutline" />
@@ -78,26 +107,34 @@
                         <form v-if="mode === 'login'" class="auth-form" @submit.prevent="handleLogin">
                             <div class="form-group">
                                 <label for="login-email">E-mail</label>
-                                <ion-input id="login-email" v-model="loginForm.email" type="email"
+                                <ion-input id="login-email" v-model="loginForm.email" type="email" fill="outline"
                                     placeholder="Digite seu e-mail" class="custom-input" required />
                             </div>
                             <div class="form-group">
                                 <label for="login-password">Senha</label>
-                                <ion-input id="login-password" v-model="loginForm.password" type="password"
+                                <ion-input id="login-password" v-model="loginForm.password" type="password" fill="outline"
                                     placeholder="Digite sua senha" class="custom-input" required />
                             </div>
                             <div class="forgot-link-container">
                                 <a class="text-link" @click.prevent="setMode('forgot-password')">Esqueci a senha</a>
                             </div>
+                            <button v-if="confirmationRequired" type="button" class="button-link text-link"
+                                :disabled="loading || !loginForm.email.trim()"
+                                @click="handleResendConfirmation">
+                                Reenviar e-mail de confirmação
+                            </button>
                             <ion-button type="submit" expand="block" class="primary-button" :disabled="loading">
                                 <span v-if="!loading">Entrar</span>
                                 <ion-spinner v-else name="crescent" />
                             </ion-button>
-                            <ion-button type="button" expand="block" fill="clear" class="secondary-button"
+                            <ion-button type="button" expand="block" fill="outline" class="secondary-button"
                                 :disabled="loading" @click="handleMagicLinkLogin">
                                 <span v-if="!loading">Entrar com Magic Link</span>
                                 <ion-spinner v-else name="crescent" />
                             </ion-button>
+                            <p v-if="magicLinkRequested" class="auth-email-note" role="status">
+                                Não recebeu o e-mail? Verifique sua caixa de spam.
+                            </p>
                             <div class="switch-mode-text">
                                 Não possui uma conta?
                                 <a class="text-link font-bold" @click.prevent="setMode('register')">Cadastre-se</a>
@@ -109,29 +146,43 @@
                                 hint="JPEG, PNG ou WebP — convertida automaticamente" @selected="setAvatar" />
                             <div class="form-group">
                                 <label for="register-name">Nome Completo</label>
-                                <ion-input id="register-name" v-model="registerForm.fullName" type="text"
+                                <ion-input id="register-name" v-model="registerForm.fullName" type="text" fill="outline"
                                     placeholder="Seu nome completo" class="custom-input" required />
                             </div>
                             <div class="form-group">
                                 <label for="register-username">Nome de usuário</label>
-                                <ion-input id="register-username" v-model="registerForm.username" type="text"
+                                <ion-input id="register-username" v-model="registerForm.username" type="text" fill="outline"
                                     placeholder="@seu.usuario" class="custom-input" required />
                             </div>
                             <div class="form-group">
                                 <label for="register-email">E-mail</label>
-                                <ion-input id="register-email" v-model="registerForm.email" type="email"
+                                <ion-input id="register-email" v-model="registerForm.email" type="email" fill="outline"
                                     placeholder="seu.email@exemplo.com" class="custom-input" required />
                             </div>
                             <div class="form-group">
                                 <label for="register-password">Senha</label>
-                                <ion-input id="register-password" v-model="registerForm.password" type="password"
-                                    placeholder="Crie sua senha" class="custom-input" required />
+                                <div class="password-field">
+                                    <ion-input id="register-password" v-model="registerForm.password"
+                                        :type="signupPasswordVisible ? 'text' : 'password'" fill="outline"
+                                        placeholder="Crie sua senha" class="custom-input password-input"
+                                        required :minlength="8" autocomplete="new-password" />
+                                    <ion-button class="password-toggle" fill="clear" type="button"
+                                        :aria-label="signupPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'"
+                                        :aria-pressed="signupPasswordVisible"
+                                        @click="signupPasswordVisible = !signupPasswordVisible">
+                                        <ion-icon slot="icon-only"
+                                            :icon="signupPasswordVisible ? eyeOffOutline : eyeOutline" />
+                                    </ion-button>
+                                </div>
+                                <small class="password-hint">Use pelo menos 8 caracteres.</small>
                             </div>
 
                             <div class="terms-consent">
                                 <input id="register-terms" v-model="termsAccepted" type="checkbox" required />
                                 <label for="register-terms">Li e aceito os</label>
-                                <button type="button" class="text-link terms-link" @click="openTermsModal">Termos de Uso</button>
+                                <button type="button" class="text-link terms-link" @click="openTermsModal">
+                                    Termos de Uso
+                                </button>
                                 <span>da NexusVault.</span>
                             </div>
 
@@ -149,9 +200,16 @@
 
                         <form v-else-if="mode === 'forgot-password'" class="auth-form"
                             @submit.prevent="handleForgotPassword">
+                            <header class="auth-intro">
+                                <h1 class="nv-heading-h4">Recuperar senha</h1>
+                                <p class="nv-page-description">
+                                    Digite o e-mail associado à sua conta e enviaremos um link com instruções para
+                                    redefinir sua senha.
+                                </p>
+                            </header>
                             <div class="form-group">
-                                <label for="forgot-email">E-mail cadastrado</label>
-                                <ion-input id="forgot-email" v-model="forgotEmail" type="email"
+                                <label for="forgot-email">E-mail</label>
+                                <ion-input id="forgot-email" v-model="forgotEmail" type="email" fill="outline"
                                     placeholder="Digite seu e-mail" class="custom-input" required />
                             </div>
                             <ion-button type="submit" expand="block" class="primary-button" :disabled="loading">
@@ -165,10 +223,28 @@
                         </form>
 
                         <form v-else class="auth-form" @submit.prevent="handleResetPassword">
+                            <header class="auth-intro">
+                                <h1 class="nv-heading-h4">Criar nova senha</h1>
+                                <p class="nv-page-description">
+                                    Crie uma senha forte e segura para sua conta.
+                                </p>
+                            </header>
                             <div class="form-group">
                                 <label for="reset-password">Nova senha</label>
-                                <ion-input id="reset-password" v-model="resetPasswordForm.password" type="password"
-                                    placeholder="Digite sua nova senha" class="custom-input" required :minlength="6" />
+                                <div class="password-field">
+                                    <ion-input id="reset-password" v-model="resetPasswordForm.password"
+                                        :type="resetPasswordVisible ? 'text' : 'password'" fill="outline"
+                                        placeholder="Digite sua nova senha" class="custom-input password-input"
+                                        required :minlength="6" autocomplete="new-password" />
+                                    <ion-button class="password-toggle" fill="clear" type="button"
+                                        :aria-label="resetPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'"
+                                        :aria-pressed="resetPasswordVisible"
+                                        @click="resetPasswordVisible = !resetPasswordVisible">
+                                        <ion-icon slot="icon-only"
+                                            :icon="resetPasswordVisible ? eyeOffOutline : eyeOutline" />
+                                    </ion-button>
+                                </div>
+                                <small class="password-hint">Use pelo menos 6 caracteres.</small>
                             </div>
                             <ion-button type="submit" expand="block" class="primary-button" :disabled="loading">
                                 <span v-if="!loading">Alterar Senha</span>
@@ -188,6 +264,7 @@ import {
     IonButton,
     IonButtons,
     IonContent,
+    IonFooter,
     IonHeader,
     IonIcon,
     IonInput,
@@ -198,15 +275,33 @@ import {
     IonToolbar
 } from '@ionic/vue';
 import { useRouter } from 'vue-router';
-import { arrowBackOutline } from 'ionicons/icons';
+import { arrowBackOutline, closeOutline, eyeOffOutline, eyeOutline } from 'ionicons/icons';
 import AuthAvatarPicker from '@/components/AuthAvatarPicker.vue';
 import { useAuth } from '@/composables/useAuth';
 
 const router = useRouter();
 const termsAccepted = ref(false);
 const isTermsModalOpen = ref(false);
+const signupPasswordVisible = ref(false);
+const resetPasswordVisible = ref(false);
+
+const acceptTermsModal = () => {
+    termsAccepted.value = true;
+    closeTermsModal();
+};
+
+const declineTermsModal = () => {
+    termsAccepted.value = false;
+    closeTermsModal();
+};
 
 const goBack = () => {
+    if (mode.value === 'reset-password') {
+        setMode('login');
+        void router.replace('/auth');
+        return;
+    }
+
     if (window.history.length > 1) {
         router.back();
         return;
@@ -225,8 +320,9 @@ const closeTermsModal = () => {
 
 const {
     mode, loading, loginForm, registerForm, forgotEmail, resetPasswordForm,
-    avatarPreviewUrl, setMode, setAvatar,
-    handleLogin, handleRegister, handleMagicLinkLogin, handleForgotPassword, handleResetPassword
+    avatarPreviewUrl, confirmationRequired, magicLinkRequested, setMode, setAvatar,
+    handleLogin, handleRegister, handleMagicLinkLogin, handleResendConfirmation,
+    handleForgotPassword, handleResetPassword
 } = useAuth();
 </script>
 
@@ -345,8 +441,30 @@ const {
 }
 
 .brand-header {
+    display: flex;
     position: relative;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
     margin-bottom: 38px;
+}
+
+.brand-header--compact {
+    margin-bottom: 24px;
+}
+
+.auth-intro {
+    display: grid;
+    gap: var(--space-xs);
+}
+
+.auth-intro .nv-heading-h4,
+.auth-intro .nv-page-description {
+    margin: 0;
+}
+
+.auth-intro .nv-page-description {
+    line-height: 1.6;
 }
 
 .back-button {
@@ -395,8 +513,8 @@ const {
 }
 
 .custom-input {
-    --background: var(--color-surface);
-    --border-color: var(--color-border-soft);
+    --background: #fff;
+    --border-color: var(--color-border, #c9c7c4);
     --border-radius: var(--radius-control, var(--radius-sm));
     --border-style: solid;
     --border-width: 1px;
@@ -412,6 +530,31 @@ const {
 .custom-input:focus-within {
     --border-color: var(--color-brand-primary, #3B52F6);
     box-shadow: 0 0 0 3px rgba(59, 82, 246, 0.12);
+}
+
+.password-field {
+    position: relative;
+}
+
+.password-input {
+    --padding-end: 48px;
+}
+
+.password-toggle {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    right: 4px;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    --color: var(--color-text-secondary, #4A4E69);
+    transform: translateY(-50%);
+}
+
+.password-hint {
+    color: var(--color-text-secondary, #4A4E69);
+    font-size: 0.75rem;
 }
 
 .forgot-link-container {
@@ -430,11 +573,20 @@ const {
     text-decoration: underline;
 }
 
+.auth-email-note {
+    margin: -8px 0 0;
+    color: var(--color-text-secondary, #4A4E69);
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
 .terms-link {
     background: transparent;
     border: 0;
     padding: 0;
     font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
 }
 
 .terms-consent {
@@ -448,11 +600,42 @@ const {
 }
 
 .terms-consent input {
-    width: 16px;
-    height: 16px;
+    position: relative;
+    display: grid;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    place-content: center;
     margin: 0 5px 0 0;
-    accent-color: var(--color-brand-primary, #3B52F6);
+    appearance: none;
+    border: 1px solid var(--color-border, #8a8790);
+    border-radius: 4px;
+    background: #fff;
     cursor: pointer;
+}
+
+.terms-consent input::before {
+    width: 10px;
+    height: 6px;
+    border: solid #fff;
+    border-width: 0 0 2px 2px;
+    content: '';
+    transform: rotate(-45deg) scale(0);
+    transition: transform 0.12s ease;
+}
+
+.terms-consent input:checked {
+    border-color: var(--color-brand-primary, #3B52F6);
+    background: var(--color-brand-primary, #3B52F6);
+}
+
+.terms-consent input:checked::before {
+    transform: rotate(-45deg) scale(1);
+}
+
+.terms-consent input:focus-visible {
+    outline: 3px solid rgb(83 83 143 / 24%);
+    outline-offset: 2px;
 }
 
 .terms-consent label {
@@ -492,10 +675,18 @@ const {
     text-transform: none;
 }
 
+.primary-button[disabled] {
+    --background: var(--color-primary-dark, #2D2D2D);
+    --color: #FFFFFF;
+    opacity: 0.72;
+}
+
 .secondary-button {
-    --background: transparent;
-    --background-hover: rgba(59, 82, 246, 0.06);
-    --color: var(--color-brand-primary, #3B52F6);
+    --background: var(--color-surface);
+    --background-hover: var(--color-surface-alt);
+    --color: var(--color-text-primary, #22223B);
+    --border-color: var(--color-border, #777);
+    --border-width: 1px;
     --border-radius: var(--radius-control, var(--radius-sm));
     font-weight: 700;
     height: 48px;
@@ -506,6 +697,7 @@ const {
 .terms-modal {
     --height: min(80vh, 760px);
     --width: min(760px, 92vw);
+    --border-radius: var(--radius-lg);
 }
 
 .terms-modal-content {
@@ -513,14 +705,90 @@ const {
 }
 
 .terms-modal-body {
-    padding: 20px 20px 32px;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0 auto;
+    padding: var(--space-md) var(--space-md) calc(var(--space-xl) + var(--space-lg) + env(safe-area-inset-bottom, 0px));
     color: var(--color-text-primary, #22223B);
-    line-height: 1.7;
+    line-height: 1.6;
 }
 
 .terms-modal-body p {
     margin: 0 0 12px;
     color: var(--color-text-secondary, #4A4E69);
+    line-height: inherit;
+}
+
+:global(ion-modal.terms-modal ion-header ion-toolbar) {
+    --background: var(--color-primary-dark);
+    --color: var(--color-white);
+    --border-color: transparent;
+    --min-height: 56px;
+}
+
+:global(ion-modal.terms-modal ion-header ion-title) {
+    color: var(--color-white);
+    font-weight: 700;
+}
+
+.terms-close-button {
+    --color: var(--color-white);
+    --border-radius: 50%;
+    min-width: 44px;
+    min-height: 44px;
+    margin-inline-end: var(--space-xs);
+}
+
+:global(ion-modal.terms-modal ion-footer) {
+    --background: var(--color-surface);
+}
+
+:global(ion-modal.terms-modal ion-footer ion-toolbar) {
+    --background: var(--color-surface);
+    --color: var(--color-text-primary);
+    --padding-start: var(--space-md);
+    --padding-end: var(--space-md);
+    --padding-top: var(--space-sm);
+    --padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+}
+
+.terms-accept-button {
+    --background: var(--color-primary-dark);
+    --background-hover: #1a1a1a;
+    --color: #fff;
+    --border-radius: var(--radius-control);
+    min-height: var(--control-height);
+    margin: 0;
+    font-weight: 700;
+    text-transform: none;
+}
+
+.terms-accept-button::part(native) {
+    color: #fff;
+}
+
+.terms-footer-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.terms-footer-actions ion-button {
+    flex: 1;
+    min-width: 0;
+}
+
+.terms-decline-button {
+    --background: var(--color-surface);
+    --background-hover: var(--color-surface-alt);
+    --color: var(--color-text-primary);
+    --border-color: var(--color-border-soft);
+    --border-style: solid;
+    --border-width: 1px;
+    --border-radius: var(--radius-control);
+    min-height: var(--control-height);
+    margin: 0;
+    font-weight: 700;
+    text-transform: none;
 }
 
 @media (max-width: 780px) {
@@ -540,6 +808,24 @@ const {
 
     .auth-panel {
         padding: 36px 24px 40px;
+    }
+
+    .terms-modal {
+        --height: 100%;
+        --width: 100%;
+        --max-height: 100%;
+        --max-width: 100%;
+        --border-radius: 0;
+    }
+
+    .terms-modal-body {
+        max-width: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        background: var(--color-surface);
+        padding: var(--space-md);
+        padding-bottom: calc(var(--space-xl) + var(--space-lg) + env(safe-area-inset-bottom, 0px));
     }
 }
 

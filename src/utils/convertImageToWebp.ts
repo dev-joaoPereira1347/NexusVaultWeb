@@ -20,6 +20,10 @@ export const convertImageToWebp = async (
         throw new Error('Selecione um arquivo de imagem.');
     }
 
+    if (file.type === 'image/webp' && (!options || Object.keys(options).length === 0)) {
+        return file;
+    }
+
     const maxSize = options?.maxSize ?? DEFAULT_MAX_SIZE;
     const quality = options?.quality ?? DEFAULT_QUALITY;
     const bitmap = await createImageBitmap(file);

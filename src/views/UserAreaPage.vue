@@ -12,12 +12,6 @@
                         <p>Gerencie seu perfil, acompanhe o progresso de leitura, suas avaliações e contribuições para o
                             acervo.</p>
                     </div>
-                    <div class="identity-actions">
-                        <ion-button fill="outline" class="ghost-button" :disabled="pageLoading" @click="handleSignOut">
-                            <ion-icon slot="start" :icon="logOutOutline" />
-                            Sair
-                        </ion-button>
-                    </div>
                 </section>
 
                 <!-- PageLoading State -->
@@ -71,7 +65,8 @@
 
                             <form class="stack-form" @submit.prevent="handleSaveProfile">
                                 <AuthAvatarPicker :preview-url="avatarPreviewUrl"
-                                    hint="Formatos suportados: JPEG, PNG ou WebP" @selected="setAvatar" />
+                                    hint="Toque na foto para alterar. JPEG, PNG ou WebP."
+                                    @selected="setAvatar" />
 
                                 <div class="form-group">
                                     <label for="fullName">Nome completo</label>
@@ -89,6 +84,7 @@
                                     <label for="email">E-mail</label>
                                     <ion-input id="email" v-model="profileForm.email" type="email" inputmode="email"
                                         class="field" placeholder="seuemail@dominio.com" required enterkeyhint="done" />
+                                    <span class="field-hint">A alteração do e-mail pode exigir confirmação.</span>
                                 </div>
 
                                 <ion-button type="submit" class="primary-button" :disabled="savingProfile">
@@ -151,7 +147,8 @@
                                 </div>
                                 <div class="upload-panel-actions">
                                     <ion-button v-if="uploadRequests.some((item) => ['pending', 'processing', 'scanning'].includes(item.status))"
-                                        fill="outline" :disabled="checkingUploads" @click="refreshUploadStatuses">
+                                        fill="outline" class="status-check-button" :disabled="checkingUploads"
+                                        @click="refreshUploadStatuses">
                                         <ion-spinner v-if="checkingUploads" name="crescent" />
                                         <span v-else>Verificar status</span>
                                     </ion-button>
@@ -212,20 +209,21 @@
                                                 getFileExtension(item.file_name) }}</span>
                                         </div>
                                         <div class="media-actions">
-                                            <ion-button fill="clear" size="small"
+                                            <ion-button fill="clear" size="small" class="media-action-button"
+                                                :aria-label="`Visualizar ${item.title}`" :title="`Visualizar ${item.title}`"
                                                 :router-link="{ name: 'DocumentDetails', params: { id: item.id } }">
-                                                <ion-icon slot="start" :icon="eyeOutline" />
-                                                Visualizar
+                                                <ion-icon slot="icon-only" :icon="eyeOutline" />
                                             </ion-button>
-                                            <ion-button fill="outline" size="small" :disabled="savingContribution"
+                                            <ion-button fill="clear" size="small" class="media-action-button"
+                                                :aria-label="`Editar ${item.title}`" :title="`Editar ${item.title}`"
+                                                :disabled="savingContribution"
                                                 @click="openContributionEditor(item)">
-                                                <ion-icon slot="start" :icon="pencilOutline" />
-                                                Editar
+                                                <ion-icon slot="icon-only" :icon="pencilOutline" />
                                             </ion-button>
-                                            <ion-button fill="clear" color="danger" size="small"
+                                            <ion-button fill="clear" color="danger" size="small" class="media-action-button"
+                                                :aria-label="`Excluir ${item.title}`" :title="`Excluir ${item.title}`"
                                                 :disabled="savingContribution" @click="handleDeleteContribution(item)">
-                                                <ion-icon slot="start" :icon="trashOutline" />
-                                                Excluir
+                                                <ion-icon slot="icon-only" :icon="trashOutline" />
                                             </ion-button>
                                         </div>
                                     </div>
@@ -249,26 +247,41 @@
                             </div>
 
                             <div v-else class="interactive-list">
-                                <article v-for="item in progressList" :key="item.id" class="list-item-card">
-                                    <div class="item-title-block">
-                                        <strong>{{ item.title }}</strong>
-                                        <span>{{ item.author }}</span>
-                                    </div>
+                                <article v-for="item in progressList" :key="item.id" class="list-item-card progress-card">
+                                    <RouterLink
+                                        class="progress-card-link"
+                                        :to="{ name: 'DocumentDetails', params: { id: item.document_id }, query: { openReader: 'true' } }"
+                                        :aria-label="`Continuar lendo ${item.title}, ${item.percent}% concluído`"
+                                    >
+                                        <div class="item-title-block">
+                                            <strong>{{ item.title }}</strong>
+                                            <span>{{ item.author }}</span>
+                                        </div>
 
-                                    <div class="item-controls">
+                                        <div
+                                            class="progress-bar"
+                                            role="progressbar"
+                                            :aria-label="`Progresso de leitura de ${item.title}`"
+                                            aria-valuemin="0"
+                                            aria-valuemax="100"
+                                            :aria-valuenow="Math.min(100, Math.max(0, item.percent))"
+                                        >
+                                            <span :style="{ width: `${Math.min(100, Math.max(0, item.percent))}%` }" />
+                                        </div>
+
                                         <p class="progress-summary">
                                             <span v-if="item.page > 0">Página {{ item.page }} · </span>
                                             <span v-else>Progresso por rolagem · </span>
                                             {{ item.percent }}% ·
                                             {{ item.status === 'lido' ? 'Concluído' : item.status === 'pausado' ? 'Pausado' : 'Em andamento' }}
                                         </p>
+                                    </RouterLink>
 
-                                        <div class="button-group">
-                                            <ion-button size="small" fill="clear" color="danger"
-                                                :disabled="savingProgress" @click="handleDeleteProgress(item.id)">
-                                                <ion-icon :icon="trashOutline" slot="icon-only" />
-                                            </ion-button>
-                                        </div>
+                                    <div class="button-group">
+                                        <ion-button size="small" fill="clear" color="danger"
+                                            :disabled="savingProgress" @click="handleDeleteProgress(item.id)">
+                                            <ion-icon :icon="trashOutline" slot="icon-only" />
+                                        </ion-button>
                                     </div>
                                 </article>
                             </div>
@@ -278,14 +291,14 @@
                     <!-- Aba 4: Minhas Avaliações -->
                     <div v-else-if="selectedTab === 'reviews'" id="reviews-panel" role="tabpanel"
                         aria-labelledby="reviews-tab" class="tab-content">
-                        <section class="panel" aria-labelledby="reviews-title">
+                        <section class="panel reviews-panel" aria-labelledby="reviews-title">
                             <div class="panel-header-simple">
                                 <h2 id="reviews-title">Minhas avaliações</h2>
                                 <p class="panel-subtitle">Classifique obras e compartilhe suas análises com a
                                     comunidade.</p>
                             </div>
 
-                            <form class="grid-form" @submit.prevent="handleCreateReview">
+                            <form class="grid-form reviews-form" @submit.prevent="handleCreateReview">
                                 <div class="form-group span-2">
                                     <label>Documento</label>
                                     <select v-model="reviewDraft.documentId" class="native-select" required>
@@ -364,6 +377,13 @@
                         </section>
                     </div>
                 </template>
+
+                <div class="sign-out-action">
+                    <ion-button fill="clear" class="sign-out-button" :disabled="pageLoading" @click="handleSignOut">
+                        <ion-icon slot="start" :icon="logOutOutline" />
+                        Sair da conta
+                    </ion-button>
+                </div>
             </main>
 
             <SiteFooter />
@@ -565,6 +585,25 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     font-size: 0.95rem;
 }
 
+.field-hint {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-caption);
+}
+
+.sign-out-action {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--space-sm);
+    padding-bottom: calc(var(--space-xl) + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--color-border-soft);
+}
+
+.sign-out-button {
+    --color: var(--color-text-secondary);
+    margin: 0;
+    text-transform: none;
+}
+
 /* User area tabs */
 .tab-navigation {
     display: grid;
@@ -658,6 +697,15 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     gap: 10px;
 }
 
+.status-check-button {
+    --border-color: var(--color-brand-primary, #53538F);
+    --color: var(--color-brand-primary, #53538F);
+    --border-radius: var(--radius-md, 12px);
+    margin: 0;
+    font-weight: 600;
+    text-transform: none;
+}
+
 .scan-explanation {
     margin: 0;
 }
@@ -707,9 +755,11 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
 
 .grid-form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
     gap: 16px;
     align-items: end;
+    min-width: 0;
+    box-sizing: border-box;
     padding: 20px;
     border: 1px solid var(--color-border-soft, #E2DAD3);
     border-radius: var(--radius-md, 12px);
@@ -720,6 +770,7 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    min-width: 0;
 }
 
 .form-group label {
@@ -736,6 +787,16 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     align-self: end;
 }
 
+.reviews-form > * {
+    min-width: 0;
+}
+
+.reviews-form .btn-align-end {
+    width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+}
+
 /* Inputs & Form Controls */
 .field {
     --background: var(--color-white, #FFFFFF);
@@ -747,10 +808,16 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     --padding-end: 14px;
     --color: var(--color-text-primary, #22223B);
     min-height: var(--control-height);
+    width: 100%;
+    min-width: 0;
     font-size: 0.95rem;
 }
 
 .native-select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     height: var(--control-height);
     border: 1px solid var(--color-border-soft, #E2DAD3);
     border-radius: var(--radius-md, 12px);
@@ -805,7 +872,7 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: var(--color-brand-primary, #3B52F6);
+    background: var(--color-primary-dark, #2D2D2D);
     color: var(--color-white, #FFFFFF);
     padding: 10px 18px;
     border-radius: var(--radius-md, 12px);
@@ -837,8 +904,8 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
 }
 
 .cover-wrapper {
-    width: 52px;
-    height: 68px;
+    width: 64px;
+    height: 84px;
     flex-shrink: 0;
     border-radius: var(--radius-sm, 8px);
     overflow: hidden;
@@ -880,9 +947,25 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
 
 .media-actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    align-items: center;
+    gap: 4px;
     margin-top: 10px;
+}
+
+.media-actions :deep(.media-action-button) {
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    --color: var(--color-brand-primary, #53538F);
+    --border-radius: var(--radius-control, 8px);
+}
+
+.media-actions :deep(.media-action-button[color="danger"]) {
+    --color: var(--color-danger, #B42318);
+}
+
+.media-actions :deep(.media-action-button):hover {
+    --background: var(--color-surface-alt, #EEE5DE);
 }
 
 .contribution-editor {
@@ -980,6 +1063,45 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     font-size: 0.82rem;
 }
 
+.progress-card-link {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    gap: var(--space-sm);
+    color: inherit;
+    text-decoration: none;
+}
+
+.progress-card-link .item-title-block {
+    min-width: 0;
+}
+
+.progress-card-link:hover .item-title-block strong {
+    color: var(--color-brand-primary);
+}
+
+.progress-card-link:focus-visible {
+    border-radius: var(--radius-sm);
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 3px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-surface-alt, #EEE5DE);
+}
+
+.progress-bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-brand-primary);
+    transition: width 0.25s ease;
+}
+
 .width-full {
     width: 100%;
 }
@@ -1065,12 +1187,18 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
         align-items: flex-start;
     }
 
-    .identity-actions {
-        width: 100%;
+    .panel-header-simple {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-xs);
     }
 
-    .identity-actions ion-button {
-        width: 100%;
+    .panel-subtitle {
+        max-width: 100%;
+    }
+
+    .sign-out-action {
+        justify-content: center;
     }
 
     .span-2 {
@@ -1084,6 +1212,7 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
 
     .upload-panel-actions {
         width: 100%;
+        justify-content: flex-start;
     }
 
     .list-item-card {
@@ -1096,8 +1225,23 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
         justify-content: space-between;
     }
 
+    .progress-card-link {
+        width: 100%;
+    }
+
+    .progress-card {
+        flex-direction: row;
+        align-items: center;
+    }
+
     .grid-form {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .reviews-panel,
+    .reviews-form {
+        min-width: 0;
+        max-width: 100%;
     }
 }
 

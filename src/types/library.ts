@@ -43,6 +43,7 @@ export interface PublicLibraryItem {
     genre: string | null;
     content_type: string;
     year: number | null;
+    language?: string | null;
     description: string | null;
     file_name: string;
     cover_url: string;

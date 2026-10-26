@@ -8,9 +8,7 @@ const getAppBaseUrl = () => {
     const configuredBaseUrl = import.meta.env.VITE_APP_URL?.trim() || import.meta.env.VITE_SITE_URL?.trim();
     if (configuredBaseUrl) return configuredBaseUrl.replace(/\/+$/, '');
 
-    const baseUrl = import.meta.env.BASE_URL.endsWith('/')
-        ? import.meta.env.BASE_URL
-        : `${import.meta.env.BASE_URL}/`;
+    const baseUrl = (import.meta.env.BASE_URL || '').replace(/\/+$/, '');
     return `${window.location.origin}${baseUrl}`;
 };
 
@@ -32,10 +30,20 @@ export const signUp = (form: RegisterForm) =>
         email: form.email,
         password: form.password || '',
         options: {
+            emailRedirectTo: getAuthRedirectUrl('auth'),
             data: {
                 full_name: form.fullName,
                 username: form.username
             }
+        }
+    });
+
+export const resendSignupConfirmation = (email: string) =>
+    supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+            emailRedirectTo: getAuthRedirectUrl('auth')
         }
     });
 
@@ -73,7 +81,7 @@ export const getProfile = async (userId: string): Promise<ProfileData | null> =>
             ? userData.user.user_metadata.full_name
             : null,
         username: data.username,
-        avatar_url: data.avatar_url
+        avatar_url: data.avatar_url || (typeof userData.user?.user_metadata?.avatar_url === 'string' ? userData.user.user_metadata.avatar_url : null)
     };
 };
 
@@ -92,11 +100,13 @@ export const getPublicProfile = async (userId: string): Promise<Pick<ProfileData
 };
 
 export const uploadAvatar = async (userId: string, file: File): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const activeUserId = session?.user?.id || userId;
+
     const webpFile = await convertImageToWebp(file);
 
-    const filePath = `${userId}/${crypto.randomUUID()}.webp`;
+    const filePath = `${activeUserId}/${crypto.randomUUID()}.webp`;
     const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(filePath, webpFile, {
-        upsert: true,
         contentType: 'image/webp'
     });
 
@@ -106,6 +116,31 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string> 
     if (!data.publicUrl) throw new Error('Não foi possível gerar a URL pública do avatar.');
 
     return data.publicUrl;
+};
+
+export const deleteStoredAvatar = async (userId: string, avatarUrl: string): Promise<void> => {
+    if (!avatarUrl) return;
+
+    const publicPathPrefix = `/storage/v1/object/public/${AVATAR_BUCKET}/`;
+    let pathname: string;
+    try {
+        pathname = new URL(avatarUrl).pathname;
+    } catch {
+        return;
+    }
+
+    const prefixIndex = pathname.indexOf(publicPathPrefix);
+    if (prefixIndex === -1) return;
+
+    const objectPath = pathname.slice(prefixIndex + publicPathPrefix.length)
+        .split('/')
+        .map((segment) => decodeURIComponent(segment))
+        .join('/');
+
+    if (!objectPath.startsWith(`${userId}/`)) return;
+
+    const { error } = await supabase.storage.from(AVATAR_BUCKET).remove([objectPath]);
+    if (error) throw error;
 };
 
 export const saveProfile = async (userId: string, profile: ProfileForm): Promise<{ error: unknown | null; skipped: boolean }> => {
@@ -118,7 +153,16 @@ export const saveProfile = async (userId: string, profile: ProfileForm): Promise
         return { error: null, skipped: true };
     }
 
-    const { error: updateUserError } = await supabase.auth.updateUser({ data: { full_name: profile.fullName } });
+    const activeUserId = session.user.id || userId;
+
+    const updateUserResponse = await supabase.auth.updateUser({
+        data: {
+            full_name: profile.fullName,
+            username: profile.username,
+            avatar_url: profile.avatarUrl
+        }
+    });
+    const updateUserError = updateUserResponse?.error;
     if (updateUserError) {
         const message = updateUserError.message?.toLowerCase() || '';
         const isExpectedSessionIssue = message.includes('auth token missing')
@@ -133,13 +177,116 @@ export const saveProfile = async (userId: string, profile: ProfileForm): Promise
     }
 
     const result = await supabase.from('profiles').upsert({
-        id: userId,
+        id: activeUserId,
         username: profile.username,
         avatar_url: profile.avatarUrl,
         updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
 
-    return { error: result.error ?? null, skipped: false };
+    return { error: result?.error ?? null, skipped: false };
+};
+
+export interface PendingAvatarData {
+    email: string;
+    userId?: string;
+    fullName: string;
+    username: string;
+    dataUrl: string;
+    fileName: string;
+}
+
+const PENDING_AVATAR_KEY = 'nexusvault_pending_avatar';
+
+export const fileToDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+
+export const dataUrlToFile = (dataUrl: string, fileName: string): File => {
+    const arr = dataUrl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/webp';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], fileName, { type: mime });
+};
+
+export const savePendingAvatar = async (
+    email: string,
+    userId: string,
+    fullName: string,
+    username: string,
+    file: File
+): Promise<void> => {
+    try {
+        if (typeof window === 'undefined' || !window.localStorage) return;
+        const dataUrl = await fileToDataUrl(file);
+        const payload: PendingAvatarData = {
+            email: email.trim().toLowerCase(),
+            userId,
+            fullName,
+            username,
+            dataUrl,
+            fileName: file.name || 'avatar.webp'
+        };
+        localStorage.setItem(PENDING_AVATAR_KEY, JSON.stringify(payload));
+    } catch (err) {
+        console.warn('Não foi possível armazenar o avatar pendente localmente:', err);
+    }
+};
+
+export const checkAndSyncPendingAvatar = async (user?: { id: string; email?: string } | null): Promise<string | null> => {
+    try {
+        if (typeof window === 'undefined' || !window.localStorage) return null;
+
+        const raw = localStorage.getItem(PENDING_AVATAR_KEY);
+        if (!raw) return null;
+
+        let activeUser = user;
+        if (!activeUser?.id) {
+            const { data: { session } } = await supabase.auth.getSession();
+            activeUser = session?.user ?? null;
+        }
+
+        if (!activeUser?.id) return null;
+
+        const pending: PendingAvatarData = JSON.parse(raw);
+        const userEmail = (activeUser.email || '').trim().toLowerCase();
+        const matchesUser = (pending.userId && pending.userId === activeUser.id) ||
+                            (pending.email && pending.email === userEmail);
+
+        if (!matchesUser) return null;
+
+        const file = dataUrlToFile(pending.dataUrl, pending.fileName || 'avatar.webp');
+        const avatarUrl = await uploadAvatar(activeUser.id, file);
+
+        let username = pending.username;
+        let fullName = pending.fullName;
+        if (!username) {
+            const existing = await getProfile(activeUser.id);
+            username = existing?.username || '';
+            fullName = fullName || existing?.full_name || '';
+        }
+
+        await saveProfile(activeUser.id, {
+            fullName: fullName || '',
+            username: username || '',
+            avatarUrl
+        });
+
+        localStorage.removeItem(PENDING_AVATAR_KEY);
+        return avatarUrl;
+    } catch (err) {
+        console.error('Erro ao sincronizar avatar pendente:', err);
+        return null;
+    }
 };
 
 export const requestPasswordReset = (email: string) =>

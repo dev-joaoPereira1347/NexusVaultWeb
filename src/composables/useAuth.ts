@@ -1,9 +1,13 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { toastController } from '@ionic/vue';
 import { useRoute, useRouter } from 'vue-router';
+import { supabase } from '@/services/supabase';
 import {
+    checkAndSyncPendingAvatar,
     getCurrentSession,
     requestPasswordReset,
+    resendSignupConfirmation,
+    savePendingAvatar,
     saveProfile,
     sendMagicLink,
     signIn,
@@ -19,8 +23,10 @@ const emptyRegisterForm = (): RegisterForm => ({ fullName: '', username: '', ema
 export const useAuth = () => {
     const router = useRouter();
     const route = useRoute();
-    const mode = ref<AuthMode>('login');
+    const mode = ref<AuthMode>(route.query.mode === 'register' ? 'register' : 'login');
     const loading = ref(false);
+    const confirmationRequired = ref(false);
+    const magicLinkRequested = ref(false);
     const loginForm = ref(emptyLoginForm());
     const registerForm = ref(emptyRegisterForm());
     const forgotEmail = ref('');
@@ -42,7 +48,13 @@ export const useAuth = () => {
 
     const setMode = (newMode: AuthMode) => {
         mode.value = newMode;
+        if (newMode !== 'login') confirmationRequired.value = false;
     };
+
+    watch(() => loginForm.value.email, () => {
+        confirmationRequired.value = false;
+        magicLinkRequested.value = false;
+    });
 
     const setAvatar = (file: File) => {
         if (avatarPreviewUrl.value.startsWith('blob:')) URL.revokeObjectURL(avatarPreviewUrl.value);
@@ -70,6 +82,9 @@ export const useAuth = () => {
         if (normalizedMessage.includes('email rate limit exceeded')) {
             return 'Limite de envio de e-mails atingido. Aguarde alguns minutos antes de tentar novamente.';
         }
+        if (normalizedMessage.includes('error sending confirmation email')) {
+            return 'Não foi possível enviar o e-mail de confirmação. Verifique a configuração SMTP do projeto Supabase.';
+        }
         if (normalizedMessage.includes('redirect_to') || normalizedMessage.includes('redirect url')) {
             return 'A URL de recuperação não está autorizada no Supabase.';
         }
@@ -81,6 +96,9 @@ export const useAuth = () => {
         }
         if (normalizedMessage.includes('permission denied for table profiles')) {
             return 'Permissões da tabela profiles não configuradas no Supabase. Execute supabase/profiles-policies.sql no SQL Editor.';
+        }
+        if (normalizedMessage.includes('violates row-level security policy') || normalizedMessage.includes('row-level security')) {
+            return 'Permissão negada no Supabase (RLS). Execute supabase/avatars-storage-setup.sql e supabase/profiles-policies.sql no SQL Editor.';
         }
 
         return rawMessage || fallback;
@@ -100,22 +118,40 @@ export const useAuth = () => {
 
     const handleLogin = () => run(async () => {
         const { data, error } = await signIn(loginForm.value.email, loginForm.value.password);
-        if (error) throw error;
+        if (error) {
+            confirmationRequired.value = error.message.toLowerCase().includes('email not confirmed');
+            throw error;
+        }
+        confirmationRequired.value = false;
 
         if (!data.user) throw new Error('Não foi possível identificar o usuário autenticado.');
+
+        await checkAndSyncPendingAvatar(data.user);
 
         await showToast('Login realizado com sucesso!');
         await router.push(getRedirectPath('/home'));
     }, 'Erro ao realizar login.');
 
     const handleRegister = () => run(async () => {
-        const { data, error } = await signUp(registerForm.value);
+        const fileToUpload = avatarFile.value;
+        const formSnapshot = { ...registerForm.value };
+
+        const { data, error } = await signUp(formSnapshot);
         if (error) throw error;
 
         const user = data.user;
         if (!user) throw new Error('Falha ao criar a conta.');
 
         if (!data.session) {
+            if (fileToUpload) {
+                await savePendingAvatar(
+                    formSnapshot.email,
+                    user.id,
+                    formSnapshot.fullName,
+                    formSnapshot.username,
+                    fileToUpload
+                );
+            }
             registerForm.value = emptyRegisterForm();
             avatarFile.value = null;
             avatarPreviewUrl.value = '';
@@ -124,10 +160,10 @@ export const useAuth = () => {
             return;
         }
 
-        const avatarUrl = avatarFile.value ? await uploadAvatar(user.id, avatarFile.value) : '';
+        const avatarUrl = fileToUpload ? await uploadAvatar(user.id, fileToUpload) : '';
         const { error: profileError, skipped } = await saveProfile(user.id, {
-            fullName: registerForm.value.fullName,
-            username: registerForm.value.username,
+            fullName: formSnapshot.fullName,
+            username: formSnapshot.username,
             avatarUrl
         });
         if (profileError && !skipped) throw profileError;
@@ -136,7 +172,6 @@ export const useAuth = () => {
         avatarFile.value = null;
         avatarPreviewUrl.value = '';
         await showToast('Conta criada com sucesso!');
-        setMode('login');
         await router.push(getRedirectPath('/home'));
     }, 'Erro ao criar a conta.');
 
@@ -149,8 +184,19 @@ export const useAuth = () => {
         const { error } = await sendMagicLink(email);
         if (error) throw error;
 
-        await showToast('Magic Link enviado para o seu e-mail.');
+        magicLinkRequested.value = true;
+        await showToast('Solicitação enviada. Verifique sua caixa de entrada e a pasta de spam.');
     }, 'Erro ao enviar o Magic Link.');
+
+    const handleResendConfirmation = () => run(async () => {
+        const email = loginForm.value.email.trim();
+        if (!email) throw new Error('Informe seu e-mail para reenviar a confirmação.');
+
+        const { error } = await resendSignupConfirmation(email);
+        if (error) throw error;
+
+        await showToast('Se a conta ainda não foi confirmada, um novo e-mail será enviado.');
+    }, 'Erro ao reenviar o e-mail de confirmação.');
 
     const handleForgotPassword = () => run(async () => {
         const { error } = await requestPasswordReset(forgotEmail.value);
@@ -168,11 +214,36 @@ export const useAuth = () => {
         setMode('login');
     }, 'Erro ao alterar senha.');
 
+    let authSubscription: { unsubscribe: () => void } | null = null;
+
     onMounted(async () => {
         if (window.location.pathname === '/reset-password') {
             setMode('reset-password');
             return;
         }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const errorDesc = urlParams.get('error_description') || hashParams.get('error_description');
+        if (errorDesc) {
+            const cleanError = errorDesc.replace(/\+/g, ' ');
+            if (cleanError.toLowerCase().includes('expired') || cleanError.toLowerCase().includes('invalid')) {
+                await showToast('O link de acesso expirou ou já foi utilizado. Solicite um novo link.', 'warning');
+            } else {
+                await showToast(cleanError, 'danger');
+            }
+        }
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+                await checkAndSyncPendingAvatar(session.user);
+                if (route.name === 'Auth') {
+                    await showToast('Login realizado com sucesso!');
+                    await router.replace(getRedirectPath('/profile'));
+                }
+            }
+        });
+        authSubscription = subscription;
 
         const { data: { session } } = await getCurrentSession();
         if (session?.user && route.name === 'Auth') {
@@ -181,12 +252,18 @@ export const useAuth = () => {
     });
 
     onUnmounted(() => {
+        if (authSubscription) {
+            authSubscription.unsubscribe();
+            authSubscription = null;
+        }
         if (avatarPreviewUrl.value.startsWith('blob:')) URL.revokeObjectURL(avatarPreviewUrl.value);
     });
 
     return {
         mode, loading, loginForm, registerForm, forgotEmail, resetPasswordForm,
+        confirmationRequired, magicLinkRequested,
         avatarPreviewUrl, subtitleText, setMode, setAvatar,
-        handleLogin, handleRegister, handleMagicLinkLogin, handleForgotPassword, handleResetPassword
+        handleLogin, handleRegister, handleMagicLinkLogin, handleResendConfirmation,
+        handleForgotPassword, handleResetPassword
     };
 };

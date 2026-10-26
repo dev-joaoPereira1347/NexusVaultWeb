@@ -48,7 +48,7 @@
                     alt="Avatar do usuário"
                     class="nav-avatar"
                 />
-                <ion-icon v-else :icon="item.icon" aria-hidden="true" />
+                <ion-icon v-else :icon="isActive && item.activeIcon ? item.activeIcon : item.icon" aria-hidden="true" />
                 <span>{{ item.label }}</span>
             </a>
         </RouterLink>
@@ -60,15 +60,19 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { IonIcon, IonNote } from '@ionic/vue';
 import {
     homeOutline,
+    home,
     searchOutline,
-    libraryOutline,
+    search,
+    cloudUploadOutline,
+    cloudUpload,
     logInOutline,
-    personOutline
+    personOutline,
+    person
 } from 'ionicons/icons';
 import FooterLinkList from './FooterLinkList.vue';
 import SocialLinks from './SocialLinks.vue';
 import SiteLogo from './SiteLogo.vue';
-import { getCurrentSession, getProfile } from '@/services/authService';
+import { checkAndSyncPendingAvatar, getCurrentSession, getProfile } from '@/services/authService';
 import { supabase } from '@/services/supabase';
 
 const usefulLinks = [
@@ -80,11 +84,11 @@ const usefulLinks = [
 ];
 
 const navItems = computed(() => [
-    { label: 'Início', to: '/home', icon: homeOutline },
-    { label: 'Descobrir', to: '/search', icon: searchOutline },
-    { label: 'Upload', to: '/upload', icon: libraryOutline },
+    { label: 'Início', to: '/home', icon: homeOutline, activeIcon: home },
+    { label: 'Descobrir', to: '/search', icon: searchOutline, activeIcon: search },
+    { label: 'Upload', to: '/upload', icon: cloudUploadOutline, activeIcon: cloudUpload },
     currentUser.value
-        ? { label: 'Conta', to: '/profile', icon: personOutline }
+        ? { label: 'Conta', to: '/profile', icon: personOutline, activeIcon: person }
         : { label: 'Entrar', to: '/auth', icon: logInOutline }
 ]);
 
@@ -102,6 +106,10 @@ const updateUserAvatar = async (userId?: string) => {
     }
 
     try {
+        const { data: { session } } = await getCurrentSession();
+        if (session?.user) {
+            await checkAndSyncPendingAvatar(session.user);
+        }
         const profile = await getProfile(activeUserId);
         currentUser.value = true;
         avatarUrl.value = profile?.avatar_url || '';
@@ -270,10 +278,16 @@ onUnmounted(() => {
         border-radius: 50%;
         object-fit: cover;
         border: 1px solid rgba(154, 140, 152, 0.3);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .nav-item.active {
-        color: var(--color-primary, #2e7af7);
+        color: var(--color-brand-primary, #53538f);
+    }
+
+    .nav-item.active .nav-avatar {
+        border: 2px solid var(--color-brand-primary, #53538f);
+        box-shadow: 0 0 0 2px var(--color-surface);
     }
 }
 </style>

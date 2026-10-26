@@ -30,25 +30,24 @@
                 </p>
                 <ol v-else class="ranking-list">
                     <li v-for="(item, index) in mostAccessed" :key="item.id">
-                        <span class="rank-number">{{ index + 1 }}</span>
                         <RouterLink
-                            class="rank-cover"
+                            class="ranking-item"
                             :to="{ name: 'DocumentDetails', params: { id: item.id } }"
                             :aria-label="`Ver detalhes de ${item.title}`"
                         >
-                            <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`" />
-                            <ion-icon v-else :icon="documentTextOutline" aria-hidden="true" />
+                            <span class="rank-number">{{ index + 1 }}</span>
+                            <span class="rank-cover" aria-hidden="true">
+                                <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`" />
+                                <ion-icon v-else :icon="documentTextOutline" aria-hidden="true" />
+                            </span>
+                            <span class="rank-copy">
+                                <span class="rank-title">{{ item.title }}</span>
+                                <span>{{ item.author }}</span>
+                            </span>
+                            <span class="rank-count" :aria-label="`${item.access_count} acessos`">
+                                {{ formatCount(item.access_count) }}
+                            </span>
                         </RouterLink>
-                        <div class="rank-copy">
-                            <RouterLink class="rank-title" :to="{ name: 'DocumentDetails', params: { id: item.id } }">
-                                {{ item.title }}
-                            </RouterLink>
-                            <span>{{ item.author }}</span>
-                        </div>
-                        <span class="rank-count" :aria-label="`${item.access_count} acessos`">
-                            {{ formatCount(item.access_count) }}
-                            <small>{{ item.access_count === 1 ? 'acesso' : 'acessos' }}</small>
-                        </span>
                     </li>
                 </ol>
             </section>
@@ -65,25 +64,24 @@
                 </p>
                 <ol v-else class="ranking-list">
                     <li v-for="(item, index) in mostDownloaded" :key="item.id">
-                        <span class="rank-number">{{ index + 1 }}</span>
                         <RouterLink
-                            class="rank-cover"
+                            class="ranking-item"
                             :to="{ name: 'DocumentDetails', params: { id: item.id } }"
                             :aria-label="`Ver detalhes de ${item.title}`"
                         >
-                            <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`" />
-                            <ion-icon v-else :icon="documentTextOutline" aria-hidden="true" />
+                            <span class="rank-number">{{ index + 1 }}</span>
+                            <span class="rank-cover" aria-hidden="true">
+                                <img v-if="item.cover_url" :src="item.cover_url" :alt="`Capa de ${item.title}`" />
+                                <ion-icon v-else :icon="documentTextOutline" aria-hidden="true" />
+                            </span>
+                            <span class="rank-copy">
+                                <span class="rank-title">{{ item.title }}</span>
+                                <span>{{ item.author }}</span>
+                            </span>
+                            <span class="rank-count" :aria-label="`${item.download_count} downloads`">
+                                {{ formatCount(item.download_count) }}
+                            </span>
                         </RouterLink>
-                        <div class="rank-copy">
-                            <RouterLink class="rank-title" :to="{ name: 'DocumentDetails', params: { id: item.id } }">
-                                {{ item.title }}
-                            </RouterLink>
-                            <span>{{ item.author }}</span>
-                        </div>
-                        <span class="rank-count" :aria-label="`${item.download_count} downloads`">
-                            {{ formatCount(item.download_count) }}
-                            <small>{{ item.download_count === 1 ? 'download' : 'downloads' }}</small>
-                        </span>
                     </li>
                 </ol>
             </section>
@@ -195,8 +193,8 @@ onIonViewWillEnter(() => {
 }
 
 .category-filter select {
-    min-height: 42px;
-    padding: 0 var(--space-sm);
+    min-height: var(--control-height, 46px);
+    padding: 0.625rem var(--space-sm);
     border: 1px solid var(--color-border-soft);
     border-radius: var(--radius-control);
     background: var(--color-surface);
@@ -230,17 +228,35 @@ onIonViewWillEnter(() => {
 }
 
 .ranking-list li {
-    display: flex;
     min-width: 0;
-    align-items: center;
-    gap: var(--space-sm);
-    padding-bottom: var(--space-sm);
     border-bottom: 1px solid var(--color-border-soft);
 }
 
 .ranking-list li:last-child {
-    padding-bottom: 0;
     border-bottom: 0;
+}
+
+.ranking-item {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    border-radius: var(--radius-md);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.ranking-item:hover,
+.ranking-item:focus-visible {
+    background: rgba(83, 83, 143, 0.04);
+    outline: none;
+}
+
+.ranking-item:active {
+    background: rgba(83, 83, 143, 0.08);
 }
 
 .rank-number {
@@ -290,11 +306,6 @@ onIonViewWillEnter(() => {
     text-decoration: none;
 }
 
-.rank-title:hover {
-    color: var(--color-brand-primary);
-    text-decoration: underline;
-}
-
 .rank-copy > span {
     color: var(--color-text-secondary);
     font-size: var(--font-size-caption);
@@ -303,15 +314,10 @@ onIonViewWillEnter(() => {
 .rank-count {
     display: grid;
     flex: 0 0 auto;
+    min-width: 4.5rem;
     color: var(--color-text-primary);
     font-weight: 700;
     text-align: right;
-}
-
-.rank-count small {
-    color: var(--color-text-muted);
-    font-size: 0.7rem;
-    font-weight: 500;
 }
 
 .ranking-feedback {

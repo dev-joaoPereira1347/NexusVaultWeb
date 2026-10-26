@@ -202,6 +202,9 @@
                 <label :for="fieldId('cover')">Capa <span>(opcional)</span></label>
 
                 <div class="cover-upload">
+                    <p v-if="!form.cover" class="cover-help">
+                        Nenhuma capa foi encontrada automaticamente. Use a capa do documento, se disponível, ou envie uma imagem.
+                    </p>
                     <input
                         :id="fieldId('cover')"
                         ref="coverInput"
@@ -213,7 +216,16 @@
 
                     <div class="cover-actions">
                         <button type="button" class="btn-cover-select" @click="openCoverPicker">
-                            {{ form.cover ? 'Trocar capa' : 'Selecionar capa' }}
+                            {{ form.cover ? 'Trocar capa' : 'Enviar uma capa' }}
+                        </button>
+
+                        <button
+                            v-if="embeddedCover && !form.cover"
+                            type="button"
+                            class="btn-cover-select"
+                            @click="useEmbeddedCover"
+                        >
+                            Usar capa extraída do documento
                         </button>
 
                         <button
@@ -290,6 +302,7 @@ const props = withDefaults(defineProps<{
     metadataMissingFields?: MetadataField[];
     autoFilledFields?: AutoFilledField[];
     coverMetadataWarning?: boolean;
+    embeddedCover?: File | null;
     submitLabel?: string;
     idPrefix?: string;
     showRightsDeclaration?: boolean;
@@ -298,6 +311,7 @@ const props = withDefaults(defineProps<{
     metadataMissingFields: () => [],
     autoFilledFields: () => [],
     coverMetadataWarning: false,
+    embeddedCover: null,
     idPrefix: '',
     showRightsDeclaration: false
 });
@@ -392,6 +406,11 @@ onBeforeUnmount(() => {
 
 const openCoverPicker = () => {
     coverInput.value?.click();
+};
+
+const useEmbeddedCover = () => {
+    if (!props.embeddedCover) return;
+    form.value.cover = props.embeddedCover;
 };
 
 const handleCoverChange = (event: Event) => {
@@ -496,6 +515,13 @@ defineEmits<{
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+.cover-help {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
 }
 
 .cover-actions {

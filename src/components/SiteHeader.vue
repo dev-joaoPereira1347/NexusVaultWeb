@@ -6,7 +6,9 @@
             <MainNav />
 
             <div class="header-actions">
-                <SearchBar />
+                <div class="header-search">
+                    <SearchBar />
+                </div>
 
                 <router-link v-if="!currentUser" to="/auth" class="register-button">
                     REGISTRAR
@@ -44,38 +46,68 @@
 
         </div>
 
-        <nav v-if="isMobileMenuOpen" class="mobile-nav" aria-label="Navegação móvel">
-            <router-link to="/home" @click="closeMobileMenu">Início</router-link>
-            <router-link to="/generos" @click="closeMobileMenu">Acervo</router-link>
-            <router-link to="/community-guidelines" @click="closeMobileMenu">Diretrizes</router-link>
-            <router-link to="/upload" @click="closeMobileMenu">Contribuir</router-link>
-            <router-link to="/about-us" @click="closeMobileMenu">Sobre Nós</router-link>
+        <template v-if="isMobileMenuOpen">
+            <button class="mobile-nav-backdrop" type="button" aria-label="Fechar menu" @click="closeMobileMenu" />
+            <nav class="mobile-nav" aria-label="Navegação móvel">
+                <div class="mobile-nav-header">
+                    <SiteLogo variant="header" @click="closeMobileMenu" />
+                    <button class="mobile-nav-close" type="button" aria-label="Fechar menu" @click="closeMobileMenu">
+                        <ion-icon :icon="closeOutline" aria-hidden="true" />
+                    </button>
+                </div>
 
-            <router-link v-if="currentUser" to="/profile" class="mobile-user-link" @click="closeMobileMenu">
-                <span class="mobile-user-identity">
-                    <img v-if="avatarUrl" :src="avatarUrl" alt="Avatar do usuário" class="mobile-user-avatar" />
+                <div class="mobile-nav-search">
+                    <SearchBar />
+                </div>
+
+                <router-link v-if="currentUser" to="/profile" class="mobile-profile" @click="closeMobileMenu">
+                    <img v-if="avatarUrl" :src="avatarUrl" alt="" class="mobile-user-avatar" />
                     <ion-icon v-else :icon="personOutline" class="mobile-user-icon" aria-hidden="true" />
-                    <span>Área do usuário</span>
-                </span>
-            </router-link>
-            <router-link v-if="isAdmin" to="/admin/denuncias" @click="closeMobileMenu">
-                Painel de moderação
-            </router-link>
+                    <span class="mobile-profile-copy">
+                        <strong>{{ username || 'Minha conta' }}</strong>
+                        <span>Área do usuário</span>
+                    </span>
+                </router-link>
 
-            <router-link v-else to="/auth" @click="closeMobileMenu">Registrar</router-link>
-        </nav>
+                <div class="mobile-nav-links">
+                    <router-link to="/home" @click="closeMobileMenu">Início</router-link>
+                    <router-link to="/generos" @click="closeMobileMenu">Acervo</router-link>
+                    <router-link to="/community-guidelines" @click="closeMobileMenu">Diretrizes</router-link>
+                    <router-link v-if="isAdmin" to="/admin/denuncias" @click="closeMobileMenu">
+                        Painel de moderação
+                    </router-link>
+                    <router-link to="/about-us" @click="closeMobileMenu">Sobre Nós</router-link>
+                </div>
+
+                <div class="mobile-nav-actions">
+                    <template v-if="currentUser">
+                        <router-link to="/upload" class="mobile-primary-action" @click="closeMobileMenu">
+                            Contribuir
+                        </router-link>
+                    </template>
+                    <template v-else>
+                        <router-link to="/auth" class="mobile-primary-action" @click="closeMobileMenu">
+                            Entrar
+                        </router-link>
+                        <router-link to="/auth?mode=register" class="mobile-secondary-action" @click="closeMobileMenu">
+                            Registrar-se
+                        </router-link>
+                    </template>
+                </div>
+            </nav>
+        </template>
     </header>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { alertController, IonIcon, toastController } from '@ionic/vue';
 import { chevronDownOutline, closeOutline, menuOutline, personOutline } from 'ionicons/icons';
 import MainNav from './MainNav.vue';
 import SearchBar from './SearchBar.vue';
 import SiteLogo from './SiteLogo.vue';
-import { deleteAccount, getCurrentSession, getProfile, signOut } from '@/services/authService';
+import { checkAndSyncPendingAvatar, deleteAccount, getCurrentSession, getProfile, signOut } from '@/services/authService';
 import { supabase } from '@/services/supabase';
 
 const router = useRouter();
@@ -94,6 +126,8 @@ const toggleMobileMenu = () => {
 const closeMobileMenu = () => {
     isMobileMenuOpen.value = false;
 };
+
+watch(() => router.currentRoute.value.fullPath, closeMobileMenu);
 
 const toggleUserMenu = () => {
     isUserMenuOpen.value = !isUserMenuOpen.value;
@@ -151,6 +185,9 @@ const updateUserMenu = async (userId?: string) => {
         currentUser.value = true;
         const { data: { session } } = await getCurrentSession();
         isAdmin.value = session?.user.id === activeUserId && session.user.app_metadata.role === 'admin';
+        if (session?.user) {
+            await checkAndSyncPendingAvatar(session.user);
+        }
         const profile = await getProfile(activeUserId);
         avatarUrl.value = profile?.avatar_url || '';
         username.value = profile?.username || '';
@@ -239,6 +276,10 @@ onUnmounted(() => {
     gap: 12px;
     margin-left: auto;
     flex-shrink: 0;
+}
+
+.header-search {
+    display: flex;
 }
 
 .register-button {
@@ -396,7 +437,7 @@ onUnmounted(() => {
     font-size: 22px;
 }
 
-.mobile-nav {
+.mobile-nav-backdrop {
     display: none;
 }
 
@@ -433,25 +474,112 @@ onUnmounted(() => {
         justify-content: flex-end;
     }
 
+    .header-search {
+        display: none;
+    }
+
     .mobile-menu-button {
         display: flex;
         flex-shrink: 0;
     }
 
     .mobile-nav {
-        position: absolute;
-        z-index: 10;
-        top: 78px;
-        right: 10px;
-        left: 10px;
+        position: fixed;
+        z-index: 31;
+        top: 0;
+        right: 0;
+        bottom: 0;
         display: flex;
+        width: min(88vw, 380px);
         flex-direction: column;
-        gap: 6px;
+        gap: var(--space-md);
+        overflow-y: auto;
+        padding: calc(16px + env(safe-area-inset-top, 0px)) 18px calc(20px + env(safe-area-inset-bottom, 0px));
+        border-left: 1px solid var(--color-border-soft);
+        background: var(--color-white);
+        box-shadow: var(--shadow-large, var(--shadow-medium));
+    }
+
+    .mobile-nav-backdrop {
+        position: fixed;
+        z-index: 30;
+        inset: 0;
+        display: block;
+        border: 0;
+        background: rgba(20, 20, 32, 0.38);
+    }
+
+    .mobile-nav-header {
+        display: flex;
+        min-height: 42px;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .mobile-nav-close {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-control);
+        background: var(--color-white);
+        color: var(--color-text-primary);
+        font-size: 22px;
+    }
+
+    .mobile-nav-search :deep(.search-box) {
+        width: 100%;
+        height: var(--control-height, 46px);
+        border-color: var(--color-border-soft);
+        background: var(--color-surface);
+    }
+
+    .mobile-nav-search :deep(.search-menu) {
+        display: flex;
+    }
+
+    .mobile-profile {
+        display: flex;
+        align-items: center;
+        gap: 12px;
         padding: 12px;
         border: 1px solid var(--color-border-soft);
-        border-radius: 14px;
-        background: var(--color-white);
-        box-shadow: var(--shadow-medium);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-alt);
+        color: var(--color-text-primary);
+        text-decoration: none;
+    }
+
+    .mobile-profile-copy {
+        display: grid;
+        min-width: 0;
+        gap: 3px;
+    }
+
+    .mobile-profile-copy strong,
+    .mobile-profile-copy > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-profile-copy > span {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-caption);
+    }
+
+    .mobile-nav-links {
+        display: grid;
+        gap: 4px;
+    }
+
+    .mobile-nav-actions {
+        display: grid;
+        gap: var(--space-sm);
+        margin-top: auto;
+        padding-top: var(--space-md);
+        border-top: 1px solid var(--color-border-soft);
     }
 
     .mobile-nav a {
@@ -464,20 +592,10 @@ onUnmounted(() => {
         text-decoration: none;
     }
 
-    .mobile-user-link {
-        display: block;
-    }
-
-    .mobile-user-identity {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
     .mobile-user-avatar,
     .mobile-user-icon {
-        width: 28px;
-        height: 28px;
+        width: 42px;
+        height: 42px;
         border-radius: 50%;
         flex-shrink: 0;
     }
@@ -496,19 +614,37 @@ onUnmounted(() => {
         font-size: 16px;
     }
 
-    .mobile-nav a:hover,
-    .mobile-nav a.router-link-active {
+    .mobile-nav-links a:hover,
+    .mobile-nav-links a.router-link-active {
         background: var(--color-surface-alt);
+    }
+
+    .mobile-nav .mobile-primary-action,
+    .mobile-nav .mobile-secondary-action {
+        display: flex;
+        min-height: var(--control-height, 46px);
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--color-primary-dark);
+        border-radius: var(--radius-control);
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .mobile-nav .mobile-primary-action {
+        background: var(--color-primary-dark);
+        color: var(--color-white);
+    }
+
+    .mobile-nav .mobile-secondary-action {
+        background: var(--color-white);
+        color: var(--color-primary-dark);
     }
 }
 
 @media (max-width: 600px) {
     .site-header {
         height: 70px;
-    }
-
-    .mobile-nav {
-        top: 70px;
     }
 
     .header-container {

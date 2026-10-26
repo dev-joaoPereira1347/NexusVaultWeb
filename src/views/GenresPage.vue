@@ -22,18 +22,18 @@
                     <RouterLink :to="{ name: 'Search' }">Explore todos os documentos</RouterLink>
                 </p>
 
-                <section v-else class="genre-grid" aria-label="Gêneros disponíveis">
+                <section v-else class="genre-list nv-surface" aria-label="Gêneros disponíveis">
                     <RouterLink
                         v-for="genre in genres"
                         :key="genre.key"
-                        class="genre-card nv-surface"
-                        :to="{ name: 'Search', query: { genre: genre.name } }"
+                        class="genre-row"
+                        :to="{ name: 'Search', query: { genre: genre.key } }"
                     >
                         <span class="genre-icon" aria-hidden="true">
                             <ion-icon :icon="bookOutline" />
                         </span>
                         <span class="genre-card-copy">
-                            <strong>{{ genre.name }}</strong>
+                            <strong>{{ genre.label }}</strong>
                             <span>{{ genre.count }} {{ genre.count === 1 ? 'documento' : 'documentos' }}</span>
                         </span>
                         <ion-icon class="genre-arrow" :icon="arrowForwardOutline" aria-hidden="true" />
@@ -56,7 +56,11 @@ import SiteHeader from '@/components/SiteHeader.vue';
 import { listPublicLibraryItems } from '@/services/libraryService';
 import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import type { PublicLibraryItem } from '@/types/library';
-import { getLibraryItemTags, normalizeLibraryTerm } from '@/utils/libraryTaxonomy';
+import {
+    getLibraryGenreLabel,
+    getLibraryItemTags,
+    normalizeLibraryGenre
+} from '@/utils/libraryTaxonomy';
 
 const items = ref<PublicLibraryItem[]>([]);
 const loading = ref(true);
@@ -67,19 +71,19 @@ const genres = computed(() => {
 
     for (const item of items.value) {
         for (const name of getLibraryItemTags(item.genre, item.category)) {
-            const key = normalizeLibraryTerm(name);
+            const key = normalizeLibraryGenre(name);
             const entry = counts.get(key);
             if (entry) {
                 entry.count += 1;
             } else {
-                counts.set(key, { name, count: 1 });
+                counts.set(key, { name: getLibraryGenreLabel(name), count: 1 });
             }
         }
     }
 
     return [...counts.entries()]
-        .map(([key, entry]) => ({ key, ...entry }))
-        .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+        .map(([key, entry]) => ({ key, label: entry.name, count: entry.count }))
+        .sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'));
 });
 
 const refreshItems = async () => {
@@ -116,27 +120,37 @@ useLibraryItemsSync(refreshItems);
     margin-bottom: var(--space-xl);
 }
 
-.genre-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-    gap: var(--space-md);
+.genre-list {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0 var(--space-md);
 }
 
-.genre-card {
+.genre-row {
     display: flex;
-    min-height: 112px;
+    min-height: 76px;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-md);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border-soft);
     color: var(--color-text-primary);
     text-decoration: none;
-    transition: border-color 0.2s ease, transform 0.2s ease;
+    transition: background-color 0.2s ease, padding-inline 0.2s ease;
 }
 
-.genre-card:hover,
-.genre-card:focus-visible {
-    transform: translateY(-2px);
-    border-color: var(--color-brand-primary);
+.genre-row:last-child {
+    border-bottom: 0;
+}
+
+.genre-row:hover,
+.genre-row:focus-visible {
+    background: var(--color-surface-alt);
+}
+
+.genre-row:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: -2px;
 }
 
 .genre-icon {

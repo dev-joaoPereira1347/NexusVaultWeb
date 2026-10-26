@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import {
     deleteAccount,
+    deleteStoredAvatar,
     getCurrentUser,
     getProfile,
     saveProfile,
@@ -113,6 +114,9 @@ export const useUserArea = () => {
         }
         if (normalized.includes('library_items')) {
             return 'A biblioteca ainda não está disponível. Envie um documento ou execute o script de upload.';
+        }
+        if (normalized.includes('violates row-level security policy') || normalized.includes('row-level security')) {
+            return 'Permissão negada no Supabase (RLS). Execute supabase/avatars-storage-setup.sql e supabase/profiles-policies.sql no SQL Editor.';
         }
         return rawMessage || fallback;
     };
@@ -238,16 +242,31 @@ export const useUserArea = () => {
         if (error) throw error;
         if (!user) throw new Error('Usuário não autenticado.');
 
+        const previousAvatarUrl = profileForm.avatarUrl;
+        let uploadedAvatarUrl: string | null = null;
         if (avatarFile.value) {
-            profileForm.avatarUrl = await uploadAvatar(user.id, avatarFile.value);
+            uploadedAvatarUrl = await uploadAvatar(user.id, avatarFile.value);
         }
 
-        const { error: profileError } = await saveProfile(user.id, {
+        const { error: profileError, skipped } = await saveProfile(user.id, {
             fullName: profileForm.fullName,
             username: profileForm.username,
-            avatarUrl: profileForm.avatarUrl
+            avatarUrl: uploadedAvatarUrl ?? profileForm.avatarUrl
         });
         if (profileError) throw profileError;
+
+        if (uploadedAvatarUrl && !skipped) {
+            profileForm.avatarUrl = uploadedAvatarUrl;
+            avatarPreviewUrl.value = uploadedAvatarUrl;
+            try {
+                if (previousAvatarUrl && previousAvatarUrl !== uploadedAvatarUrl) {
+                    await deleteStoredAvatar(user.id, previousAvatarUrl);
+                }
+            } catch (cleanupError) {
+                console.error('O perfil foi salvo, mas não foi possível remover o avatar antigo:', cleanupError);
+                await showToast('Perfil salvo, mas não foi possível remover a foto antiga do armazenamento.', 'warning');
+            }
+        }
 
         const nextEmail = profileForm.email.trim();
         if (nextEmail && nextEmail !== originalEmail.value) {

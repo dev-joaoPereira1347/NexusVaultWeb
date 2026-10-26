@@ -28,6 +28,9 @@
                     @pointerup="stopDragging"
                     @pointercancel="stopDragging"
                 />
+                <button type="button" class="change-image-button" @click="openFilePicker">
+                    Trocar foto
+                </button>
 
                 <div class="cropper-controls">
                     <label class="cropper-control">
@@ -41,21 +44,30 @@
                             aria-label="Ajustar ângulo da foto" @input="drawPreview" />
                     </label>
                     <div class="cropper-actions">
-                        <ion-button type="button" fill="outline" @click="rotateBy(-90)">Girar à esquerda</ion-button>
-                        <ion-button type="button" fill="outline" @click="rotateBy(90)">Girar à direita</ion-button>
-                        <ion-button type="button" fill="outline" @click="restoreOriginalPosition">
-                            Posição original
-                        </ion-button>
+                        <div class="rotation-buttons" aria-label="Girar imagem">
+                            <ion-button type="button" fill="outline" class="icon-control" aria-label="Girar à esquerda"
+                                @click="rotateBy(-90)">
+                                <ion-icon slot="icon-only" :icon="arrowUndoOutline" />
+                            </ion-button>
+                            <ion-button type="button" fill="outline" class="icon-control" aria-label="Girar à direita"
+                                @click="rotateBy(90)">
+                                <ion-icon slot="icon-only" :icon="arrowRedoOutline" />
+                            </ion-button>
+                        </div>
+                        <button type="button" class="reset-button" @click="restoreOriginalPosition">Redefinir</button>
                     </div>
                 </div>
 
                 <p v-if="cropperError" class="cropper-error" role="alert">{{ cropperError }}</p>
 
                 <div class="cropper-footer">
-                    <ion-button type="button" fill="clear" @click="openFilePicker">Selecionar outra imagem</ion-button>
                     <div class="cropper-footer-actions">
-                        <ion-button type="button" fill="clear" @click="closeCropper">Cancelar</ion-button>
-                        <ion-button type="button" :disabled="!sourceImage" @click="confirmCrop">Usar foto</ion-button>
+                        <ion-button type="button" fill="clear" class="cancel-button" @click="closeCropper">
+                            Cancelar
+                        </ion-button>
+                        <ion-button type="button" class="confirm-button" :disabled="!sourceImage" @click="confirmCrop">
+                            Usar foto
+                        </ion-button>
                     </div>
                 </div>
             </div>
@@ -66,7 +78,7 @@
 <script setup lang="ts">
 import { nextTick, onUnmounted, ref, watch } from 'vue';
 import { IonButton, IonIcon, IonModal } from '@ionic/vue';
-import { cameraOutline, personOutline } from 'ionicons/icons';
+import { arrowRedoOutline, arrowUndoOutline, cameraOutline, personOutline } from 'ionicons/icons';
 
 defineProps<{ previewUrl: string; hint: string }>();
 const emit = defineEmits<{ (event: 'selected', file: File): void }>();
@@ -354,6 +366,23 @@ onUnmounted(closeCropper);
     touch-action: none;
 }
 
+.change-image-button,
+.reset-button {
+    border: 0;
+    background: transparent;
+    color: var(--color-brand-primary, #53538F);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.change-image-button {
+    display: block;
+    margin: -10px auto 16px;
+    padding: 6px 10px;
+}
+
 .crop-preview:active {
     cursor: grabbing;
 }
@@ -389,7 +418,27 @@ onUnmounted(closeCropper);
 }
 
 .cropper-actions {
-    justify-content: center;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.rotation-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.cropper-actions :deep(.icon-control) {
+    width: 42px;
+    height: 42px;
+    margin: 0;
+    --border-color: var(--color-border-soft, #E6DBD4);
+    --border-radius: var(--radius-control, 8px);
+    --color: var(--color-text-primary, #22223B);
+}
+
+.reset-button {
+    min-height: 42px;
+    padding: 0 8px;
 }
 
 .cropper-footer {
@@ -401,6 +450,27 @@ onUnmounted(closeCropper);
 
 .cropper-footer-actions {
     flex-shrink: 0;
+}
+
+.cropper-footer-actions :deep(ion-button) {
+    min-height: var(--control-height, 46px);
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.cropper-footer-actions :deep(.cancel-button) {
+    --color: var(--color-text-secondary, #4A4E69);
+}
+
+.cropper-footer-actions :deep(.confirm-button) {
+    --background: var(--color-brand-primary, #53538F);
+    --background-hover: var(--color-accent, #1D0D66);
+    --background-activated: var(--color-accent, #1D0D66);
+    --color: var(--color-white, #FFFFFF);
+    --border-radius: var(--radius-control, 8px);
 }
 
 .cropper-error {
