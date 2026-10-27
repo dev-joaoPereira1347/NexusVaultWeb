@@ -66,22 +66,26 @@ export const listLibraryCatalog = async (): Promise<LibraryCatalogItem[]> => {
     return data ?? [];
 };
 
-export const listPublicLibraryItems = async (): Promise<PublicLibraryItem[]> => {
+const listPublicLibraryItemsByContentType = async (
+    contentType?: 'livro' | 'documento'
+): Promise<PublicLibraryItem[]> => {
     const pageSize = 1000;
     const items: PublicLibraryItem[] = [];
     let offset = 0;
     let totalCount: number | null = null;
 
     do {
-        const { data, error, count } = await supabase
+        let query = supabase
             .from('library_items')
             .select(
                 'id, title, author, category, genre, content_type, year, language, description, file_name, file_path, cover_path',
                 { count: 'exact' }
             )
             .order('title', { ascending: true })
-            .order('id', { ascending: true })
-            .range(offset, offset + pageSize - 1);
+            .order('id', { ascending: true });
+
+        if (contentType) query = query.eq('content_type', contentType);
+        const { data, error, count } = await query.range(offset, offset + pageSize - 1);
 
         if (error) throw error;
         if (count === null) {
@@ -111,6 +115,12 @@ export const listPublicLibraryItems = async (): Promise<PublicLibraryItem[]> => 
 
     return items;
 };
+
+export const listPublicLibraryItems = (): Promise<PublicLibraryItem[]> =>
+    listPublicLibraryItemsByContentType();
+
+export const listPublicLibraryBooks = (): Promise<PublicLibraryItem[]> =>
+    listPublicLibraryItemsByContentType('livro');
 
 export const listFeaturedPublicLibraryItems = async (): Promise<PublicLibraryItem[]> => {
     const { data, error } = await supabase

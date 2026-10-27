@@ -13,7 +13,7 @@ vi.mock('@/services/supabase', () => ({
     }
 }));
 
-const { submitDocumentReport } = await import('@/services/documentReportService');
+const { submitDocumentReport, submitUserReport } = await import('@/services/documentReportService');
 
 describe('document report service', () => {
     beforeEach(() => {
@@ -80,5 +80,51 @@ describe('document report service', () => {
 
         expect(getUserMock).not.toHaveBeenCalled();
         expect(insertMock).not.toHaveBeenCalled();
+    });
+
+    test('stores user reports with a user target and normalized details', async () => {
+        await submitUserReport({
+            userId: 'target-user',
+            reason: 'harassment',
+            details: '  Comportamento abusivo.  '
+        });
+
+        expect(insertMock).toHaveBeenCalledWith({
+            document_id: null,
+            reported_user_id: 'target-user',
+            reporter_id: 'reporter-123',
+            reason: 'harassment',
+            details: 'Comportamento abusivo.'
+        });
+    });
+
+    test('prevents self-reporting', async () => {
+        await expect(submitUserReport({
+            userId: 'reporter-123',
+            reason: 'other',
+            details: ''
+        })).rejects.toThrow('Você não pode denunciar o próprio perfil.');
+
+        expect(insertMock).not.toHaveBeenCalled();
+    });
+
+    test('rejects document-only reasons for profile reports', async () => {
+        await expect(submitUserReport({
+            userId: 'target-user',
+            reason: 'copyright',
+            details: ''
+        })).rejects.toThrow('Selecione um motivo válido para a denúncia.');
+
+        expect(insertMock).not.toHaveBeenCalled();
+    });
+
+    test('reports duplicate profile submissions clearly', async () => {
+        insertMock.mockResolvedValue({ error: { code: '23505' } });
+
+        await expect(submitUserReport({
+            userId: 'target-user',
+            reason: 'spam',
+            details: ''
+        })).rejects.toThrow('Você já enviou uma denúncia para este perfil.');
     });
 });

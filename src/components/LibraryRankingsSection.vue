@@ -17,9 +17,42 @@
             </label>
         </header>
 
-        <div class="ranking-grid">
-            <section class="ranking-panel nv-surface" aria-labelledby="access-ranking-title">
-                <h3 id="access-ranking-title">Mais acessados</h3>
+        <section class="ranking-panel nv-surface" aria-label="Rankings de documentos">
+            <div class="ranking-tabs" role="tablist" aria-label="Tipo de ranking" @keydown="handleRankingTabKeydown">
+                <button
+                    id="access-ranking-tab"
+                    class="ranking-tab"
+                    type="button"
+                    role="tab"
+                    aria-controls="access-ranking-panel"
+                    :aria-selected="selectedRanking === 'accesses'"
+                    :tabindex="selectedRanking === 'accesses' ? 0 : -1"
+                    @click="selectedRanking = 'accesses'"
+                >
+                    Mais acessados
+                </button>
+                <button
+                    id="download-ranking-tab"
+                    class="ranking-tab"
+                    type="button"
+                    role="tab"
+                    aria-controls="download-ranking-panel"
+                    :aria-selected="selectedRanking === 'downloads'"
+                    :tabindex="selectedRanking === 'downloads' ? 0 : -1"
+                    @click="selectedRanking = 'downloads'"
+                >
+                    Mais baixados
+                </button>
+            </div>
+
+            <div
+                v-if="selectedRanking === 'accesses'"
+                id="access-ranking-panel"
+                class="ranking-tab-panel"
+                role="tabpanel"
+                aria-labelledby="access-ranking-tab"
+                tabindex="0"
+            >
                 <div v-if="accessLoading" class="ranking-feedback" role="status">
                     <ion-spinner name="crescent" />
                     <span>Carregando ranking...</span>
@@ -33,7 +66,7 @@
                         <RouterLink
                             class="ranking-item"
                             :to="{ name: 'DocumentDetails', params: { id: item.id } }"
-                            :aria-label="`Ver detalhes de ${item.title}`"
+                            :aria-label="`Ver detalhes de ${item.title}; ${formatCount(item.access_count)} acessos`"
                         >
                             <span class="rank-number">{{ index + 1 }}</span>
                             <span class="rank-cover" aria-hidden="true">
@@ -42,18 +75,26 @@
                             </span>
                             <span class="rank-copy">
                                 <span class="rank-title">{{ item.title }}</span>
-                                <span>{{ item.author }}</span>
+                                <span class="rank-author">{{ item.author }}</span>
                             </span>
                             <span class="rank-count" :aria-label="`${item.access_count} acessos`">
+                                <ion-icon :icon="eyeOutline" aria-hidden="true" />
                                 {{ formatCount(item.access_count) }}
+                                <ion-icon class="rank-chevron" :icon="chevronForwardOutline" aria-hidden="true" />
                             </span>
                         </RouterLink>
                     </li>
                 </ol>
-            </section>
+            </div>
 
-            <section class="ranking-panel nv-surface" aria-labelledby="download-ranking-title">
-                <h3 id="download-ranking-title">Mais baixados</h3>
+            <div
+                v-else
+                id="download-ranking-panel"
+                class="ranking-tab-panel"
+                role="tabpanel"
+                aria-labelledby="download-ranking-tab"
+                tabindex="0"
+            >
                 <div v-if="downloadLoading" class="ranking-feedback" role="status">
                     <ion-spinner name="crescent" />
                     <span>Carregando ranking...</span>
@@ -67,7 +108,7 @@
                         <RouterLink
                             class="ranking-item"
                             :to="{ name: 'DocumentDetails', params: { id: item.id } }"
-                            :aria-label="`Ver detalhes de ${item.title}`"
+                            :aria-label="`Ver detalhes de ${item.title}; ${formatCount(item.download_count)} downloads`"
                         >
                             <span class="rank-number">{{ index + 1 }}</span>
                             <span class="rank-cover" aria-hidden="true">
@@ -76,16 +117,18 @@
                             </span>
                             <span class="rank-copy">
                                 <span class="rank-title">{{ item.title }}</span>
-                                <span>{{ item.author }}</span>
+                                <span class="rank-author">{{ item.author }}</span>
                             </span>
                             <span class="rank-count" :aria-label="`${item.download_count} downloads`">
+                                <ion-icon :icon="downloadOutline" aria-hidden="true" />
                                 {{ formatCount(item.download_count) }}
+                                <ion-icon class="rank-chevron" :icon="chevronForwardOutline" aria-hidden="true" />
                             </span>
                         </RouterLink>
                     </li>
                 </ol>
-            </section>
-        </div>
+            </div>
+        </section>
     </section>
 </template>
 
@@ -93,7 +136,7 @@
 import { onMounted, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { IonIcon, IonSpinner, onIonViewWillEnter } from '@ionic/vue';
-import { documentTextOutline } from 'ionicons/icons';
+import { chevronForwardOutline, documentTextOutline, downloadOutline, eyeOutline } from 'ionicons/icons';
 import { listRankedPublicLibraryItems } from '@/services/libraryService';
 import type { RankedPublicLibraryItem } from '@/types/library';
 
@@ -107,6 +150,7 @@ const categories = [
 ];
 
 const selectedCategory = ref('');
+const selectedRanking = ref<'accesses' | 'downloads'>('accesses');
 const mostAccessed = ref<RankedPublicLibraryItem[]>([]);
 const mostDownloaded = ref<RankedPublicLibraryItem[]>([]);
 const accessLoading = ref(true);
@@ -116,6 +160,23 @@ const downloadError = ref('');
 let requestId = 0;
 
 const formatCount = (count: number): string => new Intl.NumberFormat('pt-BR').format(count);
+
+const handleRankingTabKeydown = (event: KeyboardEvent) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    if (!(event.currentTarget instanceof HTMLElement) || !(event.target instanceof HTMLButtonElement)) return;
+
+    const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const currentIndex = tabs.indexOf(event.target);
+    if (currentIndex === -1) return;
+
+    const nextIndex = (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    const nextTab = tabs[nextIndex];
+    if (!nextTab) return;
+
+    nextTab.click();
+    nextTab.focus();
+    event.preventDefault();
+};
 
 const refreshRankings = async () => {
     const currentRequestId = ++requestId;
@@ -201,22 +262,57 @@ onIonViewWillEnter(() => {
     color: var(--color-text-primary);
 }
 
-.ranking-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-md);
-}
-
 .ranking-panel {
     min-width: 0;
-    padding: clamp(16px, 3vw, 24px);
+    overflow: hidden;
+    padding: 0 clamp(16px, 3vw, 24px) clamp(16px, 3vw, 24px);
 }
 
-.ranking-panel h3 {
-    margin: 0 0 var(--space-md);
+.ranking-tabs {
+    display: flex;
+    margin: 0 calc(clamp(16px, 3vw, 24px) * -1) var(--space-sm);
+    border-bottom: 1px solid var(--color-border-soft);
+}
+
+.ranking-tab {
+    position: relative;
+    flex: 1;
+    min-height: 3.5rem;
+    padding: var(--space-sm);
+    border: 0;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font: inherit;
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-weight: 600;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.ranking-tab[aria-selected="true"] {
     color: var(--color-text-primary);
-    font-family: var(--primitive-font-family-display);
-    font-size: var(--typography-heading-h3-font-size);
+}
+
+.ranking-tab[aria-selected="true"]::after {
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--color-brand-primary);
+    content: "";
+}
+
+.ranking-tab:focus-visible,
+.ranking-tab:hover {
+    background: rgba(83, 83, 143, 0.06);
+    outline: none;
+}
+
+.ranking-tab-panel:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 3px;
 }
 
 .ranking-list {
@@ -251,8 +347,10 @@ onIonViewWillEnter(() => {
 
 .ranking-item:hover,
 .ranking-item:focus-visible {
-    background: rgba(83, 83, 143, 0.04);
-    outline: none;
+    background: rgba(83, 83, 143, 0.1);
+    outline: 2px solid rgba(83, 83, 143, 0.32);
+    outline-offset: -2px;
+    transform: translateX(2px);
 }
 
 .ranking-item:active {
@@ -261,10 +359,9 @@ onIonViewWillEnter(() => {
 
 .rank-number {
     flex: 0 0 1.5rem;
-    color: var(--color-brand-primary);
-    font-family: var(--primitive-font-family-display);
-    font-size: 1.2rem;
-    font-weight: 700;
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    font-weight: 500;
     text-align: center;
 }
 
@@ -276,6 +373,7 @@ onIonViewWillEnter(() => {
     place-items: center;
     overflow: hidden;
     border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-soft);
     background: var(--color-page-background);
     color: var(--color-brand-primary);
 }
@@ -290,34 +388,51 @@ onIonViewWillEnter(() => {
     display: grid;
     flex: 1;
     min-width: 0;
+    align-content: center;
     gap: 3px;
 }
 
-.rank-title,
-.rank-copy > span {
+.rank-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     overflow: hidden;
     color: var(--color-text-primary);
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+}
+
+.rank-author {
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-caption);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.rank-title {
-    font-weight: 700;
-    text-decoration: none;
-}
-
-.rank-copy > span {
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-caption);
-}
-
 .rank-count {
-    display: grid;
+    display: flex;
     flex: 0 0 auto;
-    min-width: 4.5rem;
-    color: var(--color-text-primary);
-    font-weight: 700;
-    text-align: right;
+    min-width: 5.25rem;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.3rem;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rank-count ion-icon {
+    flex: 0 0 auto;
+    font-size: 1rem;
+}
+
+.rank-count .rank-chevron {
+    margin-left: 0.1rem;
+    color: var(--color-text-secondary);
+    opacity: 0.7;
 }
 
 .ranking-feedback {
@@ -345,8 +460,22 @@ onIonViewWillEnter(() => {
         width: 100%;
     }
 
-    .ranking-grid {
-        grid-template-columns: minmax(0, 1fr);
+    .ranking-item {
+        gap: clamp(0.35rem, 2vw, var(--space-sm));
+    }
+
+    .rank-number {
+        flex-basis: 1.25rem;
+    }
+
+    .rank-cover {
+        flex-basis: 44px;
+        width: 44px;
+        height: 60px;
+    }
+
+    .rank-count {
+        min-width: 4.5rem;
     }
 }
 </style>

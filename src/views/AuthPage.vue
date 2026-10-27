@@ -198,6 +198,36 @@
                             </div>
                         </form>
 
+                        <form v-else-if="mode === 'verify-email'" class="auth-form" @submit.prevent="handleVerifyEmail">
+                            <header class="auth-intro">
+                                <h1 class="nv-heading-h4">Confirme seu e-mail</h1>
+                                <p class="nv-page-description">
+                                    Enviamos um código de 6 dígitos para <strong>{{ verificationEmail }}</strong>.
+                                    Digite-o abaixo para ativar sua conta.
+                                </p>
+                            </header>
+                            <div class="form-group">
+                                <label for="verification-token">Código de confirmação</label>
+                                <ion-input id="verification-token" v-model="verificationToken" type="text"
+                                    inputmode="numeric" autocomplete="one-time-code" :maxlength="6" :minlength="6"
+                                    pattern="[0-9]{6}" fill="outline" placeholder="000000" class="custom-input"
+                                    required />
+                            </div>
+                            <button type="button" class="button-link text-link" :disabled="loading"
+                                @click="handleResendConfirmation">
+                                Reenviar código
+                            </button>
+                            <ion-button type="submit" expand="block" class="primary-button"
+                                :disabled="loading || !/^\d{6}$/.test(verificationToken)">
+                                <span v-if="!loading">Confirmar e-mail</span>
+                                <ion-spinner v-else name="crescent" />
+                            </ion-button>
+                            <div class="switch-mode-text">
+                                Já confirmou ou deseja entrar depois?
+                                <a class="text-link font-bold" @click.prevent="setMode('login')">Voltar ao login</a>
+                            </div>
+                        </form>
+
                         <form v-else-if="mode === 'forgot-password'" class="auth-form"
                             @submit.prevent="handleForgotPassword">
                             <header class="auth-intro">
@@ -320,8 +350,9 @@ const closeTermsModal = () => {
 
 const {
     mode, loading, loginForm, registerForm, forgotEmail, resetPasswordForm,
-    avatarPreviewUrl, confirmationRequired, magicLinkRequested, setMode, setAvatar,
-    handleLogin, handleRegister, handleMagicLinkLogin, handleResendConfirmation,
+    avatarPreviewUrl, confirmationRequired, magicLinkRequested, verificationEmail, verificationToken,
+    setMode, setAvatar,
+    handleLogin, handleRegister, handleVerifyEmail, handleMagicLinkLogin, handleResendConfirmation,
     handleForgotPassword, handleResetPassword
 } = useAuth();
 </script>

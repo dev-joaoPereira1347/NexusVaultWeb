@@ -8,12 +8,11 @@ import {
     requestPasswordReset,
     resendSignupConfirmation,
     savePendingAvatar,
-    saveProfile,
     sendMagicLink,
     signIn,
     signUp,
     updatePassword,
-    uploadAvatar
+    verifySignupOtp
 } from '@/services/authService';
 import type { AuthMode, LoginForm, RegisterForm, ResetPasswordForm } from '@/types/auth';
 
@@ -27,6 +26,8 @@ export const useAuth = () => {
     const loading = ref(false);
     const confirmationRequired = ref(false);
     const magicLinkRequested = ref(false);
+    const verificationEmail = ref('');
+    const verificationToken = ref('');
     const loginForm = ref(emptyLoginForm());
     const registerForm = ref(emptyRegisterForm());
     const forgotEmail = ref('');
@@ -37,6 +38,7 @@ export const useAuth = () => {
     const subtitleText = computed(() => ({
         login: 'Acesse sua conta para continuar',
         register: 'Insira suas informações para se cadastrar',
+        'verify-email': 'Confirme seu e-mail para ativar sua conta',
         'forgot-password': 'Digite seu e-mail para redefinir sua senha',
         'reset-password': 'Defina uma nova senha para sua conta'
     })[mode.value]);
@@ -142,38 +144,47 @@ export const useAuth = () => {
         const user = data.user;
         if (!user) throw new Error('Falha ao criar a conta.');
 
-        if (!data.session) {
-            if (fileToUpload) {
-                await savePendingAvatar(
-                    formSnapshot.email,
-                    user.id,
-                    formSnapshot.fullName,
-                    formSnapshot.username,
-                    fileToUpload
-                );
-            }
-            registerForm.value = emptyRegisterForm();
-            avatarFile.value = null;
-            avatarPreviewUrl.value = '';
-            await showToast('Cadastro realizado! Verifique seu e-mail e confirme a conta para ativá-la.', 'success');
-            setMode('login');
-            return;
+        if (data.session) {
+            const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+            if (signOutError) throw signOutError;
+            throw new Error(
+                'O Supabase criou uma sessão sem confirmar o e-mail. Ative "Confirm email" nas configurações de autenticação do projeto Supabase e tente novamente.'
+            );
         }
 
-        const avatarUrl = fileToUpload ? await uploadAvatar(user.id, fileToUpload) : '';
-        const { error: profileError, skipped } = await saveProfile(user.id, {
-            fullName: formSnapshot.fullName,
-            username: formSnapshot.username,
-            avatarUrl
-        });
-        if (profileError && !skipped) throw profileError;
-
+        if (fileToUpload) {
+            await savePendingAvatar(
+                formSnapshot.email,
+                user.id,
+                formSnapshot.fullName,
+                formSnapshot.username,
+                fileToUpload
+            );
+        }
         registerForm.value = emptyRegisterForm();
         avatarFile.value = null;
         avatarPreviewUrl.value = '';
-        await showToast('Conta criada com sucesso!');
-        await router.push(getRedirectPath('/home'));
+        verificationEmail.value = formSnapshot.email.trim();
+        verificationToken.value = '';
+        mode.value = 'verify-email';
+        await showToast('Cadastro realizado! Informe o código enviado para seu e-mail para ativar a conta.', 'success');
     }, 'Erro ao criar a conta.');
+
+    const handleVerifyEmail = () => run(async () => {
+        const email = verificationEmail.value.trim();
+        const token = verificationToken.value.trim();
+        if (!email) throw new Error('Não foi possível identificar o e-mail do cadastro.');
+        if (!/^\d{6}$/.test(token)) throw new Error('Informe o código de 6 dígitos enviado para seu e-mail.');
+
+        const { data, error } = await verifySignupOtp(email, token);
+        if (error) throw error;
+        if (!data.user) throw new Error('Não foi possível confirmar seu e-mail.');
+
+        await checkAndSyncPendingAvatar(data.user);
+        verificationToken.value = '';
+        await showToast('E-mail confirmado! Sua conta foi ativada.');
+        await router.push(getRedirectPath('/home'));
+    }, 'Erro ao confirmar o e-mail.');
 
     const handleMagicLinkLogin = () => run(async () => {
         const email = loginForm.value.email.trim();
@@ -189,7 +200,7 @@ export const useAuth = () => {
     }, 'Erro ao enviar o Magic Link.');
 
     const handleResendConfirmation = () => run(async () => {
-        const email = loginForm.value.email.trim();
+        const email = (mode.value === 'verify-email' ? verificationEmail.value : loginForm.value.email).trim();
         if (!email) throw new Error('Informe seu e-mail para reenviar a confirmação.');
 
         const { error } = await resendSignupConfirmation(email);
@@ -236,8 +247,9 @@ export const useAuth = () => {
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
-                await checkAndSyncPendingAvatar(session.user);
-                if (route.name === 'Auth') {
+                const verifyingEmail = mode.value === 'verify-email' || mode.value === 'register';
+                if (!verifyingEmail) await checkAndSyncPendingAvatar(session.user);
+                if (route.name === 'Auth' && !verifyingEmail) {
                     await showToast('Login realizado com sucesso!');
                     await router.replace(getRedirectPath('/profile'));
                 }
@@ -261,9 +273,9 @@ export const useAuth = () => {
 
     return {
         mode, loading, loginForm, registerForm, forgotEmail, resetPasswordForm,
-        confirmationRequired, magicLinkRequested,
+        confirmationRequired, magicLinkRequested, verificationEmail, verificationToken,
         avatarPreviewUrl, subtitleText, setMode, setAvatar,
-        handleLogin, handleRegister, handleMagicLinkLogin, handleResendConfirmation,
+        handleLogin, handleRegister, handleVerifyEmail, handleMagicLinkLogin, handleResendConfirmation,
         handleForgotPassword, handleResetPassword
     };
 };

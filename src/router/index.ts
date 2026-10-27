@@ -11,7 +11,10 @@ import DocumentDetailsPage from '@/views/DocumentDetailsPage.vue';
 import PublicProfilePage from '@/views/PublicProfilePage.vue';
 import GenresPage from '@/views/GenresPage.vue';
 import AdminReportsPage from '@/views/AdminReportsPage.vue';
+import AdminContentPage from '@/views/AdminContentPage.vue';
 import TermsOfUsePage from '@/views/TermsOfUsePage.vue';
+import PrivacyPolicyPage from '@/views/PrivacyPolicyPage.vue';
+import HelpPage from '@/views/HelpPage.vue';
 import { supabase } from '@/services/supabase';
 
 const routes: Array<RouteRecordRaw> = [
@@ -68,7 +71,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/help',
     name: 'Help',
-    component: CommunityGuidelines
+    component: HelpPage
   },
   {
     path: '/contact',
@@ -83,7 +86,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/privacy',
     name: 'Privacy',
-    component: AboutUsPage
+    component: PrivacyPolicyPage
   },
   {
     path: "/auth",
@@ -100,6 +103,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/admin/denuncias',
     name: 'AdminReports',
     component: AdminReportsPage,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/gestao',
+    name: 'AdminContent',
+    component: AdminContentPage,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {

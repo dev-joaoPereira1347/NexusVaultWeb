@@ -168,6 +168,7 @@ type QueueUploadDetails = {
     coverPath: string | null;
     coverQuarantinePath: string | null;
     targetItemId: string | null;
+    collectionIds?: string[];
     isUpdate: boolean;
     files: ScannableFile[];
     onProgress?: UploadProgressCallback;
@@ -241,6 +242,9 @@ const createUploadRequest = async (details: QueueUploadDetails): Promise<Library
                 uploaded_by: userId,
                 target_item_id: details.targetItemId ?? requestId,
                 is_update: details.isUpdate,
+                collection_ids: !details.isUpdate && form.type === 'livro'
+                    ? [...new Set(details.collectionIds ?? [])]
+                    : [],
                 status: 'pending',
                 title: form.title.trim(),
                 author: form.author.trim(),
@@ -281,10 +285,14 @@ const createUploadRequest = async (details: QueueUploadDetails): Promise<Library
 export const uploadLibraryItem = async (
     file: File,
     form: UploadForm,
-    onProgress?: UploadProgressCallback
+    onProgress?: UploadProgressCallback,
+    collectionIds: string[] = []
 ): Promise<LibraryUploadRequest> => {
     const { extension, mimeType } = validateDocumentFile(file);
     validateUploadMetadata(form, true);
+    if (form.type !== 'livro' && collectionIds.length > 0) {
+        throw new Error('Só é possível organizar livros em coleções.');
+    }
     const coverFile = await prepareCoverFile(form.cover);
 
     const { data: { user }, error: userError } = await getCurrentUser();
@@ -304,6 +312,7 @@ export const uploadLibraryItem = async (
         coverPath,
         coverQuarantinePath: coverPath,
         targetItemId: null,
+        collectionIds,
         isUpdate: false,
         onProgress,
         files: [

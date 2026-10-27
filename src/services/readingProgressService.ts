@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase';
 import { getCurrentSession, getCurrentUser } from '@/services/authService';
+import { LIBRARY_COVERS_BUCKET } from '@/services/uploadService';
 import type { ReadingProgress } from '@/types/userArea';
 
 export interface ReadingProgressPosition {
@@ -13,7 +14,15 @@ type ProgressRow = {
     page: number;
     percent: number | string;
     status: ReadingProgress['status'];
-    library_items: { title: string; author: string } | { title: string; author: string }[] | null;
+    library_items: {
+        title: string;
+        author: string;
+        cover_path: string | null;
+    } | {
+        title: string;
+        author: string;
+        cover_path: string | null;
+    }[] | null;
 };
 
 const mapProgress = (row: ProgressRow): ReadingProgress => {
@@ -26,7 +35,10 @@ const mapProgress = (row: ProgressRow): ReadingProgress => {
         percent: Number(row.percent),
         status: row.status,
         title: document?.title ?? 'Documento indisponível',
-        author: document?.author ?? ''
+        author: document?.author ?? '',
+        cover_url: document?.cover_path
+            ? supabase.storage.from(LIBRARY_COVERS_BUCKET).getPublicUrl(document.cover_path).data.publicUrl
+            : ''
     };
 };
 
@@ -41,7 +53,7 @@ export const listMyReadingProgress = async (): Promise<ReadingProgress[]> => {
     const userId = await requireUserId();
     const { data, error } = await supabase
         .from('reading_progress')
-        .select('id, document_id, page, percent, status, library_items!document_id(title, author)')
+        .select('id, document_id, page, percent, status, library_items!document_id(title, author, cover_path)')
         .eq('user_id', userId)
         .order('updated_at', { ascending: false });
 

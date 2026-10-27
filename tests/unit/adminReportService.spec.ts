@@ -8,6 +8,7 @@ const {
     limitMock,
     maybeSingleMock,
     orderMock,
+    profileMock,
     selectMock,
     invokeMock,
     updateMock
@@ -19,6 +20,7 @@ const {
     limitMock: vi.fn(),
     maybeSingleMock: vi.fn(),
     orderMock: vi.fn(),
+    profileMock: vi.fn(),
     selectMock: vi.fn(),
     invokeMock: vi.fn(),
     updateMock: vi.fn()
@@ -30,6 +32,10 @@ vi.mock('@/services/supabase', () => ({
         functions: { invoke: invokeMock },
         from: fromMock
     }
+}));
+
+vi.mock('@/services/authService', () => ({
+    getPublicProfile: profileMock
 }));
 
 const query = {
@@ -44,6 +50,7 @@ const query = {
 
 const { approveAdminDocumentReport, listAdminDocumentReports, updateAdminDocumentReportStatus } =
     await import('@/services/adminReportService');
+const { resolveAdminUserReport } = await import('@/services/adminReportService');
 
 describe('admin document reports', () => {
     beforeEach(() => {
@@ -58,6 +65,7 @@ describe('admin document reports', () => {
         updateMock.mockReturnValue(query);
         eqMock.mockReturnValue(query);
         inMock.mockReturnValue(query);
+        profileMock.mockResolvedValue(null);
         invokeMock.mockResolvedValue({
             data: { status: 'resolved', documentDeleted: true },
             error: null
@@ -144,5 +152,50 @@ describe('admin document reports', () => {
 
         await expect(approveAdminDocumentReport('report-1'))
             .rejects.toThrow('O documento não foi removido.');
+    });
+
+    test('loads profile identity for user-target reports', async () => {
+        limitMock.mockResolvedValue({
+            data: [{
+                id: 'report-user',
+                document_id: null,
+                reported_document_id: null,
+                reported_user_id: 'target-user',
+                reporter_id: 'reporter-1',
+                reason: 'harassment',
+                details: null,
+                status: 'pending',
+                created_at: '2026-10-19T12:00:00Z',
+                reviewed_at: null,
+                reviewed_by: null,
+                removal_started_at: null
+            }],
+            error: null
+        });
+        profileMock.mockResolvedValue({ username: 'Target profile', avatar_url: null });
+
+        const reports = await listAdminDocumentReports();
+
+        expect(fromMock).toHaveBeenCalledTimes(1);
+        expect(profileMock).toHaveBeenCalledWith('target-user');
+        expect(reports[0].reportedUser).toEqual({ username: 'Target profile' });
+        expect(reports[0].document).toBeNull();
+    });
+
+    test('resolves reported-user deletion through the protected admin function', async () => {
+        invokeMock.mockResolvedValue({
+            data: { status: 'resolved', userDeleted: true },
+            error: null
+        });
+
+        await expect(resolveAdminUserReport('report-user')).resolves.toEqual({
+            reviewerId: 'admin-123',
+            userDeleted: true
+        });
+
+        expect(invokeMock).toHaveBeenCalledWith('admin-content', {
+            body: { reportId: 'report-user', action: 'resolve_reported_user' }
+        });
+        expect(fromMock).not.toHaveBeenCalled();
     });
 });

@@ -282,6 +282,24 @@
                 </label>
             </div>
 
+            <div v-if="showCollectionPicker" class="collection-upload-field">
+                <div>
+                    <p class="collection-upload-label">Organizar em uma coleção <span>(Opcional)</span></p>
+                    <p v-if="selectedCollectionCount" class="collection-upload-summary">
+                        {{ selectedCollectionCount }} {{ selectedCollectionCount === 1 ? 'coleção selecionada' : 'coleções selecionadas' }}
+                    </p>
+                    <p v-else class="collection-upload-summary">Escolha onde guardar este livro após a aprovação do envio.</p>
+                </div>
+                <button
+                    type="button"
+                    class="collection-upload-trigger"
+                    :disabled="isUploading"
+                    @click="emit('open-collection-picker')"
+                >
+                    {{ selectedCollectionCount ? 'Editar seleção' : 'Adicionar à coleção' }}
+                </button>
+            </div>
+
             <button type="submit" class="btn-submit-book" :disabled="!isValid || isUploading">
                 {{ isUploading ? 'SALVANDO...' : submitLabel }}
             </button>
@@ -306,6 +324,8 @@ const props = withDefaults(defineProps<{
     submitLabel?: string;
     idPrefix?: string;
     showRightsDeclaration?: boolean;
+    showCollectionPicker?: boolean;
+    selectedCollectionCount?: number;
 }>(), {
     submitLabel: 'ADICIONAR À BIBLIOTECA',
     metadataMissingFields: () => [],
@@ -313,7 +333,9 @@ const props = withDefaults(defineProps<{
     coverMetadataWarning: false,
     embeddedCover: null,
     idPrefix: '',
-    showRightsDeclaration: false
+    showRightsDeclaration: false,
+    showCollectionPicker: false,
+    selectedCollectionCount: 0
 });
 
 const form = defineModel<UploadForm>({ required: true });
@@ -436,8 +458,9 @@ const removeCover = () => {
     }
 };
 
-defineEmits<{
+const emit = defineEmits<{
     (event: 'submit'): void;
+    (event: 'open-collection-picker'): void;
 }>();
 </script>
 
@@ -460,6 +483,59 @@ defineEmits<{
     margin: 0 0 20px;
     color: var(--color-text-secondary);
     font-size: 0.9rem;
+}
+
+.collection-upload-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+}
+
+.collection-upload-label {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+.collection-upload-label span,
+.collection-upload-summary {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-caption);
+    font-weight: 400;
+}
+
+.collection-upload-summary {
+    margin: var(--space-xs) 0 0;
+}
+
+.collection-upload-trigger {
+    min-height: var(--control-height);
+    flex: 0 0 auto;
+    padding: 0 var(--space-md);
+    border: 1px solid var(--color-brand-primary);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--color-brand-primary);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+}
+
+.collection-upload-trigger:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+@media (max-width: 520px) {
+    .collection-upload-field {
+        align-items: stretch;
+        flex-direction: column;
+    }
 }
 
 .form-group label .auto-filled-indicator {

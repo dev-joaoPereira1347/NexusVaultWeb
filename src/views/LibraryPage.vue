@@ -5,15 +5,17 @@
 
             <main class="library-page nv-page-shell">
                 <header class="page-header nv-page-heading">
-                    <button type="button" class="back-button" aria-label="Voltar à página anterior" @click="goBack">
-                        <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
-                    </button>
-                    <p class="nv-eyebrow nv-badge">ACERVO DIGITAL</p>
+                    <div class="page-heading-top">
+                        <button type="button" class="back-button" aria-label="Voltar à página anterior" @click="goBack">
+                            <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
+                        </button>
+                        <p class="nv-eyebrow nv-badge">ACERVO DIGITAL</p>
+                    </div>
                     <h1 class="nv-page-title">
                         {{ selectedGenre ? `Gênero: ${selectedGenre}` : 'Pesquisar no acervo' }}
                     </h1>
-                    <p class="nv-page-description">
-                        {{ selectedGenre ? `Documentos e livros encontrados em “${selectedGenre}”.` : 'Encontre documentos e obras compartilhados pela comunidade.' }}
+                    <p v-if="!selectedGenre" class="nv-page-description">
+                        Encontre documentos e obras compartilhados pela comunidade.
                     </p>
                 </header>
 
@@ -21,16 +23,17 @@
                     <span class="visually-hidden">Pesquisar no acervo</span>
                     <ion-icon :icon="searchOutline" aria-hidden="true" />
                     <input v-model="searchQuery" type="search"
-                        placeholder="Pesquisar por título, autor ou palavras-chave"
+                        placeholder="Título, autor ou palavra-chave"
                         autocomplete="off" />
                     <button
                         type="button"
                         class="filter-trigger"
+                        :class="{ 'has-active-filters': activeFilterCount > 0 }"
                         :aria-label="`Abrir filtros${activeFilterCount ? `, ${activeFilterCount} ativos` : ''}`"
                         @click="openFilters"
                     >
                         <ion-icon :icon="optionsOutline" aria-hidden="true" />
-                        <span>Filtros</span>
+                        <span class="filter-trigger-label">Filtros</span>
                         <span v-if="activeFilterCount" class="filter-count">{{ activeFilterCount }}</span>
                     </button>
                 </label>
@@ -39,8 +42,8 @@
                     <button
                         type="button"
                         class="filter-chip"
-                        :class="{ 'is-selected': !filters.category && !filters.format }"
-                        :aria-pressed="!filters.category && !filters.format"
+                        :class="{ 'is-selected': !activeFilterCount && !selectedGenre }"
+                        :aria-pressed="!activeFilterCount && !selectedGenre"
                         @click="applyFilters({ ...filters, category: '', format: '' })"
                     >
                         Todos
@@ -50,8 +53,8 @@
                         :key="category.value"
                         type="button"
                         class="filter-chip"
-                        :class="{ 'is-selected': filters.category === category.value && !filters.format }"
-                        :aria-pressed="filters.category === category.value && !filters.format"
+                        :class="{ 'is-selected': filters.category === category.value }"
+                        :aria-pressed="filters.category === category.value"
                         @click="applyFilters({ ...filters, category: category.value, format: '' })"
                     >
                         {{ category.label }}
@@ -83,30 +86,39 @@
                 </p>
 
                 <section v-else class="item-grid" aria-label="Documentos do acervo">
-                    <router-link
-                        v-for="item in filteredItems"
-                        :key="item.id"
-                        class="library-card"
-                        :to="{ name: 'DocumentDetails', params: { id: item.id } }"
-                        :aria-label="`${item.title}, por ${item.author}. Ver detalhes do documento.`"
-                    >
-                        <div class="cover">
-                            <img v-if="item.cover_url" :src="item.cover_url" alt="" />
-                            <ion-icon v-else :icon="documentTextOutline" aria-hidden="true" />
-                        </div>
-                        <div class="item-details">
-                            <h2>
-                                {{ item.title }}
-                            </h2>
-                            <p class="author">{{ item.author }}</p>
-                            <p v-if="item.description" class="description">{{ item.description }}</p>
-                            <p class="metadata">
-                                {{ item.category }} · {{ item.content_type }}
-                                <span v-if="item.year"> · {{ item.year }}</span>
-                                <span v-if="getFileExtension(item.file_name)"> · {{ getFileExtension(item.file_name) }}</span>
-                            </p>
-                        </div>
-                    </router-link>
+                    <article v-for="item in filteredItems" :key="item.id" class="library-card">
+                        <router-link
+                            class="library-card-link"
+                            :to="{ name: 'DocumentDetails', params: { id: item.id } }"
+                            :aria-label="`${item.title}, por ${item.author}. Ver detalhes do documento.`"
+                        >
+                            <div class="cover">
+                                <img v-if="item.cover_url" :src="item.cover_url" alt="" />
+                                <ion-icon v-else :icon="documentTextOutline" aria-hidden="true" />
+                            </div>
+                            <div class="item-details">
+                                <h2>{{ item.title }}</h2>
+                                <p class="author">{{ item.author }}</p>
+                                <p v-if="item.description" class="description">{{ item.description }}</p>
+                                <p class="metadata">
+                                    {{ item.category }} · {{ item.content_type }}
+                                    <span v-if="item.year"> · {{ item.year }}</span>
+                                    <span v-if="getFileExtension(item.file_name)"> · {{ getFileExtension(item.file_name) }}</span>
+                                </p>
+                            </div>
+                        </router-link>
+                        <button
+                            v-if="item.content_type === 'livro'"
+                            type="button"
+                            class="save-book-button"
+                            :class="{ 'is-saved': savedBookIds.has(item.id) }"
+                            :aria-label="`${savedBookIds.has(item.id) ? 'Gerenciar coleções de' : 'Salvar'} ${item.title}`"
+                            :aria-pressed="savedBookIds.has(item.id)"
+                            @click="openCollectionPicker(item)"
+                        >
+                            <ion-icon :icon="savedBookIds.has(item.id) ? bookmark : bookmarkOutline" aria-hidden="true" />
+                        </button>
+                    </article>
                 </section>
             </main>
 
@@ -115,7 +127,7 @@
         <IonModal
             class="library-filter-modal"
             :is-open="isFilterModalOpen"
-            :initial-breakpoint="0.72"
+            :initial-breakpoint="0.95"
             :breakpoints="[0, 0.55, 0.72, 0.95]"
             @didDismiss="isFilterModalOpen = false"
         >
@@ -178,16 +190,24 @@
                 </footer>
             </section>
         </IonModal>
+        <AddBookToCollectionModal
+            :is-open="Boolean(collectionBook)"
+            :book="collectionBook ?? emptyBook"
+            @close="collectionBook = null"
+            @saved="setBookSaved"
+        />
     </IonPage>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { IonContent, IonIcon, IonModal, IonPage, IonSpinner } from '@ionic/vue';
-import { arrowBackOutline, documentTextOutline, optionsOutline, searchOutline } from 'ionicons/icons';
+import { arrowBackOutline, bookmark, bookmarkOutline, documentTextOutline, optionsOutline, searchOutline } from 'ionicons/icons';
 import SiteHeader from '@/components/SiteHeader.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
+import AddBookToCollectionModal from '@/components/AddBookToCollectionModal.vue';
+import { listMyBookCollections } from '@/services/bookCollectionService';
 import { listPublicLibraryItems } from '@/services/libraryService';
 import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
 import type { PublicLibraryItem } from '@/types/library';
@@ -200,6 +220,9 @@ import {
 import { matchesLibrarySearch } from '@/utils/librarySearch';
 
 const items = ref<PublicLibraryItem[]>([]);
+const savedBookIds = ref(new Set<string>());
+const collectionBook = ref<PublicLibraryItem | null>(null);
+const emptyBook = { id: '', title: '' };
 const route = useRoute();
 const router = useRouter();
 const searchQuery = ref(typeof route.query.q === 'string' ? route.query.q : '');
@@ -238,6 +261,27 @@ const quickFormats = computed(() => availableFormats.value
     .filter((format) => ['pdf', 'epub'].includes(format))
     .slice(0, 2));
 const activeFilterCount = computed(() => Object.values(filters.value).filter(Boolean).length);
+
+const loadSavedBooks = async () => {
+    try {
+        const collections = await listMyBookCollections();
+        savedBookIds.value = new Set(collections.flatMap(({ items: books }) => books.map(({ id }) => id)));
+    } catch (error) {
+        console.error('Não foi possível carregar os livros salvos nas coleções.', error);
+    }
+};
+
+const openCollectionPicker = (book: PublicLibraryItem) => {
+    collectionBook.value = book;
+};
+
+const setBookSaved = (isSaved: boolean) => {
+    if (!collectionBook.value) return;
+    const savedIds = new Set(savedBookIds.value);
+    if (isSaved) savedIds.add(collectionBook.value.id);
+    else savedIds.delete(collectionBook.value.id);
+    savedBookIds.value = savedIds;
+};
 
 const syncFiltersFromRoute = () => {
     filters.value = {
@@ -335,6 +379,7 @@ const refreshItems = async () => {
 };
 
 useLibraryItemsSync(refreshItems);
+onMounted(loadSavedBooks);
 </script>
 
 <style scoped>
@@ -347,11 +392,22 @@ useLibraryItemsSync(refreshItems);
     min-height: 60vh;
 }
 
+.page-heading-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.page-heading-top .nv-eyebrow {
+    margin: 0;
+}
+
 .back-button {
     display: grid;
-    width: 42px;
-    height: 42px;
-    margin: 0 0 var(--space-md);
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
     place-items: center;
     border: 1px solid var(--color-border-soft);
     border-radius: 50%;
@@ -374,7 +430,7 @@ useLibraryItemsSync(refreshItems);
     display: flex;
     align-items: center;
     gap: 10px;
-    width: min(100%, 520px);
+    width: min(100%, 560px);
     min-height: var(--control-height);
     margin-bottom: 24px;
     padding: 0 14px;
@@ -391,9 +447,11 @@ useLibraryItemsSync(refreshItems);
 
 .filter-trigger {
     display: inline-flex;
-    min-height: 36px;
+    min-width: 40px;
+    min-height: 40px;
     flex: 0 0 auto;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 0 10px;
     border: 1px solid var(--color-border-soft);
@@ -423,16 +481,17 @@ useLibraryItemsSync(refreshItems);
 
 .quick-filters {
     display: flex;
+    max-width: 100%;
     gap: var(--space-sm);
     margin: calc(-1 * var(--space-sm)) 0 var(--space-md);
     overflow-x: auto;
-    padding: 2px 1px 8px;
+    padding: 2px 2px 10px;
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
 }
 
 .filter-chip {
-    min-height: 36px;
+    min-height: 40px;
     flex: 0 0 auto;
     padding: 0 14px;
     border: 1px solid var(--color-border-soft);
@@ -450,6 +509,7 @@ useLibraryItemsSync(refreshItems);
     border-color: var(--color-brand-primary);
     background: var(--color-brand-primary);
     color: var(--color-white);
+    box-shadow: 0 0 0 1px var(--color-brand-primary);
 }
 
 .filter-chip:focus-visible,
@@ -506,7 +566,7 @@ useLibraryItemsSync(refreshItems);
 
 .filter-sheet {
     display: flex;
-    max-height: min(82dvh, 700px);
+    max-height: min(90dvh, 700px);
     flex-direction: column;
     gap: var(--space-lg);
     overflow-y: auto;
@@ -619,12 +679,8 @@ useLibraryItemsSync(refreshItems);
 .library-card {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
     min-width: 0;
-    padding: var(--space-md) var(--space-sm);
     border-bottom: 1px solid var(--color-border-soft);
-    color: inherit;
-    text-decoration: none;
     transition: background-color 0.2s ease;
 }
 
@@ -632,14 +688,49 @@ useLibraryItemsSync(refreshItems);
     border-top: 1px solid var(--color-border-soft);
 }
 
-.library-card:hover,
-.library-card:focus-visible {
+.library-card:hover {
     background: var(--color-surface-alt);
 }
 
-.library-card:focus-visible {
+.library-card-link {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: var(--space-md);
+    min-width: 0;
+    padding: var(--space-md) var(--space-sm);
+    color: inherit;
+    text-decoration: none;
+}
+
+.library-card-link:focus-visible {
     outline: 2px solid var(--color-brand-primary);
     outline-offset: -2px;
+}
+
+.save-book-button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    margin-inline: var(--space-xs);
+    place-items: center;
+    border: 1px solid var(--color-border-soft);
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 1.25rem;
+}
+
+.save-book-button.is-saved {
+    border-color: var(--color-brand-primary);
+    color: var(--color-brand-primary);
+}
+
+.save-book-button:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 2px;
 }
 
 .cover {
@@ -700,9 +791,13 @@ useLibraryItemsSync(refreshItems);
 }
 
 @media (max-width: 480px) {
-    .library-card {
+    .library-card-link {
         gap: var(--space-sm);
         padding-inline: 0;
+    }
+
+    .save-book-button {
+        margin-inline: 0;
     }
 
     .cover {
@@ -717,6 +812,25 @@ useLibraryItemsSync(refreshItems);
     .filter-fields {
         grid-template-columns: minmax(0, 1fr);
         gap: var(--space-sm);
+    }
+
+    .filter-trigger {
+        width: 40px;
+        padding-inline: 0;
+    }
+
+    .filter-trigger.has-active-filters {
+        width: auto;
+        padding-inline: 8px;
+    }
+
+    .filter-trigger-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
     }
 }
 </style>

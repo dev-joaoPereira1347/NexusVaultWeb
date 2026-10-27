@@ -46,6 +46,7 @@ export interface ReadingProgress {
     status: ReadingStatus;
     title: string;
     author: string;
+    cover_url: string;
 }
 
 export interface DocumentReview {

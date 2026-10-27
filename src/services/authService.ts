@@ -25,6 +25,9 @@ const getAuthRedirectUrl = (path: string) => {
 export const signIn = (email: string, password: string) =>
     supabase.auth.signInWithPassword({ email, password });
 
+export const reauthenticate = (email: string, password: string) =>
+    supabase.auth.signInWithPassword({ email, password });
+
 export const signUp = (form: RegisterForm) =>
     supabase.auth.signUp({
         email: form.email,
@@ -46,6 +49,9 @@ export const resendSignupConfirmation = (email: string) =>
             emailRedirectTo: getAuthRedirectUrl('auth')
         }
     });
+
+export const verifySignupOtp = (email: string, token: string) =>
+    supabase.auth.verifyOtp({ email, token, type: 'signup' });
 
 export const sendMagicLink = (email: string) =>
     supabase.auth.signInWithOtp({

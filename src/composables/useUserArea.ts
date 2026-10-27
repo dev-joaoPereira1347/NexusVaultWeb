@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { alertController, toastController } from '@ionic/vue';
 import { useRouter } from 'vue-router';
 import { useLibraryItemsSync } from '@/composables/useLibraryItemsSync';
@@ -7,6 +7,7 @@ import {
     deleteStoredAvatar,
     getCurrentUser,
     getProfile,
+    reauthenticate,
     saveProfile,
     signOut,
     updateEmail,
@@ -68,10 +69,17 @@ export const useUserArea = () => {
     const checkingUploads = ref(false);
 
     const profileForm = reactive<UserProfileForm>(emptyProfile());
+    const originalProfile = ref<UserProfileForm>(emptyProfile());
+    const isEditingProfile = ref(false);
+    const isChangingPassword = ref(false);
+    const pendingEmail = ref('');
+    const currentPassword = ref('');
     const newPassword = ref('');
+    const passwordConfirmation = ref('');
     const avatarFile = ref<File | null>(null);
     const avatarPreviewUrl = ref('');
     const originalEmail = ref('');
+    const emailNeedsReauthentication = computed(() => profileForm.email.trim() !== originalEmail.value);
 
     const contributions = ref<LibraryContribution[]>([]);
     const uploadRequests = ref<LibraryUploadRequest[]>([]);
@@ -152,6 +160,7 @@ export const useUserArea = () => {
         profileForm.email = user.email || '';
         profileForm.avatarUrl = profile?.avatar_url || '';
         originalEmail.value = user.email || '';
+        originalProfile.value = { ...profileForm };
         avatarPreviewUrl.value = profileForm.avatarUrl;
 
         const [myItems, myRequests, catalogItems, myProgress, myReviews] = await Promise.allSettled([
@@ -242,6 +251,14 @@ export const useUserArea = () => {
         if (error) throw error;
         if (!user) throw new Error('Usuário não autenticado.');
 
+        const nextEmail = profileForm.email.trim();
+        const emailChanged = nextEmail !== originalEmail.value;
+        if (emailChanged) {
+            if (!currentPassword.value) throw new Error('Informe sua senha atual para alterar o e-mail.');
+            const { error: reauthenticationError } = await reauthenticate(originalEmail.value, currentPassword.value);
+            if (reauthenticationError) throw new Error('Senha atual incorreta. Confirme sua identidade para alterar o e-mail.');
+        }
+
         const previousAvatarUrl = profileForm.avatarUrl;
         let uploadedAvatarUrl: string | null = null;
         if (avatarFile.value) {
@@ -268,28 +285,58 @@ export const useUserArea = () => {
             }
         }
 
-        const nextEmail = profileForm.email.trim();
-        if (nextEmail && nextEmail !== originalEmail.value) {
+        if (emailChanged) {
             const { error: emailError } = await updateEmail(nextEmail);
             if (emailError) throw emailError;
-            originalEmail.value = nextEmail;
-            await showToast('Perfil salvo. Confirme o novo e-mail se o Supabase solicitar verificação.');
-        } else {
-            await showToast('Perfil atualizado com sucesso!');
+            pendingEmail.value = nextEmail;
         }
 
+        originalProfile.value = { ...profileForm, avatarUrl: uploadedAvatarUrl ?? profileForm.avatarUrl };
+        isEditingProfile.value = false;
+        currentPassword.value = '';
+        await showToast(
+            emailChanged
+                ? `Perfil salvo. Confirme a alteração pelo e-mail enviado para ${nextEmail}.`
+                : 'Perfil atualizado com sucesso!'
+        );
         avatarFile.value = null;
     }, 'Erro ao atualizar o perfil.');
+
+    const cancelProfileEdit = () => {
+        Object.assign(profileForm, originalProfile.value);
+        avatarPreviewUrl.value = originalProfile.value.avatarUrl;
+        avatarFile.value = null;
+        currentPassword.value = '';
+        isEditingProfile.value = false;
+    };
 
     const handleChangePassword = () => run(savingPassword, async () => {
         if (newPassword.value.trim().length < 6) {
             throw new Error('A senha deve ter pelo menos 6 caracteres.');
         }
+        if (newPassword.value !== passwordConfirmation.value) {
+            throw new Error('A confirmação da nova senha não corresponde.');
+        }
+        if (!currentPassword.value) throw new Error('Informe sua senha atual para confirmar sua identidade.');
+
+        const { error: reauthenticationError } = await reauthenticate(originalEmail.value, currentPassword.value);
+        if (reauthenticationError) throw new Error('Senha atual incorreta. Confirme sua identidade para alterar a senha.');
+
         const { error } = await updatePassword(newPassword.value);
         if (error) throw error;
         newPassword.value = '';
+        passwordConfirmation.value = '';
+        currentPassword.value = '';
+        isChangingPassword.value = false;
         await showToast('Senha alterada com sucesso!');
     }, 'Erro ao alterar a senha.');
+
+    const cancelPasswordChange = () => {
+        newPassword.value = '';
+        passwordConfirmation.value = '';
+        currentPassword.value = '';
+        isChangingPassword.value = false;
+    };
 
     const handleDeleteProgress = async (id: string) => {
         const alert = await alertController.create({
@@ -558,7 +605,13 @@ export const useUserArea = () => {
         savingContribution,
         checkingUploads,
         profileForm,
+        isEditingProfile,
+        isChangingPassword,
+        pendingEmail,
+        emailNeedsReauthentication,
+        currentPassword,
         newPassword,
+        passwordConfirmation,
         avatarPreviewUrl,
         contributions,
         uploadRequests,
@@ -571,6 +624,8 @@ export const useUserArea = () => {
         reviews,
         reviewDraft,
         setAvatar,
+        cancelProfileEdit,
+        cancelPasswordChange,
         handleSaveProfile,
         handleChangePassword,
         handleDeleteProgress,

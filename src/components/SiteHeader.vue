@@ -33,6 +33,9 @@
                         <router-link v-if="isAdmin" to="/admin/denuncias" @click="closeUserMenu">
                             Painel de moderação
                         </router-link>
+                        <router-link v-if="isAdmin" to="/admin/gestao" @click="closeUserMenu">
+                            Gerenciar usuários e documentos
+                        </router-link>
                         <button type="button" @click="handleSignOut">Sair</button>
                         <button type="button" class="delete-account-button" @click="handleDeleteAccount">Excluir conta</button>
                     </div>
@@ -75,6 +78,9 @@
                     <router-link to="/community-guidelines" @click="closeMobileMenu">Diretrizes</router-link>
                     <router-link v-if="isAdmin" to="/admin/denuncias" @click="closeMobileMenu">
                         Painel de moderação
+                    </router-link>
+                    <router-link v-if="isAdmin" to="/admin/gestao" @click="closeMobileMenu">
+                        Gerenciar usuários e documentos
                     </router-link>
                     <router-link to="/about-us" @click="closeMobileMenu">Sobre Nós</router-link>
                 </div>

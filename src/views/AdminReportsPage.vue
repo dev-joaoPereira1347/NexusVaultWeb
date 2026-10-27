@@ -4,12 +4,12 @@
             <SiteHeader />
             <main class="admin-page nv-page-shell">
                 <header class="page-heading nv-page-heading">
-                    <p class="nv-eyebrow nv-badge">MODERAÇÃO DO ACERVO</p>
+                    <p class="nv-eyebrow nv-badge">MODERAÇÃO DA COMUNIDADE</p>
                     <div class="heading-row">
                         <div>
-                            <h1 class="nv-page-title">Denúncias de documentos</h1>
+                            <h1 class="nv-page-title">Denúncias</h1>
                             <p class="nv-page-description">
-                                Rejeite denúncias sem alterar o acervo ou aprove a remoção do documento e dos arquivos.
+                                Analise denúncias de documentos e perfis da comunidade.
                             </p>
                         </div>
                         <ion-button class="refresh-button" fill="outline" :disabled="loading" @click="loadReports">
@@ -39,7 +39,7 @@
                                 <option value="pending">Pendentes</option>
                                 <option value="reviewing">Em análise</option>
                                 <option value="removing">Removendo</option>
-                                <option value="resolved">Removidos</option>
+                                <option value="resolved">Resolvidas</option>
                                 <option value="dismissed">Rejeitadas</option>
                             </select>
                         </label>
@@ -83,20 +83,32 @@
                                 </div>
 
                                 <aside class="document-panel">
-                                    <span class="document-label">Documento denunciado</span>
-                                    <template v-if="report.document">
+                                    <template v-if="report.reported_user_id">
+                                        <span class="document-label">Perfil denunciado</span>
                                         <RouterLink
                                             class="document-link"
-                                            :to="{ name: 'DocumentDetails', params: { id: report.reported_document_id } }"
+                                            :to="{ name: 'PublicProfile', params: { id: report.reported_user_id } }"
                                         >
-                                            {{ report.document.title }}
+                                            {{ report.reportedUser?.username || 'Perfil indisponível' }}
                                         </RouterLink>
-                                        <span class="document-author">{{ report.document.author }}</span>
+                                        <code>{{ report.reported_user_id }}</code>
                                     </template>
-                                    <p v-else class="deleted-document">
-                                        Documento removido ou indisponível.
-                                        <code>{{ report.reported_document_id }}</code>
-                                    </p>
+                                    <template v-else>
+                                        <span class="document-label">Documento denunciado</span>
+                                        <template v-if="report.document && report.reported_document_id">
+                                            <RouterLink
+                                                class="document-link"
+                                                :to="{ name: 'DocumentDetails', params: { id: report.reported_document_id } }"
+                                            >
+                                                {{ report.document.title }}
+                                            </RouterLink>
+                                            <span class="document-author">{{ report.document.author }}</span>
+                                        </template>
+                                        <p v-else class="deleted-document">
+                                            Documento removido ou indisponível.
+                                            <code>{{ report.reported_document_id }}</code>
+                                        </p>
+                                    </template>
                                 </aside>
                             </div>
 
@@ -125,25 +137,29 @@
                                     <ion-button
                                         class="resolve-button"
                                         :disabled="updatingReportId === report.id"
-                                        @click="approveRemoval(report)"
+                                        @click="resolveReport(report)"
                                     >
                                         <ion-spinner v-if="updatingReportId === report.id" slot="start" name="crescent" />
                                         <ion-icon v-else slot="start" :icon="checkmarkCircleOutline" />
-                                        Aprovar e remover
+                                        {{ report.reported_user_id ? 'Remover usuário' : 'Aprovar e remover documento' }}
                                     </ion-button>
                                 </div>
                                 <div v-else-if="isRemovalStale(report)" class="action-buttons">
                                     <ion-button
                                         class="resolve-button"
                                         :disabled="updatingReportId === report.id"
-                                        @click="approveRemoval(report)"
+                                        @click="resolveReport(report)"
                                     >
                                         <ion-icon slot="start" :icon="refreshOutline" />
                                         Retomar remoção
                                     </ion-button>
                                 </div>
                                 <p v-else class="decision-note">
-                                    {{ report.status === 'resolved' ? 'Documento removido' : report.status === 'removing' ? 'Remoção em andamento' : 'Denúncia rejeitada' }}
+                                    {{
+                                        report.status === 'resolved'
+                                            ? report.reported_user_id ? 'Usuário removido' : 'Documento removido'
+                                            : report.status === 'removing' ? 'Remoção em andamento' : 'Denúncia rejeitada'
+                                    }}
                                     <span v-if="report.reviewed_at"> em {{ formatDate(report.reviewed_at) }}</span>
                                 </p>
                             </footer>
@@ -152,8 +168,8 @@
                 </section>
 
                 <p class="moderation-note">
-                    Aprovar remove o documento, a capa e os arquivos associados. Rejeitar mantém o conteúdo no acervo.
-                    As decisões ficam registradas no histórico, mesmo após a remoção.
+                    As remoções excluem permanentemente o conteúdo ou a conta denunciada e os arquivos associados.
+                    Rejeitar mantém o conteúdo no acervo. As decisões ficam registradas no histórico.
                 </p>
             </main>
             <SiteFooter />
@@ -185,6 +201,7 @@ import SiteFooter from '@/components/SiteFooter.vue';
 import {
     approveAdminDocumentReport,
     listAdminDocumentReports,
+    resolveAdminUserReport,
     updateAdminDocumentReportStatus,
     type AdminDocumentReport,
     type DocumentReportStatus
@@ -202,6 +219,9 @@ const reasonLabels = {
     spam: 'Spam ou conteúdo enganoso',
     malware: 'Arquivo suspeito ou malicioso',
     misinformation: 'Informação potencialmente prejudicial',
+    harassment: 'Assédio ou comportamento abusivo',
+    impersonation: 'Falsidade ideológica ou personificação',
+    fake_profile: 'Perfil falso ou enganoso',
     other: 'Outro motivo'
 } satisfies Record<AdminDocumentReport['reason'], string>;
 
@@ -209,7 +229,7 @@ const statusLabels: Record<DocumentReportStatus, string> = {
     pending: 'Pendente',
     reviewing: 'Em análise',
     removing: 'Removendo',
-    resolved: 'Documento removido',
+    resolved: 'Resolvida',
     dismissed: 'Rejeitada'
 };
 
@@ -221,7 +241,7 @@ const stats = computed(() => [
     { status: 'pending', label: 'Pendentes', count: reports.value.filter((report) => report.status === 'pending').length },
     { status: 'reviewing', label: 'Em análise', count: reports.value.filter((report) => report.status === 'reviewing').length },
     { status: 'removing', label: 'Removendo', count: reports.value.filter((report) => report.status === 'removing').length },
-    { status: 'resolved', label: 'Removidos', count: reports.value.filter((report) => report.status === 'resolved').length },
+    { status: 'resolved', label: 'Resolvidas', count: reports.value.filter((report) => report.status === 'resolved').length },
     { status: 'dismissed', label: 'Rejeitadas', count: reports.value.filter((report) => report.status === 'dismissed').length }
 ]);
 
@@ -282,14 +302,20 @@ const updateStatus = async (report: AdminDocumentReport, status: 'reviewing' | '
     }
 };
 
-const approveRemoval = async (report: AdminDocumentReport) => {
+const resolveReport = async (report: AdminDocumentReport) => {
     if (updatingReportId.value) return;
+    const isUserReport = Boolean(report.reported_user_id);
+    const targetName = isUserReport
+        ? report.reportedUser?.username || 'este usuário'
+        : report.document?.title || 'este documento';
     const alert = await alertController.create({
-        header: 'Aprovar remoção do documento?',
-        message: `O documento “${report.document?.title ?? 'indisponível'}” e os arquivos associados serão removidos permanentemente. Esta ação não pode ser desfeita.`,
+        header: isUserReport ? 'Remover usuário denunciado?' : 'Aprovar remoção do documento?',
+        message: isUserReport
+            ? `A conta de “${targetName}”, seus documentos enviados e arquivos associados serão removidos permanentemente. Esta ação não pode ser desfeita.`
+            : `O documento “${targetName}” e os arquivos associados serão removidos permanentemente. Esta ação não pode ser desfeita.`,
         buttons: [
             { text: 'Cancelar', role: 'cancel' },
-            { text: 'Aprovar e remover', role: 'destructive' }
+            { text: isUserReport ? 'Remover usuário' : 'Aprovar e remover', role: 'destructive' }
         ]
     });
     await alert.present();
@@ -298,7 +324,9 @@ const approveRemoval = async (report: AdminDocumentReport) => {
 
     updatingReportId.value = report.id;
     try {
-        const { reviewerId, documentDeleted } = await approveAdminDocumentReport(report.id);
+        const { reviewerId, documentDeleted, userDeleted } = isUserReport
+            ? { ...await resolveAdminUserReport(report.id), documentDeleted: false }
+            : { ...await approveAdminDocumentReport(report.id), userDeleted: false };
         reports.value = reports.value.map((entry) => entry.id === report.id
             ? {
                 ...entry,
@@ -311,9 +339,13 @@ const approveRemoval = async (report: AdminDocumentReport) => {
             }
             : entry);
         await showToast(
-            documentDeleted
-                ? 'Denúncia aprovada. Documento e arquivos removidos.'
-                : 'Denúncia aprovada. O documento já não estava disponível.',
+            isUserReport
+                ? userDeleted
+                    ? 'Denúncia resolvida. Usuário e arquivos associados removidos.'
+                    : 'Denúncia resolvida. O usuário já não estava disponível.'
+                : documentDeleted
+                    ? 'Denúncia aprovada. Documento e arquivos removidos.'
+                    : 'Denúncia aprovada. O documento já não estava disponível.',
             'success'
         );
     } catch (error) {

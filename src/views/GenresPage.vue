@@ -83,6 +83,7 @@ const genres = computed(() => {
 
     return [...counts.entries()]
         .map(([key, entry]) => ({ key, label: entry.name, count: entry.count }))
+        .filter((genre) => genre.count > 0)
         .sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'));
 });
 
@@ -114,6 +115,7 @@ useLibraryItemsSync(refreshItems);
 .genres-page {
     --content-width: 1120px;
     min-height: 60vh;
+    padding-bottom: calc(var(--page-space) + env(safe-area-inset-bottom, 0px));
 }
 
 .page-heading {
@@ -123,7 +125,6 @@ useLibraryItemsSync(refreshItems);
 .genre-list {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     padding: 0 var(--space-md);
 }
 

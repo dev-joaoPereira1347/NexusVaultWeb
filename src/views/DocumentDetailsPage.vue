@@ -58,6 +58,20 @@
                                 Ainda não há avaliações para este documento.
                             </p>
                             <div class="summary-actions" aria-label="Ações do documento">
+                                <ion-button
+                                    v-if="item.content_type === 'livro'"
+                                    class="collection-save-button"
+                                    fill="outline"
+                                    :aria-label="`${isSavedInCollection ? 'Gerenciar coleções de' : 'Salvar'} ${item.title}`"
+                                    :aria-pressed="isSavedInCollection"
+                                    @click="isCollectionPickerOpen = true"
+                                >
+                                    <ion-icon
+                                        slot="start"
+                                        :icon="isSavedInCollection ? bookmark : bookmarkOutline"
+                                    />
+                                    {{ isSavedInCollection ? 'Salvo em coleções' : 'Salvar em coleção' }}
+                                </ion-button>
                                 <ion-button class="read-button" :aria-label="`Ler ${item.title} online`"
                                     @click="openReader">
                                     <ion-icon slot="start" :icon="bookOutline" />
@@ -493,6 +507,12 @@
                 </ion-button>
             </form>
         </IonModal>
+        <AddBookToCollectionModal
+            :is-open="isCollectionPickerOpen"
+            :book="item ?? emptyBook"
+            @close="isCollectionPickerOpen = false"
+            @saved="isSavedInCollection = $event"
+        />
     </IonPage>
 </template>
 
@@ -506,6 +526,7 @@ import {
     addOutline,
     arrowForwardOutline,
     arrowBackOutline,
+    bookmark,
     bookmarkOutline,
     bookOutline,
     calendarOutline,
@@ -531,6 +552,7 @@ import {
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import SiteHeader from '@/components/SiteHeader.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
+import AddBookToCollectionModal from '@/components/AddBookToCollectionModal.vue';
 import { getCurrentSession, getPublicProfile } from '@/services/authService';
 import {
     getMyReadingProgressPosition,
@@ -573,6 +595,9 @@ const uploaderName = ref('');
 const loading = ref(true);
 const errorMessage = ref('');
 const isDownloading = ref(false);
+const isCollectionPickerOpen = ref(false);
+const isSavedInCollection = ref(false);
+const emptyBook = { id: '', title: '' };
 const isDescriptionExpanded = ref(false);
 const isDescriptionLong = computed(() => (item.value?.description?.length ?? 0) > 240);
 const isReportModalOpen = ref(false);

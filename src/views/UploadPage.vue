@@ -56,7 +56,10 @@
                         :auto-filled-fields="autoFilledFields"
                         :cover-metadata-warning="metadataCoverWarning"
                         :embedded-cover="embeddedCoverFile"
+                        :show-collection-picker="form.type === 'livro'"
+                        :selected-collection-count="selectedCollectionIds.length"
                         show-rights-declaration
+                        @open-collection-picker="isCollectionPickerOpen = true"
                         @submit="submitForm"
                     />
                 </section>
@@ -64,6 +67,14 @@
 
             <SiteFooter />
         </IonContent>
+        <AddBookToCollectionModal
+            :is-open="isCollectionPickerOpen"
+            :book="uploadBook"
+            selection-only
+            :selected-ids="selectedCollectionIds"
+            @close="isCollectionPickerOpen = false"
+            @update-selected="selectedCollectionIds = $event"
+        />
     </IonPage>
 </template>
 
@@ -75,6 +86,7 @@ import SiteHeader from '../components/SiteHeader.vue';
 import SiteFooter from '../components/SiteFooter.vue';
 import UploadDropzone from '../components/UploadDropzone.vue';
 import UploadMetadataForm from '../components/UploadMetadataForm.vue';
+import AddBookToCollectionModal from '@/components/AddBookToCollectionModal.vue';
 import type { UploadForm } from '../types/upload';
 import { uploadLibraryItem } from '@/services/uploadService';
 import { findOpenLibraryMetadata } from '@/services/openLibraryMetadataService';
@@ -93,6 +105,8 @@ const metadataLookupCompleted = ref(false);
 const metadataCoverWarning = ref(false);
 const embeddedCoverFile = ref<File | null>(null);
 const autoFilledFields = ref<AutoFilledField[]>([]);
+const isCollectionPickerOpen = ref(false);
+const selectedCollectionIds = ref<string[]>([]);
 let metadataRequestId = 0;
 let metadataController: AbortController | null = null;
 
@@ -107,6 +121,15 @@ const form = reactive<UploadForm>({
     description: '',
     cover: null,
     rightsDeclarationAccepted: false
+});
+
+const uploadBook = computed(() => ({
+    id: 'upload',
+    title: form.title.trim() || 'Novo livro'
+}));
+
+watch(() => form.type, (type) => {
+    if (type !== 'livro') selectedCollectionIds.value = [];
 });
 
 const metadataMissingFields = computed<MetadataField[]>(() => {
@@ -277,6 +300,8 @@ const resetForm = () => {
     form.cover = null;
     embeddedCoverFile.value = null;
     form.rightsDeclarationAccepted = false;
+    selectedCollectionIds.value = [];
+    isCollectionPickerOpen.value = false;
 };
 
 const submitForm = async () => {
@@ -286,13 +311,20 @@ const submitForm = async () => {
         isUploading.value = true;
         uploadProgress.value = 0;
 
-        const request = await uploadLibraryItem(selectedFile.value, { ...form }, (progress) => {
-            uploadProgress.value = progress;
-        });
+        const collectionCount = form.type === 'livro' ? selectedCollectionIds.value.length : 0;
+        const request = await uploadLibraryItem(
+            selectedFile.value,
+            { ...form },
+            (progress) => { uploadProgress.value = progress; },
+            collectionCount ? selectedCollectionIds.value : []
+        );
+        const collectionFeedback = collectionCount
+            ? ` Após a aprovação, o livro será adicionado a ${collectionCount} ${collectionCount === 1 ? 'coleção selecionada' : 'coleções selecionadas'}.`
+            : '';
         await presentToast(
-            request.status_message
+            `${request.status_message
                 ? request.status_message
-                : 'Envio recebido. A verificação acontece em segundo plano; acompanhe o resultado em Meus envios.',
+                : 'Envio recebido. A verificação acontece em segundo plano; acompanhe o resultado em Meus envios.'}${collectionFeedback}`,
             request.status_message ? 'warning' : 'success'
         );
         resetForm();

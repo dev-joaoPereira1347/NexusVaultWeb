@@ -9,15 +9,15 @@
 
             <main class="about-main nv-page-shell">
                 <section class="section-block nv-section">
-                    <div class="section-header">
-                        <span class="nv-eyebrow nv-badge">NOSSA MISSÃO</span>
+                    <header class="section-header">
                         <h2 class="nv-heading-h2">O que movemos</h2>
-                    </div>
+                        <p class="section-subtitle">Mais do que desenvolver, criamos soluções que fazem a diferença.</p>
+                    </header>
 
                     <div class="cards-grid">
-                        <article class="pillar-card nv-surface">
-                            <div class="icon-wrapper primary">
-                                <ion-icon :icon="libraryOutline" aria-hidden="true" />
+                        <article class="pillar-card pillar-card--curation">
+                            <div class="icon-wrapper">
+                                <ion-icon :icon="filterOutline" aria-hidden="true" />
                             </div>
                             <h3>Curadoria & preservação</h3>
                             <p>
@@ -26,9 +26,9 @@
                             </p>
                         </article>
 
-                        <article class="pillar-card nv-surface">
-                            <div class="icon-wrapper accent">
-                                <ion-icon :icon="lockClosedOutline" aria-hidden="true" />
+                        <article class="pillar-card pillar-card--security">
+                            <div class="icon-wrapper">
+                                <ion-icon :icon="shieldOutline" aria-hidden="true" />
                             </div>
                             <h3>Segurança & integridade</h3>
                             <p>
@@ -37,8 +37,8 @@
                             </p>
                         </article>
 
-                        <article class="pillar-card nv-surface">
-                            <div class="icon-wrapper dark">
+                        <article class="pillar-card pillar-card--community">
+                            <div class="icon-wrapper">
                                 <ion-icon :icon="peopleOutline" aria-hidden="true" />
                             </div>
                             <h3>Guardiões do saber</h3>
@@ -52,14 +52,11 @@
 
                 <section class="section-block developer-block nv-section">
                     <div class="developer-card nv-surface">
-                        <div class="developer-brand">
-                            <img :src="umbrellaLogo" alt="Logo da Umbrella Code"
-                                class="developer-logo" />
-                            <span>Umbrella Code</span>
-                        </div>
-
                         <div class="developer-copy">
-                            <h3>Desenvolvido por Umbrella Code</h3>
+                            <header class="developer-heading">
+                                <span class="nv-eyebrow nv-badge developer-badge">PROJETO</span>
+                                <h3>Desenvolvido por Umbrella Code</h3>
+                            </header>
                             <p>
                                 A NexusVault foi pensada e construída com foco em desempenho, acessibilidade e uma
                                 experiência moderna, utilizando Ionic Vue e Supabase como base para a entrega de uma
@@ -70,24 +67,28 @@
                 </section>
 
                 <section class="section-block team-section nv-section">
-                    <div class="section-header team-header">
+                    <header class="section-header team-header">
                         <span class="nv-eyebrow nv-badge">EQUIPE</span>
                         <h2 class="nv-heading-h2">Quem constrói a experiência</h2>
-                    </div>
+                    </header>
 
-                    <div class="team-grid">
-                        <article v-for="member in teamMembers" :key="member.name" class="team-card nv-surface">
-                            <div class="team-avatar-wrap">
-                                <div class="team-avatar">
-                                    <ion-icon :icon="member.icon" aria-hidden="true" />
-                                </div>
-                            </div>
-
-                            <h3>{{ member.name }}</h3>
-                            <p class="team-role">{{ member.role }}</p>
-                            <p class="team-bio">{{ member.bio }}</p>
-                        </article>
-                    </div>
+                    <ion-grid class="team-grid">
+                        <ion-row>
+                            <ion-col v-for="member in teamMembers" :key="member.name" size="12" size-md="6"
+                                size-xl="4">
+                                <article class="team-card nv-surface">
+                                    <div class="team-avatar" aria-hidden="true">
+                                        <ion-icon :icon="member.icon" />
+                                    </div>
+                                    <div class="team-member-heading">
+                                        <h3>{{ member.name }}</h3>
+                                        <p class="team-role">{{ member.role }}</p>
+                                    </div>
+                                    <p class="team-bio">{{ member.bio }}</p>
+                                </article>
+                            </ion-col>
+                        </ion-row>
+                    </ion-grid>
                 </section>
             </main>
 
@@ -100,11 +101,14 @@
 import {
     IonPage,
     IonContent,
-    IonIcon
+    IonIcon,
+    IonGrid,
+    IonRow,
+    IonCol
 } from '@ionic/vue';
 import {
-    libraryOutline,
-    lockClosedOutline,
+    filterOutline,
+    shieldOutline,
     peopleOutline,
     laptopOutline,
     colorPaletteOutline,
@@ -182,258 +186,233 @@ const teamMembers: TeamMember[] = [
     --content-width: 1200px;
 }
 
-.section-block {
-    margin-bottom: 0;
-}
-
 .section-header {
-    margin-bottom: 20px;
+    margin-bottom: var(--space-md);
 }
 
 .section-header h2 {
-    margin: 0;
+    max-width: 38ch;
+}
+
+.section-subtitle {
+    max-width: 52ch;
+    margin: var(--space-xs) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--typography-body-sm-font-size);
+    line-height: var(--typography-body-sm-line-height);
 }
 
 .cards-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: var(--space-lg);
 }
 
 .pillar-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-soft);
-    border-radius: var(--radius-lg);
-    padding: var(--surface-padding);
-    box-shadow: var(--shadow-soft);
+    --pillar-color: var(--color-brand-primary);
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: start;
+    column-gap: var(--space-sm);
+    row-gap: var(--space-xs);
 }
 
 .icon-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    font-size: 1.5rem;
-    margin-bottom: 16px;
-}
-
-.icon-wrapper.primary {
-    background: rgba(83, 83, 143, 0.1);
-    color: var(--color-brand-primary);
-}
-
-.icon-wrapper.accent {
-    background: var(--color-surface-alt);
-    color: var(--color-accent);
-}
-
-.icon-wrapper.dark {
-    background: rgba(34, 34, 59, 0.08);
-    color: var(--color-text-primary);
+    display: grid;
+    grid-row: 1 / span 2;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--pillar-color) 12%, var(--color-surface));
+    color: var(--pillar-color);
+    font-size: 1.4rem;
 }
 
 .pillar-card h3 {
-    margin: 0 0 10px;
+    margin: 0;
     color: var(--color-text-primary);
-    font-size: 1.15rem;
-    font-weight: 700;
+    font-family: var(--primitive-font-family-display);
+    font-size: var(--card-title-font-size);
+    font-weight: var(--card-title-font-weight);
+    line-height: var(--card-title-line-height);
 }
 
 .pillar-card p {
     margin: 0;
     color: var(--color-text-secondary);
-    font-size: 0.96rem;
-    line-height: 1.7;
+    font-size: var(--typography-body-sm-font-size);
+    line-height: var(--typography-body-sm-line-height);
 }
 
 .developer-card {
-    display: flex;
-    align-items: center;
-    gap: 28px;
-    padding: var(--surface-padding);
-}
-
-.developer-brand {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-width: 200px;
-    gap: 12px;
-}
-
-.developer-logo {
     display: block;
-    width: 170px;
-    height: auto;
-    object-fit: contain;
+    padding: clamp(var(--space-lg), 5vw, var(--space-2xl));
 }
 
-.developer-brand span {
-    color: var(--color-text-primary);
-    font-size: 0.9rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+.developer-copy {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-md);
+}
+
+.developer-heading {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-md);
+}
+
+.developer-badge {
+    padding: var(--space-xs) var(--space-lg);
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-brand-primary) 16%, var(--color-surface));
+    color: var(--color-brand-primary);
+    font-size: var(--typography-body-sm-font-size);
+    letter-spacing: 0.04em;
 }
 
 .developer-copy h3 {
-    margin: 0 0 10px;
+    margin: 0;
     color: var(--color-text-primary);
-    font-size: clamp(1.4rem, 2vw, 2rem);
-    line-height: 1.2;
+    font-family: var(--primitive-font-family-display);
+    font-size: var(--typography-heading-h3-font-size);
+    font-weight: var(--typography-heading-h3-font-weight);
+    line-height: var(--typography-heading-h3-line-height);
 }
 
 .developer-copy p {
     margin: 0;
     color: var(--color-text-secondary);
-    line-height: 1.7;
-    font-size: 1rem;
+    font-size: var(--typography-body-md-font-size);
+    line-height: var(--typography-body-md-line-height);
+    letter-spacing: 0.04em;
 }
 
 .team-section {
-    margin-top: 8px;
+    min-width: 0;
 }
 
 .team-header {
-    margin-bottom: 28px;
+    margin-bottom: var(--space-md);
 }
 
 .team-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 20px;
+    width: 100%;
+    padding: 0;
+}
+
+.team-grid ion-row {
+    row-gap: var(--space-md);
+}
+
+.team-grid ion-col {
+    display: flex;
 }
 
 .team-card {
+    --member-accent: var(--color-brand-primary);
     position: relative;
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-    background: var(--color-surface);
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    align-items: center;
+    gap: var(--space-md);
+    min-width: 0;
+    width: 100%;
+    padding: var(--space-md);
     border: 1px solid var(--color-border-soft);
+    border-left: 4px solid var(--member-accent);
     border-radius: var(--radius-lg);
-    padding: var(--surface-padding);
     box-shadow: var(--shadow-soft);
     color: var(--color-text-primary);
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    overflow: hidden;
-}
-
-.team-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(83, 83, 143, 0.04), transparent 45%, transparent 100%);
-    pointer-events: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .team-card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-2px);
     box-shadow: var(--shadow-medium);
-    border-color: rgba(255, 255, 255, 0.26);
-}
-
-.team-avatar-wrap {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 18px;
 }
 
 .team-avatar {
-    width: 92px;
-    height: 92px;
+    display: grid;
+    grid-row: 1;
+    width: 64px;
+    height: 64px;
+    place-items: center;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-surface-alt);
-    border: 1px solid var(--color-border-soft);
-    box-shadow: var(--shadow-soft);
-    animation: floatGlow 4s ease-in-out infinite;
+    background: color-mix(in srgb, var(--member-accent) 16%, var(--color-surface));
+    color: var(--member-accent);
 }
 
 .team-avatar ion-icon {
-    font-size: 2.5rem;
-    color: var(--color-brand-primary);
+    font-size: 2rem;
+}
+
+.team-member-heading {
+    display: grid;
+    gap: var(--space-2xs, 4px);
+    min-width: 0;
 }
 
 .team-card h3 {
     margin: 0;
     color: var(--color-text-primary);
-    font-size: clamp(1.25rem, 1.45vw, 1.5rem);
-    line-height: 1.2;
-    text-align: left;
-    font-weight: 700;
+    font-family: var(--primitive-font-family-display);
+    font-size: var(--typography-heading-h4-font-size);
+    font-weight: var(--typography-heading-h4-font-weight);
+    line-height: var(--typography-heading-h4-line-height);
 }
 
 .team-role {
-    margin: 18px 0 14px;
+    margin: 0;
     color: var(--color-text-secondary);
-    font-size: var(--font-size-eyebrow);
-    line-height: 1.3;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: var(--typography-body-sm-font-size);
+    line-height: var(--typography-body-sm-line-height);
 }
 
 .team-bio {
+    grid-column: 1 / -1;
     margin: 0;
     color: var(--color-text-secondary);
-    font-size: var(--font-size-caption);
-    line-height: 1.7;
-}
-
-@keyframes floatGlow {
-
-    0%,
-    100% {
-        transform: translateY(0);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 20px rgba(0, 0, 0, 0.12);
-    }
-
-    50% {
-        transform: translateY(-3px);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 26px rgba(0, 0, 0, 0.16);
-    }
-}
-
-@media (max-width: 1400px) {
-    .team-grid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 1200px) {
-    .team-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 900px) {
-    .cards-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .developer-card {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .developer-brand {
-        min-width: auto;
-    }
-
-    .team-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+    font-size: var(--typography-body-sm-font-size);
+    line-height: var(--typography-body-sm-line-height);
+    letter-spacing: 0.02em;
 }
 
 @media (max-width: 640px) {
-    .team-grid {
-        grid-template-columns: 1fr;
+    .developer-card {
+        padding: var(--space-md);
+    }
+
+    .developer-copy {
+        gap: var(--space-sm);
+    }
+
+    .developer-heading {
+        gap: var(--space-sm);
+    }
+
+    .developer-copy h3 {
+        font-size: var(--typography-heading-h4-font-size);
+        line-height: var(--typography-heading-h4-line-height);
+    }
+
+    .developer-copy p {
+        font-size: var(--typography-body-sm-font-size);
+        line-height: var(--typography-body-sm-line-height);
+        letter-spacing: normal;
+    }
+
+    .team-card {
+        grid-template-columns: 56px minmax(0, 1fr);
+        gap: var(--space-sm) var(--space-md);
+    }
+
+    .team-avatar {
+        width: 56px;
+        height: 56px;
     }
 
 }

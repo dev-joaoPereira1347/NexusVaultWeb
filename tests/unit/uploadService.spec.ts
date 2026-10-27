@@ -120,6 +120,17 @@ describe('uploadLibraryItem', () => {
     expect(result.status).toBe('pending');
   });
 
+  test('stores selected collections for a new digital book', async () => {
+    const file = new File(['conteúdo'], 'document.pdf', { type: 'application/pdf' });
+
+    await uploadLibraryItem(file, baseForm, undefined, ['collection-1', 'collection-2']);
+
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
+      content_type: 'livro',
+      collection_ids: ['collection-1', 'collection-2'],
+    }));
+  });
+
   test('reports real transfer progress when requested', async () => {
     class MockXMLHttpRequest extends EventTarget {
       upload = new EventTarget();
@@ -194,6 +205,17 @@ describe('uploadLibraryItem', () => {
 
     expect(uploadMock).not.toHaveBeenCalled();
     expect(getCurrentUserMock).not.toHaveBeenCalled();
+  });
+
+  test('does not allow collections for non-book uploads', async () => {
+    const file = new File(['conteúdo'], 'document.pdf', { type: 'application/pdf' });
+
+    await expect(uploadLibraryItem(file, {
+      ...baseForm,
+      type: 'documento',
+    }, undefined, ['collection-1'])).rejects.toThrow('Só é possível organizar livros em coleções.');
+
+    expect(uploadMock).not.toHaveBeenCalled();
   });
 
   test('requires a valid publication year before uploading any file', async () => {

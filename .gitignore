@@ -44,11 +44,15 @@ supabase/migrations/*
 !supabase/migrations/20261022193000_upload_rights_declaration.sql
 !supabase/migrations/20261024193000_reading_progress.sql
 !supabase/migrations/20261024194500_fix_reading_progress_document_reference.sql
+!supabase/migrations/20261026213000_user_reports.sql
+!supabase/migrations/20261027143000_book_collections.sql
+!supabase/migrations/20261027143700_upload_book_collection_selection.sql
 
 supabase/*.sql
 !supabase/avatars-storage-setup.sql
 !supabase/profiles-policies.sql
 supabase/templates/confirmation.html
+!supabase/templates/confirmation.html
 
 MANUAL_DO_USUARIO.md
 supabase/migrations/20261014174000_async_virus_total_uploads.sql
@@ -61,3 +65,6 @@ supabase/migrations/20261022193000_upload_rights_declaration.sql
 supabase/migrations/20261024193000_reading_progress.sql
 supabase/profiles-policies.sql
 supabase/avatars-storage-setup.sql
+supabase/migrations/20261026213000_user_reports.sql
+supabase/migrations/20261027143000_book_collections.sql
+supabase/migrations/20261027143700_upload_book_collection_selection.sql

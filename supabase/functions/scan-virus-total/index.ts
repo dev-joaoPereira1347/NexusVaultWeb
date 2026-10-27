@@ -26,6 +26,7 @@ type UploadRequest = {
   document_sha256: string | null;
   cover_sha256: string | null;
   target_item_id: string;
+  collection_ids: string[] | null;
   is_update: boolean;
   title: string;
   author: string;
@@ -272,6 +273,13 @@ Deno.serve(async (request: Request) => {
     if (error) throw new ScanError('Não foi possível carregar a solicitação de envio.', 500);
     if (!data) throw new ScanError('Solicitação de envio não encontrada.', 404);
     upload = data as UploadRequest;
+    const requestedCollectionIds = [...new Set(upload.collection_ids ?? [])];
+    if (requestedCollectionIds.length > 100) {
+      throw new ScanError('O envio contém mais de 100 coleções selecionadas.', 400);
+    }
+    if (requestedCollectionIds.length && (upload.is_update || upload.content_type !== 'livro')) {
+      throw new ScanError('Somente um novo livro pode ser adicionado a coleções durante o envio.', 400);
+    }
     if (upload.status === 'approved' || upload.status === 'rejected' || upload.status === 'failed') {
       return jsonResponse({ status: upload.status, message: upload.status_message });
     }
@@ -421,11 +429,46 @@ Deno.serve(async (request: Request) => {
     if (saveError) throw new ScanError('Não foi possível registrar o documento aprovado.', 500);
     itemPersisted = true;
 
+    let collectionStatusMessage = '';
+    if (requestedCollectionIds.length) {
+      const validIds = requestedCollectionIds.filter((id) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id));
+      const { data: ownedCollections, error: collectionsError } = validIds.length
+        ? await adminClient
+          .from('book_collections')
+          .select('id')
+          .eq('user_id', upload.uploaded_by)
+          .in('id', validIds)
+        : { data: [], error: null };
+      if (collectionsError) {
+        throw new ScanError('Não foi possível validar as coleções selecionadas.', 500);
+      }
+
+      const ownedIds = (ownedCollections ?? []).map(({ id }) => id);
+      if (ownedIds.length) {
+        const { error: collectionItemsError } = await adminClient
+          .from('book_collection_items')
+          .upsert(
+            ownedIds.map((collectionId) => ({
+              collection_id: collectionId,
+              document_id: upload.target_item_id
+            })),
+            { onConflict: 'collection_id,document_id', ignoreDuplicates: true },
+          );
+        if (collectionItemsError) {
+          throw new ScanError('O livro foi publicado, mas não foi possível vinculá-lo às coleções selecionadas.', 500);
+        }
+      }
+      if (ownedIds.length < requestedCollectionIds.length) {
+        collectionStatusMessage = ' Algumas coleções selecionadas não estavam mais disponíveis e foram ignoradas.';
+      }
+    }
+
     const { error: approvalError } = await adminClient
       .from('library_upload_requests')
       .update({
         status: 'approved',
-        status_message: 'Verificação concluída. O documento foi publicado no acervo.',
+        status_message: `Verificação concluída. O documento foi publicado no acervo.${collectionStatusMessage}`,
         updated_at: new Date().toISOString(),
       })
       .eq('id', upload.id)

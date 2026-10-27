@@ -7,6 +7,7 @@ const {
   signUpMock,
   signInWithOtpMock,
   resendMock,
+  verifyOtpMock,
   resetPasswordForEmailMock,
   updateUserMock,
   profilesUpsertMock,
@@ -15,6 +16,7 @@ const {
   signUpMock: vi.fn(),
   signInWithOtpMock: vi.fn(),
   resendMock: vi.fn(),
+  verifyOtpMock: vi.fn(),
   resetPasswordForEmailMock: vi.fn(),
   updateUserMock: vi.fn(),
   profilesUpsertMock: vi.fn(),
@@ -33,7 +35,7 @@ vi.mock('@/services/supabase', () => ({
       signUp: signUpMock,
       signInWithOtp: signInWithOtpMock,
       resend: resendMock,
-      verifyOtp: vi.fn(),
+      verifyOtp: verifyOtpMock,
       getSession: getSessionMock.mockResolvedValue({ data: { session: null }, error: null }),
       getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
       onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
@@ -61,6 +63,7 @@ const {
   signUp,
   sendMagicLink,
   resendSignupConfirmation,
+  verifySignupOtp,
   requestPasswordReset,
   savePendingAvatar,
   checkAndSyncPendingAvatar,
@@ -115,6 +118,7 @@ describe('authService email redirects', () => {
     signUpMock.mockReset()
     signInWithOtpMock.mockReset()
     resendMock.mockReset()
+    verifyOtpMock.mockReset()
     resetPasswordForEmailMock.mockReset()
     updateUserMock.mockReset()
     profilesUpsertMock.mockReset()
@@ -187,6 +191,16 @@ describe('authService email redirects', () => {
       options: {
         emailRedirectTo: expect.stringContaining('/auth'),
       },
+    })
+  })
+
+  test('verifies signup using the email OTP', async () => {
+    await verifySignupOtp('user@example.com', '123456')
+
+    expect(verifyOtpMock).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      token: '123456',
+      type: 'signup',
     })
   })
 
