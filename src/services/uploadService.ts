@@ -192,9 +192,12 @@ const startBackgroundScan = async (requestId: string) => {
     }
 };
 
-export const checkLibraryUploadRequest = async (requestId: string): Promise<void> => {
+const invokeUploadScanAction = async (
+    requestId: string,
+    action: 'check' | 'start' | 'cancel'
+): Promise<void> => {
     const { error } = await supabase.functions.invoke('scan-virus-total', {
-        body: { action: 'check', requestId }
+        body: { action, requestId }
     });
     if (!error) return;
 
@@ -203,6 +206,15 @@ export const checkLibraryUploadRequest = async (requestId: string): Promise<void
         : null;
     throw new Error(typeof response?.error === 'string' ? response.error : error.message);
 };
+
+export const checkLibraryUploadRequest = (requestId: string): Promise<void> =>
+    invokeUploadScanAction(requestId, 'check');
+
+export const retryLibraryUploadRequest = (requestId: string): Promise<void> =>
+    invokeUploadScanAction(requestId, 'start');
+
+export const cancelLibraryUploadRequest = (requestId: string): Promise<void> =>
+    invokeUploadScanAction(requestId, 'cancel');
 
 const createUploadRequest = async (details: QueueUploadDetails): Promise<LibraryUploadRequest> => {
     const { userId, form, files } = details;

@@ -202,15 +202,15 @@
                             <header class="auth-intro">
                                 <h1 class="nv-heading-h4">Confirme seu e-mail</h1>
                                 <p class="nv-page-description">
-                                    Enviamos um código de 6 dígitos para <strong>{{ verificationEmail }}</strong>.
+                                    Enviamos um código de 8 dígitos para <strong>{{ verificationEmail }}</strong>.
                                     Digite-o abaixo para ativar sua conta.
                                 </p>
                             </header>
                             <div class="form-group">
                                 <label for="verification-token">Código de confirmação</label>
                                 <ion-input id="verification-token" v-model="verificationToken" type="text"
-                                    inputmode="numeric" autocomplete="one-time-code" :maxlength="6" :minlength="6"
-                                    pattern="[0-9]{6}" fill="outline" placeholder="000000" class="custom-input"
+                                    inputmode="numeric" autocomplete="one-time-code" :maxlength="8" :minlength="8"
+                                    pattern="[0-9]{8}" fill="outline" placeholder="00000000" class="custom-input"
                                     required />
                             </div>
                             <button type="button" class="button-link text-link" :disabled="loading"
@@ -218,7 +218,7 @@
                                 Reenviar código
                             </button>
                             <ion-button type="submit" expand="block" class="primary-button"
-                                :disabled="loading || !/^\d{6}$/.test(verificationToken)">
+                                :disabled="loading || !/^\d{8}$/.test(verificationToken)">
                                 <span v-if="!loading">Confirmar e-mail</span>
                                 <ion-spinner v-else name="crescent" />
                             </ion-button>

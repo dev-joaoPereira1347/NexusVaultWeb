@@ -38,6 +38,29 @@
                     </button>
                 </label>
 
+                <nav class="catalog-tabs" role="tablist" aria-label="Tipo de conteúdo">
+                    <button
+                        type="button"
+                        role="tab"
+                        class="catalog-tab"
+                        :class="{ 'is-selected': activeContentType === 'livro' }"
+                        :aria-selected="activeContentType === 'livro'"
+                        @click="activeContentType = 'livro'"
+                    >
+                        Livros
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        class="catalog-tab"
+                        :class="{ 'is-selected': activeContentType === 'documento' }"
+                        :aria-selected="activeContentType === 'documento'"
+                        @click="activeContentType = 'documento'"
+                    >
+                        Documentos
+                    </button>
+                </nav>
+
                 <nav class="quick-filters" aria-label="Filtros rápidos">
                     <button
                         type="button"
@@ -73,7 +96,10 @@
                 </nav>
 
                 <p v-if="!loading && !errorMessage" class="result-count" role="status">
-                    {{ filteredItems.length }} {{ filteredItems.length === 1 ? 'documento encontrado' : 'documentos encontrados' }}
+                    {{ filteredItems.length }}
+                    {{ activeContentType === 'livro'
+                        ? (filteredItems.length === 1 ? 'livro encontrado' : 'livros encontrados')
+                        : (filteredItems.length === 1 ? 'documento encontrado' : 'documentos encontrados') }}
                 </p>
 
                 <div v-if="loading" class="feedback" role="status">
@@ -82,10 +108,10 @@
                 </div>
                 <p v-else-if="errorMessage" class="feedback error-message" role="alert">{{ errorMessage }}</p>
                 <p v-else-if="filteredItems.length === 0" class="feedback">
-                    {{ items.length ? 'Nenhum documento corresponde à pesquisa.' : 'O acervo ainda não possui documentos.' }}
+                    {{ items.length ? `Nenhum ${activeContentType} corresponde à pesquisa.` : 'O acervo ainda não possui documentos.' }}
                 </p>
 
-                <section v-else class="item-grid" aria-label="Documentos do acervo">
+                <section v-else class="item-grid" :aria-label="`${activeContentType === 'livro' ? 'Livros' : 'Documentos'} do acervo`">
                     <article v-for="item in filteredItems" :key="item.id" class="library-card">
                         <router-link
                             class="library-card-link"
@@ -227,6 +253,7 @@ const route = useRoute();
 const router = useRouter();
 const searchQuery = ref(typeof route.query.q === 'string' ? route.query.q : '');
 const selectedGenre = ref(typeof route.query.genre === 'string' ? route.query.genre : '');
+const activeContentType = ref<'livro' | 'documento'>('livro');
 const loading = ref(true);
 const errorMessage = ref('');
 type CatalogFilters = { category: string; type: string; format: string; language: string };
@@ -347,9 +374,8 @@ watch(
 const filteredItems = computed(() => {
     const genre = normalizeLibraryGenre(selectedGenre.value);
     const active = filters.value;
-    if (!searchQuery.value.trim() && !genre && !activeFilterCount.value) return items.value;
-
     return items.value.filter((item) => {
+        if (item.content_type !== activeContentType.value) return false;
         const matchesQuery = matchesLibrarySearch(item, searchQuery.value);
         const matchesGenre = !genre || getLibraryItemTags(item.genre, item.category)
             .some((tag) => normalizeLibraryGenre(tag) === genre);
@@ -358,7 +384,10 @@ const filteredItems = computed(() => {
         const matchesFormat = !active.format || normalizeFilterValue(getFileExtension(item.file_name)) === active.format;
         const matchesLanguage = !active.language || normalizeFilterValue(item.language ?? '') === active.language;
         return matchesQuery && matchesGenre && matchesCategory && matchesType && matchesFormat && matchesLanguage;
-    });
+    }).sort((left, right) =>
+        left.title.localeCompare(right.title, 'pt-BR', { sensitivity: 'base', numeric: true })
+        || left.id.localeCompare(right.id)
+    );
 });
 
 const refreshItems = async () => {
@@ -477,6 +506,36 @@ onMounted(loadSavedBooks);
     background: var(--color-brand-primary);
     color: var(--color-white);
     font-size: 0.7rem;
+}
+
+.catalog-tabs {
+    display: flex;
+    gap: var(--space-lg);
+    margin: -8px 0 var(--space-md);
+    border-bottom: 1px solid var(--color-border-soft);
+}
+
+.catalog-tab {
+    min-height: 44px;
+    padding: 0 2px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.catalog-tab.is-selected {
+    border-bottom-color: var(--color-brand-primary);
+    color: var(--color-brand-primary);
+}
+
+.catalog-tab:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 2px;
 }
 
 .quick-filters {

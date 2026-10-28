@@ -1,12 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-};
 
 const jsonResponse = (body: Record<string, unknown>, status = 200) =>
     new Response(JSON.stringify(body), {
@@ -16,6 +11,26 @@ const jsonResponse = (body: Record<string, unknown>, status = 200) =>
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error && error.message) return error.message;
+    if (typeof error === 'string' && error.trim()) return error;
+    if (isRecord(error)) {
+        const message = [error.message, error.error_description, error.details, error.hint]
+            .find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+        if (message) return message;
+        if (typeof error.code === 'string' && error.code) {
+            return `Erro do serviço administrativo (${error.code}).`;
+        }
+        try {
+            const serialized = JSON.stringify(error);
+            if (serialized && serialized !== '{}') return serialized;
+        } catch {
+            return 'O serviço administrativo retornou um erro não serializável.';
+        }
+    }
+    return 'O serviço administrativo retornou um erro sem detalhes.';
+};
 
 const isUuid = (value: unknown): value is string =>
     typeof value === 'string'
@@ -365,8 +380,6 @@ Deno.serve(async (request: Request) => {
         return jsonResponse({ error: 'Ação desconhecida.' }, 400);
     } catch (error) {
         console.error('Admin content operation failed', error);
-        return jsonResponse({
-            error: error instanceof Error ? error.message : 'Não foi possível concluir a operação administrativa.'
-        }, 500);
+        return jsonResponse({ error: getErrorMessage(error) }, 500);
     }
 });

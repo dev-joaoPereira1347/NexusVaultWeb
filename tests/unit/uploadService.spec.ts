@@ -37,7 +37,11 @@ vi.mock('@/utils/convertImageToWebp', () => ({
   convertImageToWebp: convertImageToWebpMock,
 }));
 
-const { uploadLibraryItem } = await import('@/services/uploadService');
+const {
+  cancelLibraryUploadRequest,
+  retryLibraryUploadRequest,
+  uploadLibraryItem,
+} = await import('@/services/uploadService');
 
 const baseForm: UploadForm = {
   title: 'Livro de Teste',
@@ -179,6 +183,22 @@ describe('uploadLibraryItem', () => {
     expect(insertMock).toHaveBeenCalledTimes(1);
     expect(result.status_message).toContain('O envio foi salvo');
     expect(removeMock).not.toHaveBeenCalled();
+  });
+
+  test('retries a queued upload through the scan function', async () => {
+    await retryLibraryUploadRequest('request-123');
+
+    expect(scanVirusTotalMock).toHaveBeenCalledWith('scan-virus-total', {
+      body: { action: 'start', requestId: 'request-123' },
+    });
+  });
+
+  test('cancels a queued upload through the scan function', async () => {
+    await cancelLibraryUploadRequest('request-123');
+
+    expect(scanVirusTotalMock).toHaveBeenCalledWith('scan-virus-total', {
+      body: { action: 'cancel', requestId: 'request-123' },
+    });
   });
 
   test('requires an authenticated user', async () => {

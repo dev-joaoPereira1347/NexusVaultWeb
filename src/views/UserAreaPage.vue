@@ -9,9 +9,15 @@
                     <div class="identity-info">
                         <h1>Olá, {{ profileForm.fullName || profileForm.username || 'Minha Conta' }}</h1>
                     </div>
-                    <ion-button fill="clear" class="sign-out-button" :disabled="pageLoading" @click="handleSignOut">
-                        <ion-icon slot="start" :icon="logOutOutline" />
-                        Sair da conta
+                    <ion-button
+                        fill="clear"
+                        class="sign-out-button"
+                        aria-label="Sair da conta"
+                        title="Sair da conta"
+                        :disabled="pageLoading"
+                        @click="handleSignOut"
+                    >
+                        <ion-icon :icon="logOutOutline" aria-hidden="true" />
                     </ion-button>
                 </section>
 
@@ -227,8 +233,9 @@
                                         preservação no acervo público.</p>
                                 </div>
                                 <div class="upload-panel-actions">
-                                    <ion-button v-if="uploadRequests.some((item) => ['pending', 'processing', 'scanning'].includes(item.status))"
-                                        fill="outline" class="status-check-button" :disabled="checkingUploads"
+                                    <ion-button v-if="hasCheckableUploads"
+                                        fill="outline" class="status-check-button"
+                                        :disabled="checkingUploads || uploadAction !== null"
                                         @click="refreshUploadStatuses">
                                         <ion-spinner v-if="checkingUploads" name="crescent" />
                                         <span v-else>Verificar status</span>
@@ -261,6 +268,29 @@
                                         <p v-if="item.status_message" class="scan-status-message" role="status">
                                             {{ item.status_message }}
                                         </p>
+                                    </div>
+                                    <div v-if="canRetryUpload(item) || canCancelUpload(item)" class="upload-request-actions">
+                                        <ion-button
+                                            v-if="canRetryUpload(item)"
+                                            size="small"
+                                            fill="outline"
+                                            :disabled="uploadAction !== null || checkingUploads"
+                                            @click="handleRetryUpload(item)"
+                                        >
+                                            <ion-spinner v-if="uploadActionId === item.id && uploadAction === 'retry'" name="crescent" />
+                                            <span v-else>Tentar novamente</span>
+                                        </ion-button>
+                                        <ion-button
+                                            v-if="canCancelUpload(item)"
+                                            size="small"
+                                            fill="clear"
+                                            color="danger"
+                                            :disabled="uploadAction !== null || checkingUploads"
+                                            @click="handleCancelUpload(item)"
+                                        >
+                                            <ion-spinner v-if="uploadActionId === item.id && uploadAction === 'cancel'" name="crescent" />
+                                            <span v-else>Cancelar envio</span>
+                                        </ion-button>
                                     </div>
                                 </article>
                             </div>
@@ -642,6 +672,9 @@ const {
     savingReview,
     savingContribution,
     checkingUploads,
+    uploadActionId,
+    uploadAction,
+    hasCheckableUploads,
     profileForm,
     isEditingProfile,
     isChangingPassword,
@@ -674,6 +707,8 @@ const {
     closeContributionEditor,
     handleUpdateContribution,
     refreshUploadStatuses,
+    handleRetryUpload,
+    handleCancelUpload,
     handleDeleteContribution,
     handleSignOut,
     handleDeleteAccount
@@ -723,8 +758,16 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
         case 'approved': return 'Aprovado';
         case 'rejected': return 'Rejeitado';
         case 'failed': return 'Falha na verificação';
+        case 'cancelled': return 'Cancelado';
     }
 };
+
+const canRetryUpload = (item: { status: UploadScanStatus; status_message: string | null }) =>
+    item.status === 'pending'
+    || (item.status === 'failed' && item.status_message?.startsWith('Verificação antivírus indisponível:') === true);
+
+const canCancelUpload = (item: { status: UploadScanStatus }) =>
+    item.status === 'pending' || item.status === 'scanning' || item.status === 'failed';
 </script>
 
 <style scoped>
@@ -753,7 +796,11 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     justify-content: space-between;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-md) var(--surface-padding);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
 .identity-info {
@@ -945,17 +992,25 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
 
 .sign-out-button {
     --color: var(--color-text-secondary);
+    --padding-start: 0;
+    --padding-end: 0;
+    --border-radius: 50%;
+    width: 44px;
+    height: 44px;
     margin: 0;
-    text-transform: none;
     flex-shrink: 0;
+}
+
+.sign-out-button ion-icon {
+    font-size: 1.25rem;
 }
 
 /* User area tabs */
 .tab-navigation {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     width: 100%;
-    padding: 4px;
+    padding: 4px 0 8px;
     background: rgba(226, 218, 211, 0.4);
     border-radius: var(--radius-lg);
     overflow-x: auto;
@@ -976,7 +1031,7 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
     flex: 0 0 auto;
     min-width: max-content;
     min-height: 48px;
-    padding: 8px 12px;
+    padding: 8px 16px;
     border: 0;
     border-radius: var(--radius-control);
     background: transparent;
@@ -996,9 +1051,23 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
 }
 
 .tab-button.is-active {
-    background: var(--color-white, #FFFFFF);
+    position: relative;
     color: var(--color-text-primary, #22223B);
-    box-shadow: 0 1px 3px rgba(34, 34, 59, 0.12);
+}
+
+.tab-button.is-active::after {
+    position: absolute;
+    right: 12px;
+    bottom: 0;
+    left: 12px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--color-brand-primary);
+    content: "";
+}
+
+.tab-button.is-active ion-icon {
+    color: var(--color-brand-primary);
 }
 
 .tab-button:focus-visible {
@@ -1078,11 +1147,26 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
 }
 
 .upload-request-list {
+    grid-template-columns: minmax(0, 1fr);
     margin-bottom: 16px;
 }
 
 .upload-request-card {
     align-items: center;
+    min-width: 0;
+}
+
+.upload-request-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+    min-width: 0;
+}
+
+.upload-request-card .media-info h3,
+.upload-request-card .media-info .meta {
+    overflow-wrap: anywhere;
 }
 
 .scan-status {
@@ -1950,13 +2034,45 @@ const getUploadStatusLabel = (status: UploadScanStatus) => {
         min-width: 0;
         max-width: 100%;
     }
+
+    .upload-request-card {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr);
+        align-items: start;
+        gap: 12px;
+    }
+
+    .upload-request-card .cover-wrapper {
+        grid-row: span 2;
+    }
+
+    .upload-request-actions {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-content: stretch;
+        gap: 8px;
+    }
+
+    .upload-request-actions :deep(ion-button) {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        min-height: 38px;
+        margin: 0;
+        font-size: 0.78rem;
+        --padding-start: 8px;
+        --padding-end: 8px;
+        white-space: normal;
+    }
 }
 
 @media (max-width: 420px) {
     .tab-button {
         flex-direction: column;
         gap: 4px;
-        padding: 8px 4px;
+        min-width: 72px;
+        padding: 8px 12px;
         font-size: 0.76rem;
     }
 }

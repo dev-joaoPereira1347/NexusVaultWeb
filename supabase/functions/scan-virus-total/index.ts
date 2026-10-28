@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   ALLOWED_DOCUMENT_EXTENSIONS,
@@ -10,15 +11,12 @@ const DOCUMENT_BUCKET = 'library-documents';
 const COVER_BUCKET = 'library-covers';
 const QUARANTINE_BUCKET = 'library-quarantine';
 const VIRUSTOTAL_API_URL = 'https://www.virustotal.com/api/v3';
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
+const VIRUSTOTAL_CONFIG_ERROR =
+  'Verificação antivírus indisponível: a chave do VirusTotal não está configurada no servidor.';
 type UploadRequest = {
   id: string;
   uploaded_by: string;
-  status: 'pending' | 'processing' | 'scanning' | 'approved' | 'rejected' | 'failed';
+  status: 'pending' | 'processing' | 'scanning' | 'approved' | 'rejected' | 'failed' | 'cancelled';
   updated_at: string;
   status_message: string | null;
   analysis_id: string | null;
@@ -209,7 +207,7 @@ Deno.serve(async (request: Request) => {
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const virusTotalApiKey = Deno.env.get('VIRUSTOTAL_API_KEY');
-  if (!supabaseUrl || !anonKey || !serviceRoleKey || !virusTotalApiKey) {
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
     return jsonResponse({ error: 'A verificação antivírus não está configurada no servidor.' }, 500);
   }
 
@@ -224,7 +222,7 @@ Deno.serve(async (request: Request) => {
   });
   let upload: UploadRequest | null = null;
   let files: PreparedFile[] = [];
-  let published: Array<{ bucket: string; path: string }> = [];
+  const published: Array<{ bucket: string; path: string }> = [];
   let lockAcquired = false;
   let itemPersisted = false;
   let requestApproved = false;
@@ -259,7 +257,7 @@ Deno.serve(async (request: Request) => {
     const body = await request.json();
     if (
       typeof body.requestId !== 'string' ||
-      (body.action !== 'start' && body.action !== 'check')
+      (body.action !== 'start' && body.action !== 'check' && body.action !== 'cancel')
     ) {
       throw new ScanError('Solicitação de verificação inválida.', 400);
     }
@@ -273,6 +271,39 @@ Deno.serve(async (request: Request) => {
     if (error) throw new ScanError('Não foi possível carregar a solicitação de envio.', 500);
     if (!data) throw new ScanError('Solicitação de envio não encontrada.', 404);
     upload = data as UploadRequest;
+    if (body.action === 'cancel') {
+      if (upload.status === 'cancelled') {
+        await removeQuarantine();
+        return jsonResponse({ status: 'cancelled', message: upload.status_message });
+      }
+
+      const cancellationMessage = 'Envio cancelado pelo usuário.';
+      const { data: cancelledRequest, error: cancellationError } = await adminClient
+        .from('library_upload_requests')
+        .update({
+          status: 'cancelled',
+          status_message: cancellationMessage,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', upload.id)
+        .eq('uploaded_by', user.id)
+        .in('status', ['pending', 'scanning', 'failed'])
+        .select('id')
+        .maybeSingle();
+      if (cancellationError) throw new ScanError('Não foi possível cancelar o envio.', 500);
+      if (!cancelledRequest) {
+        return jsonResponse({
+          status: upload.status,
+          error: 'Este envio já está em processamento e não pode ser cancelado agora.',
+        }, 409);
+      }
+
+      upload.status = 'cancelled';
+      upload.status_message = cancellationMessage;
+      await removeQuarantine();
+      return jsonResponse({ status: 'cancelled', message: cancellationMessage });
+    }
+
     const requestedCollectionIds = [...new Set(upload.collection_ids ?? [])];
     if (requestedCollectionIds.length > 100) {
       throw new ScanError('O envio contém mais de 100 coleções selecionadas.', 400);
@@ -280,8 +311,21 @@ Deno.serve(async (request: Request) => {
     if (requestedCollectionIds.length && (upload.is_update || upload.content_type !== 'livro')) {
       throw new ScanError('Somente um novo livro pode ser adicionado a coleções durante o envio.', 400);
     }
-    if (upload.status === 'approved' || upload.status === 'rejected' || upload.status === 'failed') {
+    const retryableConfigurationFailure =
+      upload.status === 'failed' && upload.status_message === VIRUSTOTAL_CONFIG_ERROR;
+    if (
+      upload.status === 'approved'
+      || upload.status === 'rejected'
+      || (upload.status === 'failed' && !retryableConfigurationFailure)
+    ) {
       return jsonResponse({ status: upload.status, message: upload.status_message });
+    }
+    if (!virusTotalApiKey) {
+      await updateUpload({
+        status: 'failed',
+        status_message: VIRUSTOTAL_CONFIG_ERROR,
+      });
+      return jsonResponse({ status: 'failed', error: VIRUSTOTAL_CONFIG_ERROR }, 503);
     }
 
     const { data: currentItem, error: itemError } = await adminClient
@@ -329,9 +373,13 @@ Deno.serve(async (request: Request) => {
       .update({ status: 'processing', status_message: null, updated_at: new Date().toISOString() })
       .eq('id', upload.id)
       .eq('uploaded_by', user.id);
-    lockQuery = upload.status === 'processing'
-      ? lockQuery.eq('status', 'processing').lt('updated_at', staleLockTime)
-      : lockQuery.in('status', ['pending', 'scanning']);
+    if (upload.status === 'processing') {
+      lockQuery = lockQuery.eq('status', 'processing').lt('updated_at', staleLockTime);
+    } else if (retryableConfigurationFailure) {
+      lockQuery = lockQuery.eq('status', 'failed').eq('status_message', VIRUSTOTAL_CONFIG_ERROR);
+    } else {
+      lockQuery = lockQuery.in('status', ['pending', 'scanning']);
+    }
     const { data: lockedRequest, error: lockError } = await lockQuery.select('id').maybeSingle();
     if (lockError) throw new ScanError('Não foi possível iniciar a verificação.', 500);
     if (!lockedRequest) {

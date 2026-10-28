@@ -25,7 +25,7 @@ export interface LibraryContribution {
     created_at: string;
 }
 
-export type UploadScanStatus = 'pending' | 'processing' | 'scanning' | 'approved' | 'rejected' | 'failed';
+export type UploadScanStatus = 'pending' | 'processing' | 'scanning' | 'approved' | 'rejected' | 'failed' | 'cancelled';
 
 export interface LibraryUploadRequest {
     id: string;

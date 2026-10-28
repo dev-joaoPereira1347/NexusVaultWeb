@@ -132,6 +132,24 @@ watch(() => form.type, (type) => {
     if (type !== 'livro') selectedCollectionIds.value = [];
 });
 
+const resetDocumentMetadata = () => {
+    form.title = '';
+    form.author = '';
+    form.category = '';
+    form.year = '';
+    form.type = '';
+    form.genre = '';
+    form.language = '';
+    form.description = '';
+    form.cover = null;
+    form.rightsDeclarationAccepted = false;
+    selectedCollectionIds.value = [];
+    isCollectionPickerOpen.value = false;
+    autoFilledFields.value = [];
+    metadataCoverWarning.value = false;
+    embeddedCoverFile.value = null;
+};
+
 const metadataMissingFields = computed<MetadataField[]>(() => {
     if (!metadataLookupCompleted.value) return [];
 
@@ -168,15 +186,12 @@ const processFile = (file: File) => {
     }
 
     metadataController?.abort();
+    resetDocumentMetadata();
     selectedFile.value = file;
     const requestId = ++metadataRequestId;
     metadataController = new AbortController();
     fileReadCompleted.value = false;
     metadataLookupCompleted.value = false;
-    metadataCoverWarning.value = false;
-    embeddedCoverFile.value = null;
-    form.cover = null;
-    autoFilledFields.value = [];
     metadataMessage.value = 'Lendo o arquivo e buscando metadados na Open Library...';
     void lookupMetadata(file, requestId, metadataController.signal);
 };
@@ -218,6 +233,7 @@ const lookupMetadata = async (file: File, requestId: number, signal: AbortSignal
         embeddedCoverFile.value = result?.embeddedCover ?? null;
         if (!result?.metadata) {
             metadataLookupCompleted.value = true;
+            metadataCoverWarning.value = Boolean(result?.coverExtractionWarning);
             metadataMessage.value = result?.lookupWarning
                 ? 'Não foi possível consultar a Open Library. Preencha os dados manualmente.'
                 : result?.extractionWarning

@@ -6,7 +6,7 @@
       <HeroSection badge="MUSEU DIGITAL ABERTO" title="Preserve, organize e compartilhe<br />conhecimento."
         description="Explore milhares de documentos, contribua com novas coleções e ajude a preservar conhecimento de forma aberta e acessível para todos."
         primary-label="EXPLORAR ACERVO" secondary-label="CONTRIBUIR" :image-src="libraryImage"
-        image-alt="Estante de madeira com luminárias" />
+        image-alt="Estante de madeira com luminárias" primary-to="/search" />
 
       <section class="stats-section">
         <ion-grid>

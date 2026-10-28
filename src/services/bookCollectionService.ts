@@ -121,10 +121,31 @@ const getCollectionRows = async (ownerId: string, publicOnly: boolean): Promise<
     }));
 };
 
+const ensureFavoritesCollectionForUser = async (userId: string): Promise<void> => {
+    const { data, error: collectionError } = await supabase
+        .from('book_collections')
+        .select('id')
+        .eq('user_id', userId)
+        .ilike('name', 'Favoritos')
+        .limit(1);
+    if (collectionError) throwCollectionError(collectionError);
+    if (data?.length) return;
+
+    await createBookCollection({ name: 'Favoritos', isPublic: false });
+};
+
+export const ensureFavoritesBookCollection = async (): Promise<void> => {
+    const { data: { user }, error } = await getCurrentUser();
+    if (error) throwCollectionError(error);
+    if (!user) throw new Error('Usuário não autenticado.');
+    await ensureFavoritesCollectionForUser(user.id);
+};
+
 export const listMyBookCollections = async (): Promise<BookCollection[]> => {
     const { data: { user }, error } = await getCurrentUser();
     if (error) throwCollectionError(error);
     if (!user) throw new Error('Usuário não autenticado.');
+    await ensureFavoritesCollectionForUser(user.id);
     return getCollectionRows(user.id, false);
 };
 

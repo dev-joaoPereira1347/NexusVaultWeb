@@ -48,6 +48,7 @@ export const listMyUploadRequests = async (userId: string): Promise<LibraryUploa
         .select('id, target_item_id, title, file_name, status, status_message, created_at, updated_at')
         .eq('uploaded_by', userId)
         .neq('status', 'approved')
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
         .limit(50);
 

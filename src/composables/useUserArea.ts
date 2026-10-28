@@ -15,7 +15,13 @@ import {
     uploadAvatar
 } from '@/services/authService';
 import { listLibraryCatalog, listMyContributions, listMyUploadRequests } from '@/services/libraryService';
-import { checkLibraryUploadRequest, deleteMyLibraryItem, updateMyLibraryItem } from '@/services/uploadService';
+import {
+    cancelLibraryUploadRequest,
+    checkLibraryUploadRequest,
+    deleteMyLibraryItem,
+    retryLibraryUploadRequest,
+    updateMyLibraryItem
+} from '@/services/uploadService';
 import {
     deleteReadingProgress,
     listMyReadingProgress
@@ -67,6 +73,8 @@ export const useUserArea = () => {
     const savingReview = ref(false);
     const savingContribution = ref(false);
     const checkingUploads = ref(false);
+    const uploadActionId = ref<string | null>(null);
+    const uploadAction = ref<'retry' | 'cancel' | null>(null);
 
     const profileForm = reactive<UserProfileForm>(emptyProfile());
     const originalProfile = ref<UserProfileForm>(emptyProfile());
@@ -83,6 +91,12 @@ export const useUserArea = () => {
 
     const contributions = ref<LibraryContribution[]>([]);
     const uploadRequests = ref<LibraryUploadRequest[]>([]);
+    const hasCheckableUploads = computed(() => uploadRequests.value.some((item) =>
+        item.status === 'pending'
+        || item.status === 'scanning'
+        || item.status === 'processing'
+        || (item.status === 'failed' && item.status_message?.startsWith('Verificação antivírus indisponível:'))
+    ));
     const editingContribution = ref<LibraryContribution | null>(null);
     const contributionDraft = reactive<UploadForm>(emptyUploadForm());
     const replacementFile = ref<File | null>(null);
@@ -487,11 +501,14 @@ export const useUserArea = () => {
         const userId = await getAuthenticatedUserId();
         const requests = await listMyUploadRequests(userId);
         const pendingRequests = requests.filter((item) =>
-            item.status === 'pending' || item.status === 'scanning' || item.status === 'processing'
+            item.status === 'pending'
+            || item.status === 'scanning'
+            || item.status === 'processing'
+            || (item.status === 'failed' && item.status_message?.startsWith('Verificação antivírus indisponível:'))
         );
         const failures: string[] = [];
 
-        const requestToCheck = pendingRequests[0];
+        const requestToCheck = pendingRequests.find((item) => item.status !== 'failed') ?? pendingRequests[0];
         if (requestToCheck) {
             try {
                 await checkLibraryUploadRequest(requestToCheck.id);
@@ -512,11 +529,86 @@ export const useUserArea = () => {
             failures.length
                 ? `Status atualizado com erros: ${failures.join('; ')}`
                 : pendingRequests.length > 1
-                    ? `Um status foi consultado. Ainda há ${pendingRequests.length - 1} envio(s) aguardando consulta.`
+                    ? `Um status foi consultado. Ainda há ${pendingRequests.length - 1} envio(s) que precisam ser verificados.`
                     : 'Status dos envios atualizado.',
             failures.length ? 'warning' : 'success'
         );
     }, 'Não foi possível atualizar os status dos envios.');
+
+    const handleRetryUpload = async (item: LibraryUploadRequest) => {
+        uploadActionId.value = item.id;
+        uploadAction.value = 'retry';
+        try {
+            await retryLibraryUploadRequest(item.id);
+            const userId = await getAuthenticatedUserId();
+            const [requests, myItems, catalogItems] = await Promise.all([
+                listMyUploadRequests(userId),
+                listMyContributions(userId),
+                listLibraryCatalog()
+            ]);
+            uploadRequests.value = requests;
+            contributions.value = myItems;
+            catalog.value = catalogItems;
+            await showToast('Nova tentativa iniciada. O status será atualizado conforme a verificação avançar.');
+        } catch (error) {
+            try {
+                const userId = await getAuthenticatedUserId();
+                uploadRequests.value = await listMyUploadRequests(userId);
+            } catch (refreshError) {
+                await showToast(
+                    `Não foi possível atualizar o status do envio: ${getErrorMessage(refreshError, 'erro desconhecido')}`,
+                    'warning'
+                );
+            }
+            await showToast(
+                translateError(getErrorMessage(error, 'Não foi possível tentar novamente o envio.'), 'Não foi possível tentar novamente o envio.'),
+                'danger'
+            );
+        } finally {
+            uploadActionId.value = null;
+            uploadAction.value = null;
+        }
+    };
+
+    const handleCancelUpload = async (item: LibraryUploadRequest) => {
+        const alert = await alertController.create({
+            header: 'Cancelar envio',
+            message: `O envio de “${item.title}” será cancelado e os arquivos temporários serão removidos.`,
+            buttons: [
+                { text: 'Manter envio', role: 'cancel' },
+                { text: 'Cancelar envio', role: 'destructive' }
+            ]
+        });
+        await alert.present();
+        const { role } = await alert.onDidDismiss();
+        if (role !== 'destructive') return;
+
+        uploadActionId.value = item.id;
+        uploadAction.value = 'cancel';
+        try {
+            await cancelLibraryUploadRequest(item.id);
+            const userId = await getAuthenticatedUserId();
+            uploadRequests.value = await listMyUploadRequests(userId);
+            await showToast('Envio cancelado.');
+        } catch (error) {
+            try {
+                const userId = await getAuthenticatedUserId();
+                uploadRequests.value = await listMyUploadRequests(userId);
+            } catch (refreshError) {
+                await showToast(
+                    `Não foi possível atualizar o status do envio: ${getErrorMessage(refreshError, 'erro desconhecido')}`,
+                    'warning'
+                );
+            }
+            await showToast(
+                translateError(getErrorMessage(error, 'Não foi possível cancelar o envio.'), 'Não foi possível cancelar o envio.'),
+                'danger'
+            );
+        } finally {
+            uploadActionId.value = null;
+            uploadAction.value = null;
+        }
+    };
 
     const handleDeleteContribution = async (item: LibraryContribution) => {
         const alert = await alertController.create({
@@ -604,6 +696,9 @@ export const useUserArea = () => {
         savingReview,
         savingContribution,
         checkingUploads,
+        uploadActionId,
+        uploadAction,
+        hasCheckableUploads,
         profileForm,
         isEditingProfile,
         isChangingPassword,
@@ -636,6 +731,8 @@ export const useUserArea = () => {
         closeContributionEditor,
         handleUpdateContribution,
         refreshUploadStatuses,
+        handleRetryUpload,
+        handleCancelUpload,
         handleDeleteContribution,
         handleSignOut,
         handleDeleteAccount

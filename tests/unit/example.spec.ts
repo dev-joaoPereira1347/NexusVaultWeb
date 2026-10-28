@@ -195,11 +195,11 @@ describe('authService email redirects', () => {
   })
 
   test('verifies signup using the email OTP', async () => {
-    await verifySignupOtp('user@example.com', '123456')
+    await verifySignupOtp('user@example.com', '12345678')
 
     expect(verifyOtpMock).toHaveBeenCalledWith({
       email: 'user@example.com',
-      token: '123456',
+      token: '12345678',
       type: 'signup',
     })
   })

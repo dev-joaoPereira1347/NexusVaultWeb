@@ -174,7 +174,7 @@ export const useAuth = () => {
         const email = verificationEmail.value.trim();
         const token = verificationToken.value.trim();
         if (!email) throw new Error('Não foi possível identificar o e-mail do cadastro.');
-        if (!/^\d{6}$/.test(token)) throw new Error('Informe o código de 6 dígitos enviado para seu e-mail.');
+        if (!/^\d{8}$/.test(token)) throw new Error('Informe o código de 8 dígitos enviado para seu e-mail.');
 
         const { data, error } = await verifySignupOtp(email, token);
         if (error) throw error;

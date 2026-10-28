@@ -19,10 +19,13 @@
             <p v-if="errorMessage" class="picker-message picker-error" role="alert">{{ errorMessage }}</p>
             <p v-if="successMessage" class="picker-message" role="status">{{ successMessage }}</p>
             <p v-if="loading" class="picker-loading" role="status">Carregando suas coleções...</p>
-            <p v-else-if="!collections.length && !errorMessage" class="picker-empty">
-                Você ainda não tem coleções. Crie uma para guardar esta obra.
-            </p>
-            <ul v-else class="picker-collection-list" aria-label="Suas coleções">
+            <div v-else-if="!collections.length && !errorMessage && !showCreateForm" class="picker-empty">
+                Você ainda não tem coleções disponíveis.
+                <button type="button" class="picker-empty-create" :disabled="busy" @click="showCreateForm = true">
+                    Criar sua primeira coleção
+                </button>
+            </div>
+            <ul v-else-if="collections.length" class="picker-collection-list" aria-label="Suas coleções">
                 <li v-for="collection in collections" :key="collection.id">
                     <button
                         type="button"
@@ -44,6 +47,16 @@
                     </button>
                 </li>
             </ul>
+            <button
+                v-if="!loading && !showCreateForm && collections.length"
+                type="button"
+                class="picker-new-collection"
+                :disabled="busy"
+                @click="showCreateForm = true"
+            >
+                <ion-icon :icon="addOutline" aria-hidden="true" />
+                Criar nova coleção
+            </button>
 
             <form v-if="showCreateForm" class="picker-create-form" @submit.prevent="createAndSave">
                 <label for="quick-collection-name">Nome da coleção</label>
@@ -67,13 +80,6 @@
                 </div>
             </form>
 
-            <footer class="picker-footer">
-                <button v-if="!showCreateForm" type="button" class="picker-new-collection" :disabled="busy"
-                    @click="showCreateForm = true">
-                    <ion-icon :icon="addOutline" aria-hidden="true" />
-                    Criar nova coleção
-                </button>
-            </footer>
         </section>
     </IonModal>
 </template>
@@ -136,7 +142,10 @@ const loadCollections = async () => {
     loading.value = true;
     errorMessage.value = '';
     try {
-        collections.value = await listMyBookCollections();
+        collections.value = (await listMyBookCollections()).sort((first, second) =>
+            Number(second.name.toLocaleLowerCase() === 'favoritos')
+            - Number(first.name.toLocaleLowerCase() === 'favoritos')
+        );
         if (!props.selectionOnly) {
             emit('saved', collections.value.some((collection) =>
                 collection.items.some(({ id }) => id === props.book?.id)));
@@ -337,6 +346,23 @@ watch(
     font-size: var(--font-size-caption);
 }
 
+.picker-empty {
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.picker-empty-create {
+    min-height: var(--control-height);
+    padding: 0 var(--space-md);
+    border: 1px solid var(--color-brand-primary);
+    border-radius: var(--radius-control);
+    background: var(--color-brand-primary);
+    color: var(--color-white);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+}
+
 .picker-saved {
     margin-left: auto;
     color: var(--color-brand-primary);
@@ -411,14 +437,6 @@ watch(
     border-color: var(--color-border-soft);
     background: var(--color-surface);
     color: var(--color-text-primary);
-}
-
-.picker-footer {
-    position: sticky;
-    bottom: 0;
-    margin-top: auto;
-    padding-top: var(--space-sm);
-    background: var(--color-surface);
 }
 
 .picker-new-collection {
